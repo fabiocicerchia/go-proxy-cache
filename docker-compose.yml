@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  go-proxy-cache:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    depends_on:
+      - redis
+    env_file:
+      - ./.env
+    ports:
+      - 8080:8080
+
+  redis:
+    image: redis:6.0.8-alpine3.12
+    ports:
+      - 6379:6379
+    sysctls:
+      # WARNING: The TCP backlog setting of 511 cannot be enforced because
+      # /proc/sys/net/core/somaxconn is set to the lower value of 128.
+      net.core.somaxconn: 1024

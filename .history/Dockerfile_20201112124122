@@ -1,0 +1,7 @@
+FROM golang:1.15.4-alpine3.12
+
+WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
+
+COPY . ./
+
+RUN go build -o /go-proxy-cache main.go
