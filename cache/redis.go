@@ -71,7 +71,11 @@ func RetrieveFullPage(url string) (statusCode int, headers map[string]string, co
 	if err != nil {
 		return statusCode, headers, content, err
 	}
-	statusCode, _ = strconv.Atoi(status)
+	statusCode, err = strconv.Atoi(status)
+	if err != nil {
+		statusCode = 0
+		// TODO: log
+	}
 
 	headers, err = rdb.HGetAll(ctx, "HEADERS@@"+key).Result()
 	if err != nil {

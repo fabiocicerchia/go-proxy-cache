@@ -15,10 +15,10 @@ Simple caching proxy written in golang backed by redis.
 
 ## Features
 
- - HTTP Forward Traffic
- - Full Page Caching (via Redis)
- - Small, pragmatic and easy to use
- - Self-contained, does not require Go, Git or any other software to be installed. Just run the binary.
+  - HTTP Forward Traffic
+  - Full Page Caching (via Redis)
+  - Small, pragmatic and easy to use
+  - Self-contained, does not require Go, Git or any other software to be installed. Just run the binary.
 
 ## Docker
 
@@ -37,11 +37,11 @@ $ docker run \
 
 ## TODO
 
- - Load Balancing
- - SSL Termination
- - Improve Logging
- - Configuration File
- - Testing
+  - Load Balancing
+  - SSL Termination
+  - Improve Logging
+  - Configuration File
+  - Testing
 
 ## License
 

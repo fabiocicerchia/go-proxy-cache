@@ -36,17 +36,17 @@ func TestGetEnvMissingEnv(t *testing.T) {
 	tearDown()
 }
 
-func TestGetProxyUrlWhenSet(t *testing.T) {
+func TestGetProxyURLWhenSet(t *testing.T) {
 	os.Setenv("FORWARD_TO", "https://www.example.com")
-	value := utils.GetProxyUrl()
+	value := utils.GetProxyURL()
 
 	assert.Equal(t, "https://www.example.com", value)
 
 	tearDown()
 }
 
-func TestGetProxyUrlWhenNotSet(t *testing.T) {
-	value := utils.GetProxyUrl()
+func TestGetProxyURLWhenNotSet(t *testing.T) {
+	value := utils.GetProxyURL()
 
 	assert.Equal(t, "", value)
 }
