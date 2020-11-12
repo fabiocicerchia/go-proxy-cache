@@ -28,6 +28,7 @@ $ docker run \
     -it --rm -n goproxycache \
     --env SERVER_PORT=8080 \
     --env FORWARD_TO=https://www.google.com \
+    --env DEFAULT_TTL=0 \
     --env REDIS_HOST=localhost \
     --env REDIS_PORT=6379 \
     --env REDIS_PASSWORD= \

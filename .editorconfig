@@ -8,12 +8,9 @@ indent_size = 2
 indent_style = space
 trim_trailing_whitespace = true
 
-[Makefile]
+[*.go]
 indent_size = 4
 indent_style = tab
-
-[*.sh]
-indent_size = 4
 
 [*.md]
 trim_trailing_whitespace = false

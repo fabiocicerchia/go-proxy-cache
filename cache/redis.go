@@ -49,6 +49,10 @@ func StoreFullPage(url string, status int, headers map[string]interface{}, conte
 	if err != nil {
 		return false, err
 	}
+	err = rdb.Expire(ctx, "HEADERS@@"+key, expiration).Err()
+	if err != nil {
+		return false, err
+	}
 
 	err = rdb.Set(ctx, "CONTENT@@"+key, content, expiration).Err()
 	if err != nil {
