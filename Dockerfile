@@ -4,7 +4,11 @@ WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
 COPY . ./
 
-RUN make build
+RUN apk update \
+    && apk add \
+      gcc \
+      make \
+    && make build
 
 FROM alpine:3.12.1
 
