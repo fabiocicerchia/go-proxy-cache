@@ -7,10 +7,9 @@
 
 ![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache.svg "Docker pulls")
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache.svg "Docker stars")
-![Known Vulnerabilities](https://img.shields.io/badge/vulnerabilities-snyk-4b45a9)
 
-![Docker](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Docker/badge.svg)
-![Docker Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Docker%20Builds/badge.svg)
+[![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
+![Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Builds/badge.svg)
 
 Simple caching proxy written in golang backed by redis.
 
