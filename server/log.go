@@ -24,8 +24,8 @@ func logRequest(proxyURL string, req *http.Request) {
 	log_line = strings.ReplaceAll(log_line, `$request`, proxyURL+req.URL.String())
 	// log_line = strings.ReplaceAll(log_line, `$status`, "")
 	// log_line = strings.ReplaceAll(log_line, `$body_bytes_sent`, "")
-	log_line = strings.ReplaceAll(log_line, `$http_referer`, req.Header.Get("Referer"))
-	log_line = strings.ReplaceAll(log_line, `$http_user_agent`, req.Header.Get("User-Agent"))
+	log_line = strings.ReplaceAll(log_line, `$http_referer`, req.Referer())
+	log_line = strings.ReplaceAll(log_line, `$http_user_agent`, req.UserAgent())
 
 	log.Println(log_line)
 }

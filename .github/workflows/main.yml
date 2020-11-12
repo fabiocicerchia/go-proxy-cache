@@ -19,4 +19,4 @@ jobs:
 
       - name: Codecov
         continue-on-error: true
-        run: bash <(curl -s https://codecov.io/bash)
+        run: make codecov

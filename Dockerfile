@@ -4,7 +4,7 @@ WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
 COPY . ./
 
-RUN go build -o go-proxy-cache main.go
+RUN make build
 
 FROM alpine:3.12.1
 
