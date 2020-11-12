@@ -19,4 +19,12 @@ func TestGetListenAddressWithCustom(t *testing.T) {
 	value := getListenAddress()
 
 	assert.Equal(t, ":8081", value)
+
+	tearDown()
+}
+
+// TODO: split in related files
+func tearDown() {
+	os.Unsetenv("SERVER_PORT")
+	os.Unsetenv("FORWARD_TO")
 }

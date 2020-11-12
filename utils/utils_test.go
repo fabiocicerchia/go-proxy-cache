@@ -14,6 +14,8 @@ func TestGetEnvEmptyFallback(t *testing.T) {
 	value := utils.GetEnv("testing", "")
 
 	assert.Equal(t, "1", value)
+
+	tearDown()
 }
 
 func TestGetEnvFilledFallback(t *testing.T) {
@@ -22,10 +24,34 @@ func TestGetEnvFilledFallback(t *testing.T) {
 	value := utils.GetEnv("testing", "3")
 
 	assert.Equal(t, "2", value)
+
+	tearDown()
 }
 
 func TestGetEnvMissingEnv(t *testing.T) {
-	value := utils.GetEnv("testing2", "1")
+	value := utils.GetEnv("testing", "1")
 
 	assert.Equal(t, "1", value)
+
+	tearDown()
+}
+
+func TestGetProxyUrlWhenSet(t *testing.T) {
+	os.Setenv("FORWARD_TO", "https://www.example.com")
+	value := utils.GetProxyUrl()
+
+	assert.Equal(t, "https://www.example.com", value)
+
+	tearDown()
+}
+
+func TestGetProxyUrlWhenNotSet(t *testing.T) {
+	value := utils.GetProxyUrl()
+
+	assert.Equal(t, "", value)
+}
+
+func tearDown() {
+	os.Unsetenv("testing")
+	os.Unsetenv("FORWARD_TO")
 }

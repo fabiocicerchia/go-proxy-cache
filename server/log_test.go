@@ -51,4 +51,6 @@ func TestLogSetup(t *testing.T) {
 
 	expectedOut := fmt.Sprintf("%s Server will run on: :8080\n%s Redirecting to url: https://www.google.com\n", timeNow, timeNow)
 	assert.Equal(t, expectedOut, buf.String())
+
+	tearDown()
 }
