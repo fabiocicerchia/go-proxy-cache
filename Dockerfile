@@ -1,4 +1,4 @@
-FROM golang:1.15.4-alpine3.12 AS builder
+FROM golang:1.15.5-alpine3.12 AS builder
 
 WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
