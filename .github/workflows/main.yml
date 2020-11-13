@@ -12,6 +12,29 @@ on:
 
 jobs:
 
+  build-test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build
+        continue-on-error: true
+        run: make build
+
+      - name: Test
+        continue-on-error: true
+        run: make test
+
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Lint
+        continue-on-error: true
+        run: make lint
+
+
   codecov:
     runs-on: ubuntu-20.04
     steps:

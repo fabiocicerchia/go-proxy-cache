@@ -5,38 +5,68 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/roundrobin"
 )
 
+func castToString(i interface{}) string {
+	arr := i.([]string)
+	if len(arr) > 0 {
+		return arr[0]
+	}
+
+	return ""
+}
+
+func GetLBRoundRobin(endpoints []string, defaultHost string) string {
+	lb := roundrobin.New([]interface{}{endpoints})
+	endpoint, err := lb.Pick()
+	if err != nil || castToString(endpoint) == "" {
+		return defaultHost
+	}
+
+	return castToString(endpoint)
+}
+
 // Serve a reverse proxy for a given url
-func serveReverseProxy(target string, res *loggedResponseWriter, req *http.Request) {
+func serveReverseProxy(forwarding config.Forward, target string, res *LoggedResponseWriter, req *http.Request) {
 	// parse the url
 	url, _ := url.Parse(target)
 
 	// create the reverse proxy
 	proxy := httputil.NewSingleHostReverseProxy(url)
 
+	scheme := url.Scheme
+	if forwarding.Scheme != "" {
+		scheme = forwarding.Scheme // TODO: TEST!!!
+	}
+
+	host := url.Host
+	if forwarding.Host != "" {
+		host = forwarding.Host // TODO: TEST!!!
+	}
+
 	// Update the headers to allow for SSL redirection
-	req.URL.Host = url.Host
-	req.URL.Scheme = url.Scheme
+	req.URL.Host = GetLBRoundRobin(config.Config.Server.Forwarding.Endpoints, url.Host)
+	req.URL.Scheme = scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
-	req.Host = url.Host
+	req.Host = host
 
 	// Note that ServeHttp is non blocking and uses a go routine under the hood
 	proxy.ServeHTTP(res, req)
 
-	storeGeneratedPage(req.URL.String(), *res)
+	done := storeGeneratedPage(req.URL.String(), *res)
+	LogRequest(req, res, done)
 }
 
 // Given a request send it to the appropriate url
 func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
-	proxyURL := utils.GetProxyURL()
-
-	logRequest(proxyURL, req)
+	forwarding := config.GetForwarding()
+	proxyURL := forwarding.Scheme + "://" + forwarding.Host
 
 	fullURL := proxyURL + req.URL.String()
 	if !serveCachedContent(res, fullURL) {
-		lrw := newLoggedResponseWriter(res)
-		serveReverseProxy(proxyURL, lrw, req)
+		lrw := NewLoggedResponseWriter(res)
+		serveReverseProxy(forwarding, proxyURL, lrw, req)
 	}
 }

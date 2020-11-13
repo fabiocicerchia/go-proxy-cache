@@ -2,59 +2,58 @@ package cache_redis
 
 import (
 	"context"
-	"strconv"
+	"encoding/gob"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/go-redis/redis/v8"
 )
+
+type Response struct {
+	StatusCode int
+	Headers    map[string]string
+	Content    string
+}
 
 var ctx = context.Background()
 
 var rdb *redis.Client
 
-func Connect() bool {
+func Connect(config config.Cache) bool {
 	if rdb != nil {
-		return true
-	}
-
-	host := utils.GetEnv("REDIS_HOST", "")
-	port := utils.GetEnv("REDIS_PORT", "6379")
-	password := utils.GetEnv("REDIS_PASSWORD", "")
-	db, err := strconv.Atoi(utils.GetEnv("REDIS_DB", "0"))
-	if err != nil {
-		db = 0
+		// test the connection
+		_, err := rdb.Ping(ctx).Result()
+		return err == nil
 	}
 
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     host + ":" + port,
-		Password: password,
-		DB:       db,
+		Addr:     config.Host + ":" + config.Port,
+		Password: config.Password,
+		DB:       config.DB,
 	})
 
 	return true
 }
 
 func StoreFullPage(url string, status int, headers map[string]interface{}, content string, expiration time.Duration) (bool, error) {
-	Connect()
-
 	key := url
 
-	err := rdb.Set(ctx, "STATUS@@"+key, status, expiration).Err()
-	if err != nil {
-		return false, err
+	headersConverted := make(map[string]string)
+	for k, v := range headers {
+		headersConverted[k] = v.(string)
 	}
 
-	err = rdb.HSet(ctx, "HEADERS@@"+key, headers).Err()
-	if err != nil {
-		return false, err
-	}
-	err = rdb.Expire(ctx, "HEADERS@@"+key, expiration).Err()
-	if err != nil {
-		return false, err
+	response := &Response{
+		StatusCode: status,
+		Headers:    headersConverted,
+		Content:    string(utils.Base64Encode([]byte(content))),
 	}
 
-	err = rdb.Set(ctx, "CONTENT@@"+key, content, expiration).Err()
+	valueToEncode := utils.EncodeGob(response)
+	encodedBase64Value := utils.Base64Encode(valueToEncode)
+
+	err := rdb.Set(ctx, "GOB@@"+key, encodedBase64Value, expiration).Err()
 	if err != nil {
 		return false, err
 	}
@@ -63,29 +62,22 @@ func StoreFullPage(url string, status int, headers map[string]interface{}, conte
 }
 
 func RetrieveFullPage(url string) (statusCode int, headers map[string]string, content string, err error) {
-	Connect()
-
 	key := url
 
-	status, err := rdb.Get(ctx, "STATUS@@"+key).Result()
-	if err != nil {
-		return statusCode, headers, content, err
-	}
-	statusCode, err = strconv.Atoi(status)
-	if err != nil {
-		statusCode = 0
-		// TODO: log
-	}
+	var response Response
 
-	headers, err = rdb.HGetAll(ctx, "HEADERS@@"+key).Result()
+	encodedBase64Value, err := rdb.Get(ctx, "GOB@@"+key).Result()
 	if err != nil {
 		return statusCode, headers, content, err
 	}
 
-	content, err = rdb.Get(ctx, "CONTENT@@"+key).Result()
-	if err != nil {
-		return statusCode, headers, content, err
-	}
+	gob.Register(Response{})
+	decodedValue := utils.Base64Decode([]byte(encodedBase64Value))
+	utils.DecodeGob(decodedValue, &response)
+
+	statusCode = response.StatusCode
+	headers = response.Headers
+	content = string(utils.Base64Decode([]byte(response.Content)))
 
 	return statusCode, headers, content, nil
 }

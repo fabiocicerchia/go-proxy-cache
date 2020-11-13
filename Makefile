@@ -38,17 +38,24 @@ help: ## prints this help
 ################################################################################
 
 build: ## build
-	go build -o go-proxy-cache main.go
+	go build -race -o go-proxy-cache main.go
+
+################################################################################
+##@ LINT
+################################################################################
+
+lint: ## lint
+	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.27.0 golangci-lint run -v ./...
 
 ################################################################################
 ##@ TEST
 ################################################################################
 
 test: ## test
-	go test ./...
+	go test -race ./...
 
 cover: ## coverage
-	go test -coverprofile cover.out ./...
+	go test -race -coverprofile cover.out ./...
 	go tool cover -html=cover.out
 
 codecov: ## codecov

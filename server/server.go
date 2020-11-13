@@ -4,26 +4,24 @@ import (
 	"net/http"
 
 	cache_redis "github.com/fabiocicerchia/go-proxy-cache/cache"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 )
 
-// Get the port to listen on
-func getListenAddress() string {
-	port := utils.GetEnv("SERVER_PORT", "8080")
-	return ":" + port
-}
-
 func Start() {
+	// Init configs
+	config.InitConfig()
+
 	// Log setup values
-	logSetup()
+	LogSetup(config.Config.Server.Port)
 
 	// redis connect
-	cache_redis.Connect()
+	cache_redis.Connect(config.Config.Cache)
 
 	// start server
 	http.HandleFunc("/", handleRequestAndRedirect)
 
-	if err := http.ListenAndServe(getListenAddress(), nil); err != nil {
+	port := ":" + config.Config.Server.Port
+	if err := http.ListenAndServe(port, nil); err != nil {
 		panic(err)
 	}
 }

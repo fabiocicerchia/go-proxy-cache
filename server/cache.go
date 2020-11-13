@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -8,7 +9,7 @@ import (
 	"time"
 
 	cache_redis "github.com/fabiocicerchia/go-proxy-cache/cache"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 )
 
 const CacheStatusHeader = "X-GoProxyCache-Status"
@@ -19,20 +20,25 @@ func serveCachedContent(rw http.ResponseWriter, url string) bool {
 	code, headers, page, _ := cache_redis.RetrieveFullPage(url)
 
 	if code == http.StatusOK && page != "" {
-		rw.WriteHeader(code)
-
 		for k, v := range headers {
 			rw.Header().Set(k, v)
 		}
 		rw.Header().Set(CacheStatusHeader, CacheStatusHeaderHit)
-		rw.Header().Write(rw)
+
+		rw.WriteHeader(code)
 
 		if fl, ok := rw.(http.Flusher); ok {
 			fl.Flush()
 		}
 
 		pageByte := []byte(page)
-		rw.Write(pageByte)
+		sent, err := rw.Write(pageByte)
+		// try again
+		if sent == 0 && err != nil {
+			// TODO: LOG
+			sent, err = rw.Write(pageByte)
+			return sent > 0 && err == nil
+		}
 
 		return true
 	}
@@ -42,18 +48,17 @@ func serveCachedContent(rw http.ResponseWriter, url string) bool {
 	return false
 }
 
-func getTTL(headers map[string]interface{}) time.Duration {
-	ttlSecs, _ := strconv.Atoi(utils.GetEnv("DEFAULT_TTL", "0"))
-	ttl := time.Duration(ttlSecs) * time.Second
+func GetTTL(headers map[string]interface{}) time.Duration {
+	ttl := time.Duration(config.Config.Server.TTL) * time.Second
 
 	if _, ok := headers["Cache-Control"]; ok {
 		cacheControl := headers["Cache-Control"].(string)
 
-		if maxage := getTTLFrom("max-age", cacheControl); maxage > 0 {
+		if maxage := GetTTLFrom("max-age", cacheControl); maxage > 0 {
 			ttl = maxage
 		}
 
-		if smaxage := getTTLFrom("s-maxage", cacheControl); smaxage > 0 {
+		if smaxage := GetTTLFrom("s-maxage", cacheControl); smaxage > 0 {
 			ttl = smaxage
 		}
 	}
@@ -61,21 +66,22 @@ func getTTL(headers map[string]interface{}) time.Duration {
 	return ttl
 }
 
-func getTTLFrom(cacheType string, cacheControl string) time.Duration {
+func GetTTLFrom(cacheType string, cacheControl string) time.Duration {
 	var ttl time.Duration
+	ttl = 0 * time.Second
 
-	ageRegex := regexp.MustCompile(`max-age=(?P<TTL>\d+)`)
+	ageRegex := regexp.MustCompile(cacheType + `=(?P<TTL>\d+)`)
 	age := ageRegex.FindStringSubmatch(cacheControl)
 
 	if len(age) > 0 {
-		ageTTL, _ := strconv.ParseInt(age[0], 10, 64)
-		ttl = time.Duration(ageTTL)
+		ageTTL, _ := strconv.ParseInt(age[1], 10, 64)
+		ttl = time.Duration(ageTTL) * time.Second
 	}
 
 	return ttl
 }
 
-func storeGeneratedPage(url string, lrw loggedResponseWriter) {
+func storeGeneratedPage(url string, lrw LoggedResponseWriter) bool {
 	status := lrw.StatusCode
 
 	headers := make(map[string]interface{})
@@ -84,7 +90,12 @@ func storeGeneratedPage(url string, lrw loggedResponseWriter) {
 	}
 
 	content := string(lrw.Content)
-	ttl := getTTL(headers)
+	ttl := GetTTL(headers)
 
-	cache_redis.StoreFullPage(url, status, headers, content, ttl)
+	done, err := cache_redis.StoreFullPage(url, status, headers, content, ttl)
+	if err != nil {
+		log.Printf("Error: %s\n", err)
+	}
+
+	return done
 }

@@ -4,24 +4,22 @@ import (
 	"net/http"
 )
 
-type loggedResponseWriter struct {
+type LoggedResponseWriter struct {
 	http.ResponseWriter
 	StatusCode int
 	Content    []byte
 }
 
-func newLoggedResponseWriter(w http.ResponseWriter) *loggedResponseWriter {
-	var statusCode int
-	var content []byte
-	return &loggedResponseWriter{w, statusCode, content}
+func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
+	return &LoggedResponseWriter{w, 0, []byte("")}
 }
 
-func (lrw *loggedResponseWriter) WriteHeader(statusCode int) {
+func (lrw *LoggedResponseWriter) WriteHeader(statusCode int) {
 	lrw.StatusCode = statusCode
 	lrw.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (lrw *loggedResponseWriter) Write(p []byte) (int, error) {
-	lrw.Content = p
+func (lrw *LoggedResponseWriter) Write(p []byte) (int, error) {
+	lrw.Content = append(lrw.Content, p...)
 	return lrw.ResponseWriter.Write(p)
 }

@@ -12,8 +12,3 @@ func GetEnv(key string, fallback string) string {
 
 	return fallback
 }
-
-// Get the url for a given proxy condition
-func GetProxyURL() string {
-	return GetEnv("FORWARD_TO", "")
-}

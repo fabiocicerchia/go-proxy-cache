@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,22 +37,7 @@ func TestGetEnvMissingEnv(t *testing.T) {
 	tearDown()
 }
 
-func TestGetProxyURLWhenSet(t *testing.T) {
-	os.Setenv("FORWARD_TO", "https://www.example.com")
-	value := utils.GetProxyURL()
-
-	assert.Equal(t, "https://www.example.com", value)
-
-	tearDown()
-}
-
-func TestGetProxyURLWhenNotSet(t *testing.T) {
-	value := utils.GetProxyURL()
-
-	assert.Equal(t, "", value)
-}
-
 func tearDown() {
+	config.Config = config.Configuration{}
 	os.Unsetenv("testing")
-	os.Unsetenv("FORWARD_TO")
 }

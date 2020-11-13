@@ -7,8 +7,10 @@ COPY . ./
 RUN apk update \
     && apk add \
       gcc \
+      libc-dev \
       make \
-    && make build
+    && make build \
+    && make test
 
 FROM alpine:3.12.1
 
