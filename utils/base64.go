@@ -6,17 +6,16 @@ import (
 )
 
 func Base64Encode(source []byte) []byte {
-	encodedBytes := make([]byte, base64.URLEncoding.EncodedLen(len(source)))
-	base64.URLEncoding.Encode(encodedBytes, source)
-
-	return encodedBytes
+	buf := make([]byte, base64.StdEncoding.EncodedLen(len(source)))
+	base64.StdEncoding.Encode(buf, source)
+	return buf
 }
 
 func Base64Decode(source []byte) []byte {
-	decodedBytes := make([]byte, base64.URLEncoding.DecodedLen(len(source)))
-	_, err := base64.URLEncoding.Decode(decodedBytes, source)
+	dbuf := make([]byte, base64.URLEncoding.DecodedLen(len(source)))
+	decodedBytes, err := base64.URLEncoding.Decode(dbuf, source)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return decodedBytes
+	return dbuf[:decodedBytes]
 }
