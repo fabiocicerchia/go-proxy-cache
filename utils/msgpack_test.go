@@ -7,12 +7,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGobEncodeDecode(t *testing.T) {
+func TestMsgpackEncodeDecode(t *testing.T) {
 	str := []byte("test string")
 
-	encoded := utils.EncodeGob(str)
+	encoded, _ := utils.MsgpackEncode(str)
+
 	var decoded []byte
-	utils.DecodeGob(encoded, &decoded)
+	_ = utils.MsgpackDecode(encoded, &decoded)
 
 	assert.Equal(t, str, decoded)
 }

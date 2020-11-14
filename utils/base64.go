@@ -6,8 +6,8 @@ import (
 )
 
 func Base64Encode(source []byte) []byte {
-	buf := make([]byte, base64.StdEncoding.EncodedLen(len(source)))
-	base64.StdEncoding.Encode(buf, source)
+	buf := make([]byte, base64.URLEncoding.EncodedLen(len(source)))
+	base64.URLEncoding.Encode(buf, source)
 	return buf
 }
 

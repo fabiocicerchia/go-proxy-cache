@@ -1,7 +1,6 @@
 package cache_redis
 
 import (
-	"encoding/gob"
 	"strings"
 	"time"
 
@@ -17,10 +16,14 @@ func StoreFullPage(url string, status int, headers map[string]interface{}, reqHe
 	response := &Response{
 		StatusCode: status,
 		Headers:    headersConverted,
-		Content:    string(utils.Base64Encode([]byte(content))),
+		Content:    content,
 	}
 
-	valueToEncode := utils.EncodeGob(response)
+	valueToEncode, err := utils.MsgpackEncode(response)
+	if err != nil {
+		// TODO: LOG
+		return false, err
+	}
 	encodedBase64Value := string(utils.Base64Encode(valueToEncode))
 
 	meta := GetVary(headersConverted)
@@ -31,7 +34,7 @@ func StoreFullPage(url string, status int, headers map[string]interface{}, reqHe
 }
 
 func RetrieveFullPage(url string, reqHeaders map[string]string) (statusCode int, headers map[string]string, content string, err error) {
-	var response Response
+	response := &Response{}
 
 	meta, err := FetchMetadata(url)
 	if err != nil || len(meta) == 0 {
@@ -45,19 +48,21 @@ func RetrieveFullPage(url string, reqHeaders map[string]string) (statusCode int,
 		return statusCode, headers, content, err
 	}
 
-	gob.Register(Response{})
 	decodedValue := utils.Base64Decode([]byte(encodedBase64Value))
-	utils.DecodeGob(decodedValue, &response)
+	err = utils.MsgpackDecode(decodedValue, response)
+	if err != nil {
+		return statusCode, headers, content, err
+	}
 
 	statusCode = response.StatusCode
 	headers = response.Headers
-	content = string(utils.Base64Decode([]byte(response.Content)))
+	content = response.Content
 
 	return statusCode, headers, content, nil
 }
 
 func CacheKey(url string, meta []string, reqHeaders map[string]string) string {
-	key := []string{"GOB", url}
+	key := []string{"DATA", url}
 
 	vary := meta
 	for _, k := range vary {
@@ -103,18 +108,3 @@ func GetVary(headers map[string]string) []string {
 	}
 	return vary
 }
-
-// func GetCacheKey(req http.Request, resp server.LoggedResponseWriter) string {
-// 	url := req.URL.String()
-
-// 	key := []string{"GOB", url}
-
-// 	vary := strings.Split(resp.Header().Get("Vary"), ",")
-// 	for _, k := range vary {
-// 		key = append(key, resp.Header().Get(k))
-// 	}
-
-// 	cacheKey := strings.Join(key, "@@")
-
-// 	return cacheKey
-// }
