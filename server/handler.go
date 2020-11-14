@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/roundrobin"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 func castToString(i interface{}) string {
@@ -53,16 +53,12 @@ func serveReverseProxy(forwarding config.Forward, target string, res *LoggedResp
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 	req.Host = host
 
-	// TODO: used twice -> method
-	headersConverted := make(map[string]string)
-	for k, v := range req.Header {
-		headersConverted[k] = strings.Join(v, " ") // TODO: is correct join " " ?
-	}
+	reqHeaders := utils.GetHeaders(req.Header)
 
 	// Note that ServeHttp is non blocking and uses a go routine under the hood
 	proxy.ServeHTTP(res, req)
 
-	done := storeGeneratedPage(req.URL.String(), headersConverted, *res)
+	done := storeGeneratedPage(req.URL.String(), reqHeaders, *res)
 	LogRequest(req, res, done)
 }
 
@@ -71,14 +67,10 @@ func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
 	forwarding := config.GetForwarding()
 	proxyURL := forwarding.Scheme + "://" + forwarding.Host
 
-	// TODO: used twice -> method
-	headersConverted := make(map[string]string)
-	for k, v := range req.Header {
-		headersConverted[k] = strings.Join(v, " ") // TODO: is correct join " " ?
-	}
+	reqHeaders := utils.GetHeaders(req.Header)
 
 	fullURL := proxyURL + req.URL.String()
-	if !serveCachedContent(res, headersConverted, fullURL) {
+	if !serveCachedContent(res, reqHeaders, fullURL) {
 		lrw := NewLoggedResponseWriter(res)
 		serveReverseProxy(forwarding, proxyURL, lrw, req)
 	}
