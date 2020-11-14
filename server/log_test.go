@@ -63,7 +63,7 @@ func TestLogSetup(t *testing.T) {
 		},
 	}
 
-	server.LogSetup("8081")
+	server.LogSetup(config.Config.Server.Forwarding, "8081")
 
 	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
 

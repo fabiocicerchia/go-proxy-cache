@@ -18,26 +18,27 @@ const dateFormat = "2006/01/02 15:04:05"
 
 // Log the redirect url
 func LogRequest(req *http.Request, res *LoggedResponseWriter, cached bool) {
-	log_line := logFormat
+	logLine := logFormat
 
-	log_line = strings.ReplaceAll(log_line, `$remote_addr`, req.RemoteAddr)
-	log_line = strings.ReplaceAll(log_line, `$remote_user`, "-")
-	log_line = strings.ReplaceAll(log_line, `$time_local`, time.Now().Local().Format(dateFormat))
-	log_line = strings.ReplaceAll(log_line, `$request`, req.URL.String())
-	log_line = strings.ReplaceAll(log_line, `$status`, strconv.Itoa(res.StatusCode))
-	log_line = strings.ReplaceAll(log_line, `$body_bytes_sent`, strconv.Itoa(len(res.Content)))
-	log_line = strings.ReplaceAll(log_line, `$http_referer`, req.Referer())
-	log_line = strings.ReplaceAll(log_line, `$http_user_agent`, req.UserAgent())
-	log_line = strings.ReplaceAll(log_line, `$cached_status`, fmt.Sprintf("%v", cached))
+	// TODO: replace with array mapping
+	logLine = strings.ReplaceAll(logLine, `$remote_addr`, req.RemoteAddr)
+	logLine = strings.ReplaceAll(logLine, `$remote_user`, "-")
+	logLine = strings.ReplaceAll(logLine, `$time_local`, time.Now().Local().Format(dateFormat))
+	logLine = strings.ReplaceAll(logLine, `$request`, req.URL.String())
+	logLine = strings.ReplaceAll(logLine, `$status`, strconv.Itoa(res.StatusCode))
+	logLine = strings.ReplaceAll(logLine, `$body_bytes_sent`, strconv.Itoa(len(res.Content)))
+	logLine = strings.ReplaceAll(logLine, `$http_referer`, req.Referer())
+	logLine = strings.ReplaceAll(logLine, `$http_user_agent`, req.UserAgent())
+	logLine = strings.ReplaceAll(logLine, `$cached_status`, fmt.Sprintf("%v", cached))
 
-	log.Println(log_line)
+	log.Println(logLine)
 }
 
 // Log the env variables required for a reverse proxy
-func LogSetup(port string) {
-	forwardHost := config.Config.Server.Forwarding.Host
-	forwardProto := config.Config.Server.Forwarding.Scheme
-	lbEndpointList := config.Config.Server.Forwarding.Endpoints
+func LogSetup(forwarding config.Forward, port string) {
+	forwardHost := forwarding.Host
+	forwardProto := forwarding.Scheme
+	lbEndpointList := forwarding.Endpoints
 
 	log.Printf("Server will run on: %s\n", port)
 	log.Printf("Redirecting to url: %s://%s -> %v\n", forwardProto, forwardHost, lbEndpointList)

@@ -1,39 +1,38 @@
-package cache_redis
+package redis
 
 import (
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-func StoreFullPage(url string, status int, headers map[string]interface{}, reqHeaders map[string]string, content string, expiration time.Duration) (bool, error) {
-	headersConverted := make(map[string]string)
-	for k, v := range headers {
-		headersConverted[k] = v.(string)
-	}
-
+func StoreFullPage(url string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
 	response := &Response{
 		StatusCode: status,
-		Headers:    headersConverted,
+		Headers:    headers,
 		Content:    content,
 	}
 
 	valueToEncode, err := utils.MsgpackEncode(response)
 	if err != nil {
-		// TODO: LOG
+		// TODO: log
 		return false, err
 	}
 	encodedBase64Value := string(utils.Base64Encode(valueToEncode))
 
-	meta := GetVary(headersConverted)
+	meta, err := GetVary(headers)
+	if err != nil {
+		return false, err
+	}
 	StoreMetadata(url, meta, expiration)
 	key := CacheKey(url, meta, reqHeaders)
 
 	return Set(key, encodedBase64Value, expiration)
 }
 
-func RetrieveFullPage(url string, reqHeaders map[string]string) (statusCode int, headers map[string]string, content string, err error) {
+func RetrieveFullPage(url string, reqHeaders map[string]interface{}) (statusCode int, headers map[string]interface{}, content string, err error) {
 	response := &Response{}
 
 	meta, err := FetchMetadata(url)
@@ -48,7 +47,11 @@ func RetrieveFullPage(url string, reqHeaders map[string]string) (statusCode int,
 		return statusCode, headers, content, err
 	}
 
-	decodedValue := utils.Base64Decode([]byte(encodedBase64Value))
+	decodedValue, err := utils.Base64Decode([]byte(encodedBase64Value))
+	if err != nil {
+		return statusCode, headers, content, err
+	}
+
 	err = utils.MsgpackDecode(decodedValue, response)
 	if err != nil {
 		return statusCode, headers, content, err
@@ -61,12 +64,12 @@ func RetrieveFullPage(url string, reqHeaders map[string]string) (statusCode int,
 	return statusCode, headers, content, nil
 }
 
-func CacheKey(url string, meta []string, reqHeaders map[string]string) string {
+func CacheKey(url string, meta []string, reqHeaders map[string]interface{}) string {
 	key := []string{"DATA", url}
 
 	vary := meta
 	for _, k := range vary {
-		key = append(key, reqHeaders[k])
+		key = append(key, reqHeaders[k].(string))
 	}
 
 	cacheKey := strings.Join(key, "@@")
@@ -77,13 +80,10 @@ func CacheKey(url string, meta []string, reqHeaders map[string]string) string {
 func FetchMetadata(url string) (meta []string, err error) {
 	key := "META@@" + url
 
-	value, err := Get(key)
+	meta, err = rdb.LRange(ctx, key, 0, -1).Result()
 	if err != nil {
 		return meta, err
 	}
-
-	// TODO: USE different redis structure
-	meta = strings.Split(value, ",")
 
 	return meta, nil
 }
@@ -91,20 +91,35 @@ func FetchMetadata(url string) (meta []string, err error) {
 func StoreMetadata(url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + url
 
-	serialized := strings.Join(meta, ",")
-	err := rdb.Set(ctx, key, serialized, expiration).Err()
+	err := rdb.LPush(ctx, key, meta).Err()
 	if err != nil {
+		return false, err
+	}
+
+	err = rdb.Expire(ctx, key, expiration).Err()
+	if err != nil {
+		// TODO: use transaction
+		_ = rdb.Del(ctx, key).Err()
+
 		return false, err
 	}
 
 	return true, nil
 }
 
-func GetVary(headers map[string]string) []string {
-	vary := strings.Split(headers["Vary"], ",")
-	for k, v := range vary {
-		v = strings.Trim(v, " ")
-		vary[k] = v
+func GetVary(headers map[string]interface{}) (varyList []string, err error) {
+	vary := headers["Vary"].(string)
+
+	if vary == "*" {
+		return varyList, errors.New("Vary: *")
 	}
-	return vary
+
+	varyList = strings.Split(vary, ",")
+
+	for k, v := range varyList {
+		v = strings.Trim(v, " ")
+		varyList[k] = v
+	}
+
+	return varyList, nil
 }

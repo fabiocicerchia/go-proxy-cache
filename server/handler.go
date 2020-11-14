@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -32,20 +33,14 @@ func GetLBRoundRobin(endpoints []string, defaultHost string) string {
 // Serve a reverse proxy for a given url
 func serveReverseProxy(forwarding config.Forward, target string, res *LoggedResponseWriter, req *http.Request) {
 	// parse the url
+	// TODO: avoid err suppressing
 	url, _ := url.Parse(target)
 
 	// create the reverse proxy
 	proxy := httputil.NewSingleHostReverseProxy(url)
 
-	scheme := url.Scheme
-	if forwarding.Scheme != "" {
-		scheme = forwarding.Scheme // TODO: TEST!!!
-	}
-
-	host := url.Host
-	if forwarding.Host != "" {
-		host = forwarding.Host // TODO: TEST!!!
-	}
+	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme) // TODO: TEST!!!
+	host := utils.IfEmpty(forwarding.Host, url.Host)       // TODO: TEST!!!
 
 	// Update the headers to allow for SSL redirection
 	req.URL.Host = GetLBRoundRobin(config.Config.Server.Forwarding.Endpoints, url.Host)
@@ -65,7 +60,8 @@ func serveReverseProxy(forwarding config.Forward, target string, res *LoggedResp
 // Given a request send it to the appropriate url
 func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
 	forwarding := config.GetForwarding()
-	proxyURL := forwarding.Scheme + "://" + forwarding.Host
+
+	proxyURL := fmt.Sprintf("%s://%s", forwarding.Scheme, forwarding.Host)
 
 	reqHeaders := utils.GetHeaders(req.Header)
 

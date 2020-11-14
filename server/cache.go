@@ -8,39 +8,27 @@ import (
 	"strings"
 	"time"
 
-	cache_redis "github.com/fabiocicerchia/go-proxy-cache/cache"
+	redis "github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 const CacheStatusHeader = "X-GoProxyCache-Status"
 const CacheStatusHeaderHit = "HIT"
 const CacheStatusHeaderMiss = "MISS"
 
-func serveCachedContent(rw http.ResponseWriter, reqHeaders map[string]string, url string) bool {
-	code, headers, page, _ := cache_redis.RetrieveFullPage(url, reqHeaders)
+func serveCachedContent(rw http.ResponseWriter, reqHeaders map[string]interface{}, url string) bool {
+	code, headers, page, _ := redis.RetrieveFullPage(url, reqHeaders)
 
 	if code == http.StatusOK && page != "" {
-		for k, v := range headers {
-			rw.Header().Set(k, v)
-		}
+		CopyHeaders(rw, headers)
 		rw.Header().Set(CacheStatusHeader, CacheStatusHeaderHit)
 
 		rw.WriteHeader(code)
 
-		if fl, ok := rw.(http.Flusher); ok {
-			fl.Flush()
-		}
+		Flush(rw)
 
-		pageByte := []byte(page)
-		sent, err := rw.Write(pageByte)
-		// try again
-		if sent == 0 && err != nil {
-			// TODO: LOG
-			sent, err = rw.Write(pageByte)
-			return sent > 0 && err == nil
-		}
-
-		return true
+		return WriteBody(rw, page)
 	}
 
 	rw.Header().Add(CacheStatusHeader, CacheStatusHeaderMiss)
@@ -48,17 +36,36 @@ func serveCachedContent(rw http.ResponseWriter, reqHeaders map[string]string, ur
 	return false
 }
 
+func GetByKeyCaseInsensitive(items map[string]interface{}, key string) interface{} {
+	keyLower := strings.ToLower(key)
+	for k, v := range items {
+		if strings.ToLower(k) == keyLower {
+			return v
+		}
+	}
+
+	return nil
+}
+
 func GetTTL(headers map[string]interface{}) time.Duration {
 	ttl := time.Duration(config.Config.Server.TTL) * time.Second
 
-	if _, ok := headers["Cache-Control"]; ok {
-		cacheControl := headers["Cache-Control"].(string)
+	cacheControl := GetByKeyCaseInsensitive(headers, "Cache-Control")
 
-		if maxage := GetTTLFrom("max-age", cacheControl); maxage > 0 {
+	if cacheControl != nil {
+		// TODO: add coverage
+		cacheControlValue := strings.ToLower(cacheControl.(string))
+
+		if strings.Contains(cacheControlValue, "no-cache") || strings.Contains(cacheControlValue, "no-store") {
+			ttl = 0
+		}
+
+		// TODO: check which priority
+		if maxage := GetTTLFrom("max-age", cacheControlValue); maxage > 0 {
 			ttl = maxage
 		}
 
-		if smaxage := GetTTLFrom("s-maxage", cacheControl); smaxage > 0 {
+		if smaxage := GetTTLFrom("s-maxage", cacheControlValue); smaxage > 0 {
 			ttl = smaxage
 		}
 	}
@@ -81,18 +88,16 @@ func GetTTLFrom(cacheType string, cacheControl string) time.Duration {
 	return ttl
 }
 
-func storeGeneratedPage(url string, reqHeaders map[string]string, lrw LoggedResponseWriter) bool {
+func storeGeneratedPage(url string, reqHeaders map[string]interface{}, lrw LoggedResponseWriter) bool {
 	status := lrw.StatusCode
 
-	headers := make(map[string]interface{})
-	for k, values := range lrw.Header() {
-		headers[k] = strings.Join(values, "")
-	}
+	headers := utils.GetHeaders(lrw.Header())
 
 	content := string(lrw.Content)
 	ttl := GetTTL(headers)
 
-	done, err := cache_redis.StoreFullPage(url, status, headers, reqHeaders, content, ttl)
+	// TODO: pass obj
+	done, err := redis.StoreFullPage(url, status, headers, reqHeaders, content, ttl)
 	if err != nil {
 		log.Printf("Error: %s\n", err)
 	}

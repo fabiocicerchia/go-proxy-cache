@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	cache_redis "github.com/fabiocicerchia/go-proxy-cache/cache"
+	redis "github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 )
 
@@ -12,10 +12,10 @@ func Start() {
 	config.InitConfig()
 
 	// Log setup values
-	LogSetup(config.Config.Server.Port)
+	LogSetup(config.Config.Server.Forwarding, config.Config.Server.Port)
 
 	// redis connect
-	cache_redis.Connect(config.Config.Cache)
+	redis.Connect(config.Config.Cache)
 
 	// start server
 	http.HandleFunc("/", handleRequestAndRedirect)

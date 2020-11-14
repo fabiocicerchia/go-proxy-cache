@@ -37,6 +37,22 @@ func TestGetEnvMissingEnv(t *testing.T) {
 	tearDown()
 }
 
+func TestIfEmptyWithValue(t *testing.T) {
+	value := utils.IfEmpty("text", "fallback")
+
+	assert.Equal(t, "text", value)
+
+	tearDown()
+}
+
+func TestIfEmptyWithoutValue(t *testing.T) {
+	value := utils.IfEmpty("", "fallback")
+
+	assert.Equal(t, "fallback", value)
+
+	tearDown()
+}
+
 func tearDown() {
 	config.Config = config.Configuration{}
 	os.Unsetenv("testing")

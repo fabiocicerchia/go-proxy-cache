@@ -8,6 +8,7 @@
 ![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache.svg "Docker pulls")
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache.svg "Docker stars")
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
 ![Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Builds/badge.svg)
 
@@ -48,6 +49,15 @@ $ docker run \
   - SSL Termination
   - Improve Logging
   - Configuration File
+  - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
+  - Serve STALE cache
+  - Define eviction: LRU, LFU, ...
+  - Support Chunking
+  - Define list of cacheable status codes
+  - Respect `Expire`
+  - HTTP/2
+  - HTTP/3
+  - WebSockets
 
 ## License
 

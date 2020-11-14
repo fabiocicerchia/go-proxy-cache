@@ -14,18 +14,9 @@ func GetEnv(key string, fallback string) string {
 	return fallback
 }
 
-// func GetHeadersFromInterface(headers map[string]interface{}) map[string]string {
-// 	headersConverted := make(map[string]string)
-// 	for k, v := range headers {
-// 		str := []string{v.(string)}
-
-// 		headersConverted[k] = strings.Join(str, " ") // TODO: is correct join " " ?
-// 	}
-// 	return headersConverted
-// }
-
-func GetHeaders(headers map[string][]string) map[string]string {
-	headersConverted := make(map[string]string)
+// TODO: coverage
+func GetHeaders(headers map[string][]string) map[string]interface{} {
+	headersConverted := make(map[string]interface{})
 	for k, v := range headers {
 		str := []string{}
 		for _, item := range v {
@@ -35,4 +26,12 @@ func GetHeaders(headers map[string][]string) map[string]string {
 		headersConverted[k] = strings.Join(str, " ") // TODO: is correct join " " ?
 	}
 	return headersConverted
+}
+
+func IfEmpty(val string, fallback string) string {
+	if val == "" {
+		return fallback
+	}
+
+	return val
 }

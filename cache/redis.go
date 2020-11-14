@@ -1,4 +1,4 @@
-package cache_redis
+package redis
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 
 type Response struct {
 	StatusCode int
-	Headers    map[string]string
+	Headers    map[string]interface{}
 	Content    string
 }
 
