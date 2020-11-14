@@ -99,21 +99,3 @@ func storeGeneratedPage(url string, reqHeaders map[string]string, lrw LoggedResp
 
 	return done
 }
-
-// TODO: MOVE TO REDIS?
-
-func GetCacheKey(req http.Request, resp LoggedResponseWriter) string {
-	url := req.URL.String()
-
-	key := []string{"GOB", url}
-
-	// TODO: STORE "META@@key" with details of Vary
-	vary := strings.Split(resp.Header().Get("Vary"), ",")
-	for _, k := range vary {
-		key = append(key, resp.Header().Get(k))
-	}
-
-	cacheKey := strings.Join(key, "@@")
-
-	return cacheKey
-}

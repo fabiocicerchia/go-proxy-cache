@@ -20,6 +20,7 @@ Simple caching proxy written in golang backed by redis.
   - Load Balancing (only Round-Robin)
   - Small, Pragmatic and Easy to Use
   - Easily Configurable
+  - Cache respecting HTTP Header `Vary`
   - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
   - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
 
@@ -42,7 +43,6 @@ $ docker run \
 
 ## TODO
 
-  - Cache Key based on Vary
   - Redis KeepAlive
   - Functional tests
   - SSL Termination
