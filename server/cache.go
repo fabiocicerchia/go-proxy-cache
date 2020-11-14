@@ -16,8 +16,8 @@ const CacheStatusHeader = "X-GoProxyCache-Status"
 const CacheStatusHeaderHit = "HIT"
 const CacheStatusHeaderMiss = "MISS"
 
-func serveCachedContent(rw http.ResponseWriter, url string) bool {
-	code, headers, page, _ := cache_redis.RetrieveFullPage(url)
+func serveCachedContent(rw http.ResponseWriter, reqHeaders map[string]string, url string) bool {
+	code, headers, page, _ := cache_redis.RetrieveFullPage(url, reqHeaders)
 
 	if code == http.StatusOK && page != "" {
 		for k, v := range headers {
@@ -81,7 +81,7 @@ func GetTTLFrom(cacheType string, cacheControl string) time.Duration {
 	return ttl
 }
 
-func storeGeneratedPage(url string, lrw LoggedResponseWriter) bool {
+func storeGeneratedPage(url string, reqHeaders map[string]string, lrw LoggedResponseWriter) bool {
 	status := lrw.StatusCode
 
 	headers := make(map[string]interface{})
@@ -92,10 +92,28 @@ func storeGeneratedPage(url string, lrw LoggedResponseWriter) bool {
 	content := string(lrw.Content)
 	ttl := GetTTL(headers)
 
-	done, err := cache_redis.StoreFullPage(url, status, headers, content, ttl)
+	done, err := cache_redis.StoreFullPage(url, status, headers, reqHeaders, content, ttl)
 	if err != nil {
 		log.Printf("Error: %s\n", err)
 	}
 
 	return done
+}
+
+// TODO: MOVE TO REDIS?
+
+func GetCacheKey(req http.Request, resp LoggedResponseWriter) string {
+	url := req.URL.String()
+
+	key := []string{"GOB", url}
+
+	// TODO: STORE "META@@key" with details of Vary
+	vary := strings.Split(resp.Header().Get("Vary"), ",")
+	for _, k := range vary {
+		key = append(key, resp.Header().Get(k))
+	}
+
+	cacheKey := strings.Join(key, "@@")
+
+	return cacheKey
 }
