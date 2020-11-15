@@ -27,7 +27,7 @@ func (lrw *LoggedResponseWriter) Write(p []byte) (int, error) {
 // TODO: coverage
 func CopyHeaders(rw http.ResponseWriter, headers map[string]interface{}) {
 	for k, v := range headers {
-		rw.Header().Set(k, v.(string))
+		rw.Header().Set(k, string(v.([]byte)))
 	}
 }
 

@@ -58,7 +58,7 @@ func serveReverseProxy(forwarding config.Forward, target string, res *LoggedResp
 }
 
 // Given a request send it to the appropriate url
-func handleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
+func HandleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
 	forwarding := config.GetForwarding()
 
 	proxyURL := fmt.Sprintf("%s://%s", forwarding.Scheme, forwarding.Host)

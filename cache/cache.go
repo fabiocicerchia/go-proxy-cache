@@ -69,7 +69,11 @@ func CacheKey(url string, meta []string, reqHeaders map[string]interface{}) stri
 
 	vary := meta
 	for _, k := range vary {
-		key = append(key, reqHeaders[k].(string))
+		if val, ok := reqHeaders[k]; ok {
+			key = append(key, val.(string))
+		} else {
+			key = append(key, "")
+		}
 	}
 
 	cacheKey := strings.Join(key, "@@")
@@ -80,23 +84,18 @@ func CacheKey(url string, meta []string, reqHeaders map[string]interface{}) stri
 func FetchMetadata(url string) (meta []string, err error) {
 	key := "META@@" + url
 
-	meta, err = rdb.LRange(ctx, key, 0, -1).Result()
-	if err != nil {
-		return meta, err
-	}
-
-	return meta, nil
+	return LRange(key)
 }
 
 func StoreMetadata(url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + url
 
-	err := rdb.LPush(ctx, key, meta).Err()
+	err := LPush(key, meta)
 	if err != nil {
 		return false, err
 	}
 
-	err = rdb.Expire(ctx, key, expiration).Err()
+	err = Expire(key, expiration)
 	if err != nil {
 		// TODO: use transaction
 		_ = rdb.Del(ctx, key).Err()
@@ -108,7 +107,10 @@ func StoreMetadata(url string, meta []string, expiration time.Duration) (bool, e
 }
 
 func GetVary(headers map[string]interface{}) (varyList []string, err error) {
-	vary := headers["Vary"].(string)
+	var vary string
+	if value, ok := headers["Vary"]; ok {
+		vary = value.(string)
+	}
 
 	if vary == "*" {
 		return varyList, errors.New("Vary: *")

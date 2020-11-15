@@ -18,7 +18,7 @@ func Start() {
 	redis.Connect(config.Config.Cache)
 
 	// start server
-	http.HandleFunc("/", handleRequestAndRedirect)
+	http.HandleFunc("/", HandleRequestAndRedirect)
 
 	port := ":" + config.Config.Server.Port
 	if err := http.ListenAndServe(port, nil); err != nil {
