@@ -44,3 +44,23 @@ func Contains(items []string, value string) bool {
 	}
 	return false
 }
+
+func GetByKeyCaseInsensitive(items map[string]interface{}, key string) interface{} {
+	keyLower := strings.ToLower(key)
+	for k, v := range items {
+		if strings.ToLower(k) == keyLower {
+			return v
+		}
+	}
+
+	return nil
+}
+
+func CastToString(i interface{}) string {
+	arr := i.([]string)
+	if len(arr) > 0 {
+		return arr[0]
+	}
+
+	return ""
+}

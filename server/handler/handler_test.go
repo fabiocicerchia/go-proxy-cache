@@ -1,4 +1,4 @@
-package server_test
+package handler_test
 
 import (
 	"net/http"
@@ -7,44 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	redis "github.com/fabiocicerchia/go-proxy-cache/cache"
+	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server"
+	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 )
 
-// --- UNIT --------------------------------------------------------------------
-
-func TestGetLBRoundRobinUndefined(t *testing.T) {
-	setUpHandler()
-
-	var endpoints []string
-	endpoint := server.GetLBRoundRobin(endpoints, "8.8.8.8")
-
-	assert.Equal(t, "8.8.8.8", endpoint)
-
-	tearDownHandler()
-}
-
-func TestGetLBRoundRobinDefined(t *testing.T) {
-	setUpHandler()
-
-	var endpoints = []string{"1.2.3.4"}
-	endpoint := server.GetLBRoundRobin(endpoints, "8.8.8.8")
-
-	assert.Equal(t, "1.2.3.4", endpoint)
-
-	tearDownHandler()
-}
-
-func setUpHandler() {
-	config.Config = config.Configuration{}
-}
-
-func tearDownHandler() {
-	config.Config = config.Configuration{}
-}
-
-// --- FUNCTIONAL --------------------------------------------------------------
 const RedisLocalHost = "localhost"
 
 func TestEndToEndCallRedirect(t *testing.T) {
@@ -62,9 +29,9 @@ func TestEndToEndCallRedirect(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.HandleRequestAndRedirect)
+	h := http.HandlerFunc(handler.HandleRequestAndProxy)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
 	assert.Contains(t, rr.Body.String(), `<title>301 Moved Permanently</title>`)
@@ -87,7 +54,7 @@ func TestEndToEndCallWithoutCache(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.HandleRequestAndRedirect)
+	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
 
 	handler.ServeHTTP(rr, req)
 
@@ -119,13 +86,13 @@ func TestEndToEndCallWithCacheMiss(t *testing.T) {
 		},
 	}
 
-	redis.Connect(config.Config.Cache)
+	engine.Connect(config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.HandleRequestAndRedirect)
+	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
 
 	handler.ServeHTTP(rr, req)
 
@@ -157,13 +124,13 @@ func TestEndToEndCallWithCacheHit(t *testing.T) {
 		},
 	}
 
-	redis.Connect(config.Config.Cache)
+	engine.Connect(config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(server.HandleRequestAndRedirect)
+	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
 
 	handler.ServeHTTP(rr, req)
 

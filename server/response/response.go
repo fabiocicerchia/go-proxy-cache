@@ -1,4 +1,4 @@
-package server
+package response
 
 import (
 	"net/http"
@@ -14,14 +14,14 @@ func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
 	return &LoggedResponseWriter{w, 0, []byte("")}
 }
 
-func (lrw *LoggedResponseWriter) WriteHeader(statusCode int) {
-	lrw.StatusCode = statusCode
-	lrw.ResponseWriter.WriteHeader(statusCode)
+func (lwr *LoggedResponseWriter) WriteHeader(statusCode int) {
+	lwr.StatusCode = statusCode
+	lwr.ResponseWriter.WriteHeader(statusCode)
 }
 
-func (lrw *LoggedResponseWriter) Write(p []byte) (int, error) {
-	lrw.Content = append(lrw.Content, p...)
-	return lrw.ResponseWriter.Write(p)
+func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
+	lwr.Content = append(lwr.Content, p...)
+	return lwr.ResponseWriter.Write(p)
 }
 
 // TODO: coverage
@@ -41,6 +41,7 @@ func Flush(rw http.ResponseWriter) {
 func WriteBody(rw http.ResponseWriter, page string) bool {
 	pageByte := []byte(page)
 	sent, err := rw.Write(pageByte)
+
 	// try again
 	if sent == 0 && err != nil {
 		// TODO: log

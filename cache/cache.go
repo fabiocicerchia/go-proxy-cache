@@ -6,16 +6,28 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-func StoreFullPage(url string, method string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
-	if utils.Contains(config.Config.Cache.AllowedStatuses, strconv.Itoa(status)) {
-		return false, nil
-	}
+type Response struct {
+	Method     string
+	StatusCode int
+	Headers    map[string]interface{}
+	Content    string
+}
 
-	if utils.Contains(config.Config.Cache.AllowedMethods, method) {
+func IsStatusAllowed(statusCode int) bool {
+	return utils.Contains(config.Config.Cache.AllowedStatuses, strconv.Itoa(statusCode))
+}
+
+func IsMethodAllowed(method string) bool {
+	return utils.Contains(config.Config.Cache.AllowedMethods, method)
+}
+
+func StoreFullPage(url string, method string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
+	if !IsStatusAllowed(status) || !IsMethodAllowed(method) {
 		return false, nil
 	}
 
@@ -26,21 +38,21 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 		Content:    content,
 	}
 
-	valueToEncode, err := utils.MsgpackEncode(response)
+	encoded, err := engine.Encode(response)
 	if err != nil {
 		// TODO: log
 		return false, err
 	}
-	encodedBase64Value := string(utils.Base64Encode(valueToEncode))
 
 	meta, err := GetVary(headers)
 	if err != nil {
 		return false, err
 	}
 	StoreMetadata(method, url, meta, expiration)
+
 	key := CacheKey(method, url, meta, reqHeaders)
 
-	return Set(key, encodedBase64Value, expiration)
+	return engine.Set(key, encoded, expiration)
 }
 
 func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (statusCode int, headers map[string]interface{}, content string, err error) {
@@ -53,26 +65,17 @@ func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (st
 
 	key := CacheKey(method, url, meta, reqHeaders)
 
-	encodedBase64Value, err := Get(key)
+	encoded, err := engine.Get(key)
 	if err != nil {
 		return statusCode, headers, content, err
 	}
 
-	decodedValue, err := utils.Base64Decode([]byte(encodedBase64Value))
+	err = engine.Decode(encoded, response)
 	if err != nil {
 		return statusCode, headers, content, err
 	}
 
-	err = utils.MsgpackDecode(decodedValue, response)
-	if err != nil {
-		return statusCode, headers, content, err
-	}
-
-	statusCode = response.StatusCode
-	headers = response.Headers
-	content = response.Content
-
-	return statusCode, headers, content, nil
+	return response.StatusCode, response.Headers, response.Content, nil
 }
 
 func CacheKey(method, url string, meta []string, reqHeaders map[string]interface{}) string {
@@ -95,21 +98,21 @@ func CacheKey(method, url string, meta []string, reqHeaders map[string]interface
 func FetchMetadata(method, url string) (meta []string, err error) {
 	key := "META@@" + method + "@@" + url
 
-	return LRange(key)
+	return engine.List(key)
 }
 
 func StoreMetadata(method, url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + method + "@@" + url
 
-	err := LPush(key, meta)
+	err := engine.Push(key, meta)
 	if err != nil {
 		return false, err
 	}
 
-	err = Expire(key, expiration)
+	err = engine.Expire(key, expiration)
 	if err != nil {
 		// TODO: use transaction
-		_ = rdb.Del(ctx, key).Err()
+		_ = engine.Del(key)
 
 		return false, err
 	}

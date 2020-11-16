@@ -86,6 +86,7 @@ cache:
 
 ## TODO
 
+  - Healthcheck Endpoint
   - Support Chunking
   - Serve STALE cache
   - LB Algorithms

@@ -1,4 +1,4 @@
-package redis
+package engine
 
 import (
 	"context"
@@ -6,18 +6,11 @@ import (
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/go-redis/redis/v8"
 )
 
-type Response struct {
-	Method     string
-	StatusCode int
-	Headers    map[string]interface{}
-	Content    string
-}
-
 var ctx = context.Background()
-
 var rdb *redis.Client
 
 func Connect(config config.Cache) bool {
@@ -64,7 +57,15 @@ func Get(key string) (string, error) {
 	return value, nil
 }
 
-func LRange(key string) (value []string, err error) {
+func Del(key string) error {
+	if rdb == nil {
+		return fmt.Errorf("Not Connected to Redis")
+	}
+
+	return rdb.Del(ctx, key).Err()
+}
+
+func List(key string) (value []string, err error) {
 	if rdb == nil {
 		return value, fmt.Errorf("Not Connected to Redis")
 	}
@@ -77,7 +78,7 @@ func LRange(key string) (value []string, err error) {
 	return value, nil
 }
 
-func LPush(key string, values []string) error {
+func Push(key string, values []string) error {
 	if rdb == nil {
 		return fmt.Errorf("Not Connected to Redis")
 	}
@@ -91,4 +92,25 @@ func Expire(key string, expiration time.Duration) error {
 	}
 
 	return rdb.Expire(ctx, key, expiration).Err()
+}
+
+func Encode(obj interface{}) (string, error) {
+	value, err := utils.MsgpackEncode(obj)
+	if err != nil {
+		return "", err
+	}
+
+	encoded := string(utils.Base64Encode(value))
+
+	return encoded, nil
+}
+
+func Decode(encoded string, obj interface{}) error {
+	decoded, err := utils.Base64Decode([]byte(encoded))
+	if err != nil {
+		return err
+	}
+
+	err = utils.MsgpackDecode(decoded, obj)
+	return err
 }

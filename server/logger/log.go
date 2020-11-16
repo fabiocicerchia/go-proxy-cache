@@ -1,4 +1,4 @@
-package server
+package logger
 
 import (
 	"fmt"
@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
 const logFormat = `$remote_addr - $remote_user "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`
@@ -17,7 +18,7 @@ const logFormat = `$remote_addr - $remote_user "$request" $status $body_bytes_se
 const dateFormat = "2006/01/02 15:04:05"
 
 // Log the redirect url
-func LogRequest(req *http.Request, res *LoggedResponseWriter, cached bool) {
+func LogRequest(req *http.Request, res *response.LoggedResponseWriter, cached bool) {
 	logLine := logFormat
 
 	// TODO: replace with array mapping

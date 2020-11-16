@@ -3,8 +3,10 @@ package server
 import (
 	"net/http"
 
-	redis "github.com/fabiocicerchia/go-proxy-cache/cache"
+	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 )
 
 func Start() {
@@ -12,13 +14,13 @@ func Start() {
 	config.InitConfigFromFileOrEnv("config.yml")
 
 	// Log setup values
-	LogSetup(config.Config.Server.Forwarding, config.Config.Server.Port)
+	logger.LogSetup(config.Config.Server.Forwarding, config.Config.Server.Port)
 
 	// redis connect
-	redis.Connect(config.Config.Cache)
+	engine.Connect(config.Config.Cache)
 
 	// start server
-	http.HandleFunc("/", HandleRequestAndRedirect)
+	http.HandleFunc("/", handler.HandleRequestAndProxy)
 
 	port := ":" + config.Config.Server.Port
 	if err := http.ListenAndServe(port, nil); err != nil {

@@ -1,12 +1,11 @@
-package server_test
+package response_test
 
 import (
 	"net/http"
 	"testing"
 
+	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/fabiocicerchia/go-proxy-cache/server"
 )
 
 var MockStatusCode int
@@ -25,7 +24,7 @@ func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
 func TestNewWriter(t *testing.T) {
 	var rwMock ResponseWriterMock
 
-	lwr := server.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock)
 
 	assert.Equal(t, 0, lwr.StatusCode)
 	assert.Equal(t, "", string(lwr.Content))
@@ -36,7 +35,7 @@ func TestNewWriter(t *testing.T) {
 func TestCatchStatusCode(t *testing.T) {
 	var rwMock ResponseWriterMock
 
-	lwr := server.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock)
 	lwr.WriteHeader(201)
 
 	// checks lwr
@@ -53,7 +52,7 @@ func TestCatchStatusCode(t *testing.T) {
 func TestCatchContent(t *testing.T) {
 	var rwMock ResponseWriterMock
 
-	lwr := server.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock)
 
 	content := []byte("test content")
 	_, _ = lwr.Write(content)

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/roundrobin"
+	"github.com/fabiocicerchia/go-proxy-cache/server/balancer/roundrobin"
 	"github.com/stretchr/testify/assert"
 )
 

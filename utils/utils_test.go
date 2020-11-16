@@ -9,6 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// --- GetEnv
+
 func TestGetEnvEmptyFallback(t *testing.T) {
 	os.Setenv("testing", "1")
 
@@ -37,6 +39,8 @@ func TestGetEnvMissingEnv(t *testing.T) {
 	tearDown()
 }
 
+// --- IfEmpty
+
 func TestIfEmptyWithValue(t *testing.T) {
 	value := utils.IfEmpty("text", "fallback")
 
@@ -49,6 +53,55 @@ func TestIfEmptyWithoutValue(t *testing.T) {
 	value := utils.IfEmpty("", "fallback")
 
 	assert.Equal(t, "fallback", value)
+
+	tearDown()
+}
+
+// --- Contains
+
+func TestContainsEmpty(t *testing.T) {
+	match := utils.Contains([]string{}, "d")
+
+	assert.False(t, match)
+
+	tearDown()
+}
+
+func TestContainsNoValue(t *testing.T) {
+	match := utils.Contains([]string{"a", "b", "c"}, "d")
+
+	assert.False(t, match)
+
+	tearDown()
+}
+
+func TestContainsValue(t *testing.T) {
+	match := utils.Contains([]string{"a", "b", "c"}, "c")
+
+	assert.True(t, match)
+
+	tearDown()
+}
+
+// --- GetHeaders
+
+func TestGetHeadersEmpty(t *testing.T) {
+	var input map[string][]string
+	headers := utils.GetHeaders(input)
+
+	assert.Len(t, headers, 0)
+
+	tearDown()
+}
+
+func TestGetHeadersNotEmpty(t *testing.T) {
+	input := make(map[string][]string)
+	input["key"] = []string{"a", "b", "c"}
+
+	headers := utils.GetHeaders(input)
+
+	assert.Len(t, headers, 1)
+	assert.Equal(t, "a b c", headers["key"])
 
 	tearDown()
 }

@@ -1,4 +1,4 @@
-package server_test
+package logger_test
 
 import (
 	"bytes"
@@ -13,7 +13,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server"
+	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
 func TestLogRequest(t *testing.T) {
@@ -25,7 +26,7 @@ func TestLogRequest(t *testing.T) {
 	reqMock.Header.Set("Referer", "https://www.google.com")
 	reqMock.Header.Set("User-Agent", "GoProxyCache")
 
-	lrwMock := &server.LoggedResponseWriter{
+	lwrMock := &response.LoggedResponseWriter{
 		StatusCode: 404,
 		Content:    []byte("testing"),
 	}
@@ -36,7 +37,7 @@ func TestLogRequest(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
-	server.LogRequest(reqMock, lrwMock, true)
+	logger.LogRequest(reqMock, lwrMock, true)
 
 	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
 	expectedOut := fmt.Sprintf(`%s 127.0.0.1 - - "/path/to/file" 404 7 "https://www.google.com" "GoProxyCache" true`+"\n", timeNow)
@@ -63,7 +64,7 @@ func TestLogSetup(t *testing.T) {
 		},
 	}
 
-	server.LogSetup(config.Config.Server.Forwarding, "8081")
+	logger.LogSetup(config.Config.Server.Forwarding, "8081")
 
 	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
 
