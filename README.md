@@ -20,7 +20,7 @@ Simple caching proxy written in golang backed by redis.
   - Full Page Caching (via Redis)
   - Load Balancing (only Round-Robin)
   - Small, Pragmatic and Easy to Use
-  - Easily Configurable
+  - Easily Configurable (via YAML or Environment Variables)
   - Cache respecting HTTP Header `Vary`
   - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
   - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
@@ -40,6 +40,48 @@ $ docker run \
     --env REDIS_PASSWORD= \
     --env REDIS_DB=0 \
     fabiocicerchia/go-proxy-cache
+```
+
+## Configuration
+
+### Environment Variables
+
+- `SERVER_PORT` = 8080
+- `DEFAULT_TTL` = 0
+- `FORWARD_HOST`
+- `FORWARD_SCHEME`
+- `LB_ENDPOINT_LIST`
+- `REDIS_DB` = 0
+- `REDIS_HOST`
+- `REDIS_PASSWORD`
+- `REDIS_PORT` = 6379
+- `CACHE_ALLOWED_METHODS` = HEAD,GET
+- `CACHE_ALLOWED_STATUSES` = 200,301,302
+
+### YAML
+
+```yaml
+server:
+  port: "8081"
+  ttl: 0
+  forwarding:
+    host: fabiocicerchia.it
+    scheme: https
+    endpoints:
+    - fabiocicerchia.it
+
+cache:
+  host: localhost
+  port: "6379"
+  password: ""
+  db: 0
+  allowedstatuses:
+  - "200"
+  - "301"
+  - "302"
+  allowedmethods:
+  - HEAD
+  - GET
 ```
 
 ## TODO

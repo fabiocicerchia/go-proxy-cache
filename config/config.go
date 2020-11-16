@@ -1,8 +1,11 @@
 package config
 
 import (
+	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
@@ -33,7 +36,12 @@ type Cache struct {
 	AllowedMethods  []string
 }
 
-func InitConfig() {
+func InitConfigFromFileOrEnv(file string) {
+	Config = Configuration{}
+
+	data, _ := ioutil.ReadFile(file)
+	_ = yaml.Unmarshal([]byte(data), &Config)
+
 	ttlSecs, _ := strconv.Atoi(utils.GetEnv("DEFAULT_TTL", "0"))
 
 	lbEnpointList := utils.GetEnv("LB_ENDPOINT_LIST", "")
@@ -50,24 +58,40 @@ func InitConfig() {
 	methods := utils.GetEnv("CACHE_ALLOWED_METHODS", "HEAD,GET")
 	methodList := strings.Split(methods, ",")
 
-	Config = Configuration{
-		Server: Server{
-			Port: utils.GetEnv("SERVER_PORT", "8080"),
-			TTL:  ttlSecs,
-			Forwarding: Forward{
-				Host:      utils.GetEnv("FORWARD_HOST", ""),
-				Scheme:    utils.GetEnv("FORWARD_SCHEME", ""),
-				Endpoints: endpoints,
-			},
-		},
-		Cache: Cache{
-			Host:            utils.GetEnv("REDIS_HOST", ""),
-			Port:            utils.GetEnv("REDIS_PORT", "6379"),
-			Password:        utils.GetEnv("REDIS_PASSWORD", ""),
-			DB:              cacheDb,
-			AllowedStatuses: statusList,
-			AllowedMethods:  methodList,
-		},
+	if Config.Server.Port == "" {
+		Config.Server.Port = utils.GetEnv("SERVER_PORT", "8080")
+	}
+	if Config.Server.TTL == 0 {
+		Config.Server.TTL = ttlSecs
+	}
+
+	if Config.Server.Forwarding.Host == "" {
+		Config.Server.Forwarding.Host = utils.GetEnv("FORWARD_HOST", "")
+	}
+	if Config.Server.Forwarding.Scheme == "" {
+		Config.Server.Forwarding.Scheme = utils.GetEnv("FORWARD_SCHEME", "")
+	}
+	if len(Config.Server.Forwarding.Endpoints) == 0 {
+		Config.Server.Forwarding.Endpoints = endpoints
+	}
+
+	if Config.Cache.Host == "" {
+		Config.Cache.Host = utils.GetEnv("REDIS_HOST", "")
+	}
+	if Config.Cache.Port == "" {
+		Config.Cache.Port = utils.GetEnv("REDIS_PORT", "6379")
+	}
+	if Config.Cache.Password == "" {
+		Config.Cache.Password = utils.GetEnv("REDIS_PASSWORD", "")
+	}
+	if Config.Cache.DB == 0 {
+		Config.Cache.DB = cacheDb
+	}
+	if len(Config.Cache.AllowedStatuses) == 0 {
+		Config.Cache.AllowedStatuses = statusList
+	}
+	if len(Config.Cache.AllowedMethods) == 0 {
+		Config.Cache.AllowedMethods = methodList
 	}
 }
 

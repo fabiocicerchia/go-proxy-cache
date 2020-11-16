@@ -9,7 +9,7 @@ import (
 
 func Start() {
 	// Init configs
-	config.InitConfig()
+	config.InitConfigFromFileOrEnv("config.yml")
 
 	// Log setup values
 	LogSetup(config.Config.Server.Forwarding, config.Config.Server.Port)
