@@ -50,6 +50,20 @@ func GetByKeyCaseInsensitive(items map[string]interface{}, key string) interface
 func GetTTL(headers map[string]interface{}) time.Duration {
 	ttl := time.Duration(config.Config.Server.TTL) * time.Second
 
+	expires := GetByKeyCaseInsensitive(headers, "Expires")
+
+	if expires != nil {
+		expiresValue := strings.ToLower(expires.(string))
+
+		expiresDate, err := http.ParseTime(expiresValue)
+		if err == nil {
+			diff := expiresDate.Sub(time.Now())
+			if diff > 0 {
+				ttl = diff
+			}
+		}
+	}
+
 	cacheControl := GetByKeyCaseInsensitive(headers, "Cache-Control")
 
 	if cacheControl != nil {

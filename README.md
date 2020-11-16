@@ -21,7 +21,7 @@ Simple caching proxy written in golang backed by redis.
   - Load Balancing (only Round-Robin)
   - Small, Pragmatic and Easy to Use
   - Easily Configurable (via YAML or Environment Variables)
-  - Cache respecting HTTP Header `Vary`
+  - Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
   - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
   - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
 
@@ -86,20 +86,22 @@ cache:
 
 ## TODO
 
-  - Redis KeepAlive
-  - Functional tests
-  - SSL Termination
-  - Improve Logging
-  - Configuration File
-  - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
-  - Serve STALE cache
-  - Define eviction: LRU, LFU, ...
   - Support Chunking
-  - Define list of cacheable status codes
-  - Respect `Expire`
+  - Serve STALE cache
+  - LB Algorithms
+  - Cache Circuit Breaker
+  - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
+  - Purge
+  - Tags
+  - HTTPS
   - HTTP/2
   - HTTP/3
   - WebSockets
+  - Improve Logging
+  - Define eviction: LRU, LFU, ...
+  - Byte-Range Cache
+  - Dashboard
+  - CLI Monitor
 
 ## License
 
