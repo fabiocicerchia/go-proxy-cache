@@ -10,6 +10,7 @@ import (
 )
 
 type Response struct {
+	Method     string
 	StatusCode int
 	Headers    map[string]interface{}
 	Content    string

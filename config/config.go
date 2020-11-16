@@ -25,10 +25,12 @@ type Forward struct {
 	Endpoints []string
 }
 type Cache struct {
-	Host     string
-	Port     string
-	Password string
-	DB       int
+	Host            string
+	Port            string
+	Password        string
+	DB              int
+	AllowedStatuses []string
+	AllowedMethods  []string
 }
 
 func InitConfig() {
@@ -42,6 +44,12 @@ func InitConfig() {
 		cacheDb = 0
 	}
 
+	statuses := utils.GetEnv("CACHE_ALLOWED_STATUSES", "200,301,302")
+	statusList := strings.Split(statuses, ",")
+
+	methods := utils.GetEnv("CACHE_ALLOWED_METHODS", "HEAD,GET")
+	methodList := strings.Split(methods, ",")
+
 	Config = Configuration{
 		Server: Server{
 			Port: utils.GetEnv("SERVER_PORT", "8080"),
@@ -53,10 +61,12 @@ func InitConfig() {
 			},
 		},
 		Cache: Cache{
-			Host:     utils.GetEnv("REDIS_HOST", ""),
-			Port:     utils.GetEnv("REDIS_PORT", "6379"),
-			Password: utils.GetEnv("REDIS_PASSWORD", ""),
-			DB:       cacheDb,
+			Host:            utils.GetEnv("REDIS_HOST", ""),
+			Port:            utils.GetEnv("REDIS_PORT", "6379"),
+			Password:        utils.GetEnv("REDIS_PASSWORD", ""),
+			DB:              cacheDb,
+			AllowedStatuses: statusList,
+			AllowedMethods:  methodList,
 		},
 	}
 }

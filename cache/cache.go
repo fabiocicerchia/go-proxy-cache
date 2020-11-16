@@ -2,14 +2,25 @@ package redis
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-func StoreFullPage(url string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
+func StoreFullPage(url string, method string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
+	if utils.Contains(config.Config.Cache.AllowedStatuses, strconv.Itoa(status)) {
+		return false, nil
+	}
+
+	if utils.Contains(config.Config.Cache.AllowedMethods, method) {
+		return false, nil
+	}
+
 	response := &Response{
+		Method:     method,
 		StatusCode: status,
 		Headers:    headers,
 		Content:    content,
@@ -26,21 +37,21 @@ func StoreFullPage(url string, status int, headers map[string]interface{}, reqHe
 	if err != nil {
 		return false, err
 	}
-	StoreMetadata(url, meta, expiration)
-	key := CacheKey(url, meta, reqHeaders)
+	StoreMetadata(method, url, meta, expiration)
+	key := CacheKey(method, url, meta, reqHeaders)
 
 	return Set(key, encodedBase64Value, expiration)
 }
 
-func RetrieveFullPage(url string, reqHeaders map[string]interface{}) (statusCode int, headers map[string]interface{}, content string, err error) {
+func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (statusCode int, headers map[string]interface{}, content string, err error) {
 	response := &Response{}
 
-	meta, err := FetchMetadata(url)
+	meta, err := FetchMetadata(method, url)
 	if err != nil || len(meta) == 0 {
 		return statusCode, headers, content, err
 	}
 
-	key := CacheKey(url, meta, reqHeaders)
+	key := CacheKey(method, url, meta, reqHeaders)
 
 	encodedBase64Value, err := Get(key)
 	if err != nil {
@@ -64,8 +75,8 @@ func RetrieveFullPage(url string, reqHeaders map[string]interface{}) (statusCode
 	return statusCode, headers, content, nil
 }
 
-func CacheKey(url string, meta []string, reqHeaders map[string]interface{}) string {
-	key := []string{"DATA", url}
+func CacheKey(method, url string, meta []string, reqHeaders map[string]interface{}) string {
+	key := []string{"DATA", method, url}
 
 	vary := meta
 	for _, k := range vary {
@@ -81,14 +92,14 @@ func CacheKey(url string, meta []string, reqHeaders map[string]interface{}) stri
 	return cacheKey
 }
 
-func FetchMetadata(url string) (meta []string, err error) {
-	key := "META@@" + url
+func FetchMetadata(method, url string) (meta []string, err error) {
+	key := "META@@" + method + "@@" + url
 
 	return LRange(key)
 }
 
-func StoreMetadata(url string, meta []string, expiration time.Duration) (bool, error) {
-	key := "META@@" + url
+func StoreMetadata(method, url string, meta []string, expiration time.Duration) (bool, error) {
+	key := "META@@" + method + "@@" + url
 
 	err := LPush(key, meta)
 	if err != nil {

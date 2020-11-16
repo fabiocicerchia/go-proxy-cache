@@ -35,3 +35,12 @@ func IfEmpty(val string, fallback string) string {
 
 	return val
 }
+
+func Contains(items []string, value string) bool {
+	for _, v := range items {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}

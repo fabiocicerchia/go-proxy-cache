@@ -53,7 +53,7 @@ func serveReverseProxy(forwarding config.Forward, target string, res *LoggedResp
 	// Note that ServeHttp is non blocking and uses a go routine under the hood
 	proxy.ServeHTTP(res, req)
 
-	done := storeGeneratedPage(req.URL.String(), reqHeaders, *res)
+	done := storeGeneratedPage(req.Method, req.URL.String(), reqHeaders, *res)
 	LogRequest(req, res, done)
 }
 
@@ -66,7 +66,7 @@ func HandleRequestAndRedirect(res http.ResponseWriter, req *http.Request) {
 	reqHeaders := utils.GetHeaders(req.Header)
 
 	fullURL := proxyURL + req.URL.String()
-	if !serveCachedContent(res, reqHeaders, fullURL) {
+	if !serveCachedContent(res, req.Method, reqHeaders, fullURL) {
 		lrw := NewLoggedResponseWriter(res)
 		serveReverseProxy(forwarding, proxyURL, lrw, req)
 	}

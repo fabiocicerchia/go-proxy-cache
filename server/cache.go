@@ -17,8 +17,8 @@ const CacheStatusHeader = "X-GoProxyCache-Status"
 const CacheStatusHeaderHit = "HIT"
 const CacheStatusHeaderMiss = "MISS"
 
-func serveCachedContent(rw http.ResponseWriter, reqHeaders map[string]interface{}, url string) bool {
-	code, headers, page, _ := redis.RetrieveFullPage(url, reqHeaders)
+func serveCachedContent(rw http.ResponseWriter, method string, reqHeaders map[string]interface{}, url string) bool {
+	code, headers, page, _ := redis.RetrieveFullPage(method, url, reqHeaders)
 
 	if code == http.StatusOK && page != "" {
 		CopyHeaders(rw, headers)
@@ -88,7 +88,7 @@ func GetTTLFrom(cacheType string, cacheControl string) time.Duration {
 	return ttl
 }
 
-func storeGeneratedPage(url string, reqHeaders map[string]interface{}, lrw LoggedResponseWriter) bool {
+func storeGeneratedPage(method, url string, reqHeaders map[string]interface{}, lrw LoggedResponseWriter) bool {
 	status := lrw.StatusCode
 
 	headers := utils.GetHeaders(lrw.Header())
@@ -97,7 +97,7 @@ func storeGeneratedPage(url string, reqHeaders map[string]interface{}, lrw Logge
 	ttl := GetTTL(headers)
 
 	// TODO: pass obj
-	done, err := redis.StoreFullPage(url, status, headers, reqHeaders, content, ttl)
+	done, err := redis.StoreFullPage(url, method, status, headers, reqHeaders, content, ttl)
 	if err != nil {
 		log.Printf("Error: %s\n", err)
 	}
