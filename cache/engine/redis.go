@@ -15,9 +15,7 @@ var rdb *redis.Client
 
 func Connect(config config.Cache) bool {
 	if rdb != nil {
-		// test the connection
-		_, err := rdb.Ping(ctx).Result()
-		return err == nil
+		return Ping()
 	}
 
 	rdb = redis.NewClient(&redis.Options{
@@ -27,6 +25,20 @@ func Connect(config config.Cache) bool {
 	})
 
 	// test the connection
+	_, err := rdb.Ping(ctx).Result()
+	return err == nil
+}
+
+func Close() error {
+	return rdb.Close()
+}
+
+// test the connection
+func Ping() bool {
+	if rdb == nil {
+		return false
+	}
+
 	_, err := rdb.Ping(ctx).Result()
 	return err == nil
 }
@@ -65,6 +77,19 @@ func Del(key string) error {
 	return rdb.Del(ctx, key).Err()
 }
 
+func DelWildcard(key string) error {
+	if rdb == nil {
+		return fmt.Errorf("Not Connected to Redis")
+	}
+
+	keys, err := rdb.Keys(ctx, key+"*").Result()
+	if err == nil {
+		return err
+	}
+
+	return rdb.Del(ctx, keys...).Err()
+}
+
 func List(key string) (value []string, err error) {
 	if rdb == nil {
 		return value, fmt.Errorf("Not Connected to Redis")
@@ -100,13 +125,13 @@ func Encode(obj interface{}) (string, error) {
 		return "", err
 	}
 
-	encoded := string(utils.Base64Encode(value))
+	encoded := utils.Base64Encode(value)
 
 	return encoded, nil
 }
 
 func Decode(encoded string, obj interface{}) error {
-	decoded, err := utils.Base64Decode([]byte(encoded))
+	decoded, err := utils.Base64Decode(encoded)
 	if err != nil {
 		return err
 	}

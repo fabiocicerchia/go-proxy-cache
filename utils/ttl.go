@@ -28,12 +28,7 @@ func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 	cacheControl := GetByKeyCaseInsensitive(headers, "Cache-Control")
 
 	if cacheControl != nil {
-		// TODO: add coverage
 		cacheControlValue := strings.ToLower(cacheControl.(string))
-
-		if strings.Contains(cacheControlValue, "no-cache") || strings.Contains(cacheControlValue, "no-store") {
-			ttl = 0
-		}
 
 		// TODO: check which priority
 		if maxage := GetTTLFrom("max-age", cacheControlValue); maxage > 0 {
@@ -42,6 +37,10 @@ func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 
 		if smaxage := GetTTLFrom("s-maxage", cacheControlValue); smaxage > 0 {
 			ttl = smaxage
+		}
+
+		if strings.Contains(cacheControlValue, "no-cache") || strings.Contains(cacheControlValue, "no-store") {
+			ttl = 0
 		}
 	}
 

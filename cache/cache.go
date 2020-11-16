@@ -1,4 +1,4 @@
-package redis
+package cache
 
 import (
 	"errors"
@@ -78,6 +78,24 @@ func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (st
 	return response.StatusCode, response.Headers, response.Content, nil
 }
 
+func PurgeFullPage(method, url string) (bool, error) {
+	err := DeleteMetadata(method, url)
+	if err != nil {
+		return false, err
+	}
+
+	var meta []string
+	reqHeaders := make(map[string]interface{})
+	key := CacheKey(method, url, meta, reqHeaders)
+
+	err = engine.DelWildcard(key)
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 func CacheKey(method, url string, meta []string, reqHeaders map[string]interface{}) string {
 	key := []string{"DATA", method, url}
 
@@ -99,6 +117,12 @@ func FetchMetadata(method, url string) (meta []string, err error) {
 	key := "META@@" + method + "@@" + url
 
 	return engine.List(key)
+}
+
+func DeleteMetadata(method, url string) error {
+	key := "META@@" + method + "@@" + url
+
+	return engine.Del(key)
 }
 
 func StoreMetadata(method, url string, meta []string, expiration time.Duration) (bool, error) {

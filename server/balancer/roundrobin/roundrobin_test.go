@@ -1,3 +1,5 @@
+// +build unit
+
 package roundrobin_test
 
 import (

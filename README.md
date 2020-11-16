@@ -24,6 +24,8 @@ Simple caching proxy written in golang backed by redis.
   - Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
   - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
   - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
+  - Healthcheck Endpoint (`/healthcheck`)
+  - `PURGE` Method to invalidate
 
 ## Docker
 
@@ -86,23 +88,21 @@ cache:
 
 ## TODO
 
-  - Healthcheck Endpoint
-  - Support Chunking
-  - Serve STALE cache
-  - LB Algorithms
-  - Cache Circuit Breaker
-  - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
-  - Purge
-  - Tags
   - HTTPS
   - HTTP/2
-  - HTTP/3
   - WebSockets
+  - Support Chunking
+  - Serve STALE cache
+  - Cache Circuit Breaker
+  - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
+  - LB Algorithms
+  - Tags
   - Improve Logging
   - Define eviction: LRU, LFU, ...
   - Byte-Range Cache
   - Dashboard
   - CLI Monitor
+  - HTTP/3
 
 ## License
 

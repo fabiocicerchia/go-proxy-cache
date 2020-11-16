@@ -6,10 +6,11 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
+var msgpackHandler codec.MsgpackHandle
+
 func MsgpackEncode(obj interface{}) ([]byte, error) {
-	var handler codec.MsgpackHandle
 	buff := new(bytes.Buffer)
-	encoder := codec.NewEncoder(buff, &handler)
+	encoder := codec.NewEncoder(buff, &msgpackHandler)
 	err := encoder.Encode(obj)
 	if err != nil {
 		return nil, err
@@ -21,12 +22,6 @@ func MsgpackEncode(obj interface{}) ([]byte, error) {
 }
 
 func MsgpackDecode(b []byte, v interface{}) error {
-	var handler codec.MsgpackHandle
-	decoder := codec.NewDecoderBytes(b, &handler)
-	err := decoder.Decode(v)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	decoder := codec.NewDecoderBytes(b, &msgpackHandler)
+	return decoder.Decode(v)
 }

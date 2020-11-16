@@ -20,6 +20,7 @@ func Start() {
 	engine.Connect(config.Config.Cache)
 
 	// start server
+	http.HandleFunc("/healthcheck", handler.HandleHealthcheck)
 	http.HandleFunc("/", handler.HandleRequestAndProxy)
 
 	port := ":" + config.Config.Server.Port

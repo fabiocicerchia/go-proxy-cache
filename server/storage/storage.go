@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	redis "github.com/fabiocicerchia/go-proxy-cache/cache"
+	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
@@ -15,7 +15,7 @@ const CacheStatusHeaderHit = "HIT"
 const CacheStatusHeaderMiss = "MISS"
 
 func ServeCachedContent(rw http.ResponseWriter, method string, reqHeaders map[string]interface{}, url string) bool {
-	code, headers, page, _ := redis.RetrieveFullPage(method, url, reqHeaders)
+	code, headers, page, _ := cache.RetrieveFullPage(method, url, reqHeaders)
 
 	if code != http.StatusOK || page != "" {
 		rw.Header().Set(CacheStatusHeader, CacheStatusHeaderMiss)
@@ -42,7 +42,7 @@ func StoreGeneratedPage(method, url string, reqHeaders map[string]interface{}, l
 	ttl := utils.GetTTL(headers, config.Config.Server.TTL)
 
 	// TODO: pass obj
-	done, err := redis.StoreFullPage(url, method, status, headers, reqHeaders, content, ttl)
+	done, err := cache.StoreFullPage(url, method, status, headers, reqHeaders, content, ttl)
 	if err != nil {
 		log.Printf("Error: %s\n", err)
 	}

@@ -1,3 +1,5 @@
+// +build unit
+
 package utils_test
 
 import (
@@ -58,6 +60,22 @@ func TestGetTTLWhenSetCacheControl(t *testing.T) {
 	}
 	value := utils.GetTTL(headers, 1)
 	assert.Equal(t, time.Duration(86400*time.Second), value)
+}
+
+func TestGetTTLWhenCacheControlNoCache(t *testing.T) {
+	headers := map[string]interface{}{
+		"Cache-Control": "private, no-cache, max-age=3600",
+	}
+	value := utils.GetTTL(headers, 1)
+	assert.Equal(t, time.Duration(0*time.Second), value)
+}
+
+func TestGetTTLWhenCacheControlNoStore(t *testing.T) {
+	headers := map[string]interface{}{
+		"Cache-Control": "private, no-store, max-age=3600",
+	}
+	value := utils.GetTTL(headers, 1)
+	assert.Equal(t, time.Duration(0*time.Second), value)
 }
 
 func TestGetTTLWhenSetExpires(t *testing.T) {

@@ -1,3 +1,5 @@
+// +build unit
+
 package balancer_test
 
 import (
@@ -8,8 +10,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 )
-
-// --- UNIT --------------------------------------------------------------------
 
 func TestGetLBRoundRobinUndefined(t *testing.T) {
 	setUp()

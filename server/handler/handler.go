@@ -38,6 +38,11 @@ func serveReverseProxy(forwarding config.Forward, target string, res *response.L
 }
 
 func HandleRequestAndProxy(res http.ResponseWriter, req *http.Request) {
+	if req.Method == "PURGE" {
+		HandlePurge(res, req)
+		return
+	}
+
 	forwarding := config.GetForwarding()
 
 	proxyURL := fmt.Sprintf("%s://%s", forwarding.Scheme, forwarding.Host)

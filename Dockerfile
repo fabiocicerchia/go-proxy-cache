@@ -9,7 +9,9 @@ RUN apk update \
       gcc \
       libc-dev \
       make \
+      redis \
     && make build \
+    && redis-server --daemonize yes \
     && make test
 
 FROM alpine:3.12.1

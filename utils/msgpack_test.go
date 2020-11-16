@@ -1,3 +1,5 @@
+// +build unit
+
 package utils_test
 
 import (
