@@ -14,6 +14,7 @@ const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
 const CacheStatusHeaderHit = "HIT"
 const CacheStatusHeaderMiss = "MISS"
 
+// ServeCachedContent - Retrives and sends to the client the cached response.
 func ServeCachedContent(rw http.ResponseWriter, method string, reqHeaders map[string]interface{}, url string) bool {
 	code, headers, page, _ := cache.RetrieveFullPage(method, url, reqHeaders)
 
@@ -33,6 +34,7 @@ func ServeCachedContent(rw http.ResponseWriter, method string, reqHeaders map[st
 	return response.WriteBody(rw, page)
 }
 
+// StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(method, url string, reqHeaders map[string]interface{}, lwr response.LoggedResponseWriter) bool {
 	status := lwr.StatusCode
 

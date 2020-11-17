@@ -10,7 +10,7 @@ var (
 	ErrNoAvailableItem = errors.New("no item is available")
 )
 
-// Balancer roundrobin instance
+// Balancer roundrobin instance.
 type Balancer struct {
 	m sync.Mutex
 
@@ -18,12 +18,12 @@ type Balancer struct {
 	items []interface{}
 }
 
-// New balancer instance
+// New - Creates a new instance.
 func New(items []interface{}) *Balancer {
 	return &Balancer{items: items}
 }
 
-// Pick available item
+// Pick - Chooses next available item.
 func (b *Balancer) Pick() (interface{}, error) {
 	if len(b.items) == 0 {
 		return nil, ErrNoAvailableItem

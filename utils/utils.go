@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Get env var or default
+// GetEnv - Gets environment variable or default.
 func GetEnv(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
 		return value
@@ -14,7 +14,7 @@ func GetEnv(key string, fallback string) string {
 	return fallback
 }
 
-// TODO: coverage
+// GetHeaders - Returns converted HTTP headers.
 func GetHeaders(headers map[string][]string) map[string]interface{} {
 	headersConverted := make(map[string]interface{})
 	for k, v := range headers {
@@ -28,6 +28,7 @@ func GetHeaders(headers map[string][]string) map[string]interface{} {
 	return headersConverted
 }
 
+// IfEmpty - Returns value if not empty, fallback otherwise.
 func IfEmpty(val string, fallback string) string {
 	if val == "" {
 		return fallback
@@ -36,6 +37,7 @@ func IfEmpty(val string, fallback string) string {
 	return val
 }
 
+// Contains - Checks if a value is contained in a slice.
 func Contains(items []string, value string) bool {
 	for _, v := range items {
 		if v == value {
@@ -45,6 +47,7 @@ func Contains(items []string, value string) bool {
 	return false
 }
 
+// GetByKeyCaseInsensitive - Retrieves value by key matched case-insensitively.
 func GetByKeyCaseInsensitive(items map[string]interface{}, key string) interface{} {
 	keyLower := strings.ToLower(key)
 	for k, v := range items {
@@ -56,6 +59,7 @@ func GetByKeyCaseInsensitive(items map[string]interface{}, key string) interface
 	return nil
 }
 
+// CastToString - Converts a value to string.
 func CastToString(i interface{}) string {
 	arr := i.([]string)
 	if len(arr) > 0 {

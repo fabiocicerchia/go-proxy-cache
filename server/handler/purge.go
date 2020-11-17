@@ -8,6 +8,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 )
 
+// HandlePurge - Purges the cache for the requested URI.
 func HandlePurge(res http.ResponseWriter, req *http.Request) {
 	forwarding := config.GetForwarding()
 

@@ -13,6 +13,7 @@ import (
 var ctx = context.Background()
 var rdb *redis.Client
 
+// Connect - Connects to DB.
 func Connect(config config.Cache) bool {
 	if rdb != nil {
 		return Ping()
@@ -29,10 +30,12 @@ func Connect(config config.Cache) bool {
 	return err == nil
 }
 
+// Close - Closes the connection.
 func Close() error {
 	return rdb.Close()
 }
 
+// PurgeAll - Purges all the existing keys on a DB.
 func PurgeAll() (bool, error) {
 	if rdb == nil {
 		return false, fmt.Errorf("Not Connected to Redis")
@@ -46,7 +49,7 @@ func PurgeAll() (bool, error) {
 	return true, nil
 }
 
-// test the connection
+// Ping - Tests the connection.
 func Ping() bool {
 	if rdb == nil {
 		return false
@@ -56,6 +59,7 @@ func Ping() bool {
 	return err == nil
 }
 
+// Set - Sets a key, with certain value, with TTL for expiring.
 func Set(key, value string, expiration time.Duration) (bool, error) {
 	if rdb == nil {
 		return false, fmt.Errorf("Not Connected to Redis")
@@ -69,6 +73,7 @@ func Set(key, value string, expiration time.Duration) (bool, error) {
 	return true, nil
 }
 
+// Get - Gets a key.
 func Get(key string) (string, error) {
 	if rdb == nil {
 		return "", fmt.Errorf("Not Connected to Redis")
@@ -82,6 +87,7 @@ func Get(key string) (string, error) {
 	return value, nil
 }
 
+// Del - Removes a key.
 func Del(key string) error {
 	if rdb == nil {
 		return fmt.Errorf("Not Connected to Redis")
@@ -90,6 +96,7 @@ func Del(key string) error {
 	return rdb.Del(ctx, key).Err()
 }
 
+// DelWildcard - Removes the matching keys based on a pattern.
 func DelWildcard(key string) error {
 	if rdb == nil {
 		return fmt.Errorf("Not Connected to Redis")
@@ -103,6 +110,7 @@ func DelWildcard(key string) error {
 	return rdb.Del(ctx, keys...).Err()
 }
 
+// List - Returns the values in a list.
 func List(key string) (value []string, err error) {
 	if rdb == nil {
 		return value, fmt.Errorf("Not Connected to Redis")
@@ -116,6 +124,7 @@ func List(key string) (value []string, err error) {
 	return value, nil
 }
 
+// Push - Append values to a list.
 func Push(key string, values []string) error {
 	if rdb == nil {
 		return fmt.Errorf("Not Connected to Redis")
@@ -124,6 +133,7 @@ func Push(key string, values []string) error {
 	return rdb.LPush(ctx, key, values).Err()
 }
 
+// Expire - Sets a TTL on a key.
 func Expire(key string, expiration time.Duration) error {
 	if rdb == nil {
 		return fmt.Errorf("Not Connected to Redis")
@@ -132,6 +142,7 @@ func Expire(key string, expiration time.Duration) error {
 	return rdb.Expire(ctx, key, expiration).Err()
 }
 
+// Encode - Encodes an object with msgpack.
 func Encode(obj interface{}) (string, error) {
 	value, err := utils.MsgpackEncode(obj)
 	if err != nil {
@@ -143,6 +154,7 @@ func Encode(obj interface{}) (string, error) {
 	return encoded, nil
 }
 
+// Decode - Decodes an object with msgpack.
 func Decode(encoded string, obj interface{}) error {
 	decoded, err := utils.Base64Decode(encoded)
 	if err != nil {

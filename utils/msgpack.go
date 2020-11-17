@@ -8,6 +8,7 @@ import (
 
 var msgpackHandler codec.MsgpackHandle
 
+// MsgpackEncode - Encodes object with msgpack.
 func MsgpackEncode(obj interface{}) ([]byte, error) {
 	buff := new(bytes.Buffer)
 	encoder := codec.NewEncoder(buff, &msgpackHandler)
@@ -21,6 +22,7 @@ func MsgpackEncode(obj interface{}) ([]byte, error) {
 	return b, nil
 }
 
+// MsgpackDecode - Decodes object with msgpack.
 func MsgpackDecode(b []byte, v interface{}) error {
 	decoder := codec.NewDecoderBytes(b, &msgpackHandler)
 	return decoder.Decode(v)

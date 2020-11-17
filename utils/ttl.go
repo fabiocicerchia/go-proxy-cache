@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// GetTTL - Retrieves TTL is seconds from Expires and Cache-Control HTTP headers.
 func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 	ttl := time.Duration(defaultTTL) * time.Second
 
@@ -31,11 +32,11 @@ func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 		cacheControlValue := strings.ToLower(cacheControl.(string))
 
 		// TODO: check which priority
-		if maxage := GetTTLFrom("max-age", cacheControlValue); maxage > 0 {
+		if maxage := GetTTLFromCacheControl("max-age", cacheControlValue); maxage > 0 {
 			ttl = maxage
 		}
 
-		if smaxage := GetTTLFrom("s-maxage", cacheControlValue); smaxage > 0 {
+		if smaxage := GetTTLFromCacheControl("s-maxage", cacheControlValue); smaxage > 0 {
 			ttl = smaxage
 		}
 
@@ -47,7 +48,8 @@ func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 	return ttl
 }
 
-func GetTTLFrom(cacheType string, cacheControl string) time.Duration {
+// GetTTLFromCacheControl - Retrieves TTL value from Cache-Control header.
+func GetTTLFromCacheControl(cacheType string, cacheControl string) time.Duration {
 	var ttl time.Duration
 	ttl = 0 * time.Second
 

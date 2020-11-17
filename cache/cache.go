@@ -18,14 +18,17 @@ type Response struct {
 	Content    string
 }
 
+// IsStatusAllowed - Checks if a status code is allowed to be cached.
 func IsStatusAllowed(statusCode int) bool {
 	return utils.Contains(config.Config.Cache.AllowedStatuses, strconv.Itoa(statusCode))
 }
 
+// IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
 func IsMethodAllowed(method string) bool {
 	return utils.Contains(config.Config.Cache.AllowedMethods, method)
 }
 
+// StoreFullPage - Stores the whole page response in cache.
 func StoreFullPage(url string, method string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
 	if !IsStatusAllowed(status) || !IsMethodAllowed(method) {
 		return false, nil
@@ -55,6 +58,7 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 	return engine.Set(key, encoded, expiration)
 }
 
+// RetrieveFullPage - Retrieves the whole page response from cache.
 func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (statusCode int, headers map[string]interface{}, content string, err error) {
 	response := &Response{}
 
@@ -78,6 +82,7 @@ func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (st
 	return response.StatusCode, response.Headers, response.Content, nil
 }
 
+// PurgeFullPage - Deletes the whole page response from cache.
 func PurgeFullPage(method, url string) (bool, error) {
 	err := DeleteMetadata(method, url)
 	if err != nil {
@@ -97,6 +102,7 @@ func PurgeFullPage(method, url string) (bool, error) {
 	return true, nil
 }
 
+// CacheKey - Returns the cache key for the requested URL.
 func CacheKey(method, url string, meta []string, reqHeaders map[string]interface{}) string {
 	key := []string{"DATA", method, url}
 
@@ -112,18 +118,21 @@ func CacheKey(method, url string, meta []string, reqHeaders map[string]interface
 	return cacheKey
 }
 
+// FetchMetadata - Returns the cache metadata for the requested URL.
 func FetchMetadata(method, url string) (meta []string, err error) {
 	key := "META@@" + method + "@@" + url
 
 	return engine.List(key)
 }
 
+// DeleteMetadata - Removes the cache metadata for the requested URL.
 func DeleteMetadata(method, url string) error {
 	key := "META@@" + method + "@@" + url
 
 	return engine.Del(key)
 }
 
+// StoreMetadata - Saves the cache metadata for the requested URL.
 func StoreMetadata(method, url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + method + "@@" + url
 
@@ -144,6 +153,7 @@ func StoreMetadata(method, url string, meta []string, expiration time.Duration) 
 	return true, nil
 }
 
+// GetVary - Returns the content from the Vary HTTP header.
 func GetVary(headers map[string]interface{}) (varyList []string, err error) {
 	var vary string
 	if value, ok := headers["Vary"]; ok {

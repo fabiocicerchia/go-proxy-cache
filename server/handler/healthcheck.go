@@ -6,6 +6,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 )
 
+// HandleHealthcheck - Returns healthcheck status.
 func HandleHealthcheck(res http.ResponseWriter, req *http.Request) {
 	res.WriteHeader(http.StatusOK)
 	res.Write(([]byte)("HTTP OK\n"))

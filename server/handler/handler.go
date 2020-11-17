@@ -37,6 +37,7 @@ func serveReverseProxy(forwarding config.Forward, target string, res *response.L
 	logger.LogRequest(req, res, done)
 }
 
+// HandleRequestAndProxy - Handles the requests and proxies to backend server.
 func HandleRequestAndProxy(res http.ResponseWriter, req *http.Request) {
 	if req.Method == "PURGE" {
 		HandlePurge(res, req)

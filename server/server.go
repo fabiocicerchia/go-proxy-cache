@@ -9,6 +9,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 )
 
+// Start the GoProxyCache server.
 func Start() {
 	// Init configs
 	config.InitConfigFromFileOrEnv("config.yml")

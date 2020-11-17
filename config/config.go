@@ -36,6 +36,7 @@ type Cache struct {
 	AllowedMethods  []string
 }
 
+// InitConfigFromFileOrEnv - Init the configuration in sequence: from a YAML file, from environment variables, then defaults.
 func InitConfigFromFileOrEnv(file string) {
 	Config = Configuration{}
 
@@ -95,6 +96,7 @@ func InitConfigFromFileOrEnv(file string) {
 	}
 }
 
+// GetForwarding - Returns the forwarding configs.
 func GetForwarding() Forward {
 	return Config.Server.Forwarding
 }

@@ -11,40 +11,40 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetTTLFromWithMaxage(t *testing.T) {
-	value := utils.GetTTLFrom("max-age", `public, max-age=3600, s-maxage=86400`)
+func TestGetTTLFromCacheControlWithMaxage(t *testing.T) {
+	value := utils.GetTTLFromCacheControl("max-age", `public, max-age=3600, s-maxage=86400`)
 	assert.Equal(t, time.Duration(3600*time.Second), value)
 
-	value = utils.GetTTLFrom("max-age", `public,max-age=3600,s-maxage=86400`)
+	value = utils.GetTTLFromCacheControl("max-age", `public,max-age=3600,s-maxage=86400`)
 	assert.Equal(t, time.Duration(3600*time.Second), value)
 
-	value = utils.GetTTLFrom("max-age", `public, s-maxage=86400, max-age=3600`)
+	value = utils.GetTTLFromCacheControl("max-age", `public, s-maxage=86400, max-age=3600`)
 	assert.Equal(t, time.Duration(3600*time.Second), value)
 
-	value = utils.GetTTLFrom("max-age", `public,s-maxage=86400,max-age=3600`)
+	value = utils.GetTTLFromCacheControl("max-age", `public,s-maxage=86400,max-age=3600`)
 	assert.Equal(t, time.Duration(3600*time.Second), value)
 
-	value = utils.GetTTLFrom("max-age", `no-cache, max-age=0`)
+	value = utils.GetTTLFromCacheControl("max-age", `no-cache, max-age=0`)
 	assert.Equal(t, time.Duration(0*time.Second), value)
 }
 
-func TestGetTTLFromWithSmaxage(t *testing.T) {
-	value := utils.GetTTLFrom("s-maxage", `public, max-age=3600, s-maxage=86400`)
+func TestGetTTLFromCacheControlWithSmaxage(t *testing.T) {
+	value := utils.GetTTLFromCacheControl("s-maxage", `public, max-age=3600, s-maxage=86400`)
 	assert.Equal(t, time.Duration(86400*time.Second), value)
 
-	value = utils.GetTTLFrom("s-maxage", `public,max-age=3600,s-maxage=86400`)
+	value = utils.GetTTLFromCacheControl("s-maxage", `public,max-age=3600,s-maxage=86400`)
 	assert.Equal(t, time.Duration(86400*time.Second), value)
 
-	value = utils.GetTTLFrom("s-maxage", `public, s-maxage=86400, max-age=3600`)
+	value = utils.GetTTLFromCacheControl("s-maxage", `public, s-maxage=86400, max-age=3600`)
 	assert.Equal(t, time.Duration(86400*time.Second), value)
 
-	value = utils.GetTTLFrom("s-maxage", `public,s-maxage=86400,max-age=3600`)
+	value = utils.GetTTLFromCacheControl("s-maxage", `public,s-maxage=86400,max-age=3600`)
 	assert.Equal(t, time.Duration(86400*time.Second), value)
 
-	value = utils.GetTTLFrom("s-maxage", `public,max-age=3600`)
+	value = utils.GetTTLFromCacheControl("s-maxage", `public,max-age=3600`)
 	assert.Equal(t, time.Duration(0*time.Second), value)
 
-	value = utils.GetTTLFrom("s-maxage", `no-cache, max-age=0`)
+	value = utils.GetTTLFromCacheControl("s-maxage", `no-cache, max-age=0`)
 	assert.Equal(t, time.Duration(0*time.Second), value)
 }
 

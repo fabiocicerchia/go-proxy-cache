@@ -17,7 +17,7 @@ const logFormat = `$remote_addr - $remote_user "$request" $status $body_bytes_se
 // https://golang.org/src/time/format.go
 const dateFormat = "2006/01/02 15:04:05"
 
-// Log the redirect url
+// LogRequest - Logs the requested URL.
 func LogRequest(req *http.Request, res *response.LoggedResponseWriter, cached bool) {
 	logLine := logFormat
 
@@ -35,7 +35,7 @@ func LogRequest(req *http.Request, res *response.LoggedResponseWriter, cached bo
 	log.Println(logLine)
 }
 
-// Log the env variables required for a reverse proxy
+// LogSetup - Logs the env variables required for a reverse proxy.
 func LogSetup(forwarding config.Forward, port string) {
 	forwardHost := forwarding.Host
 	forwardProto := forwarding.Scheme
