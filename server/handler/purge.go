@@ -14,7 +14,13 @@ func HandlePurge(res http.ResponseWriter, req *http.Request) {
 	proxyURL := fmt.Sprintf("%s://%s", forwarding.Scheme, forwarding.Host)
 	fullURL := proxyURL + req.URL.String()
 
-	cache.PurgeFullPage(req.Method, fullURL)
+	status, err := cache.PurgeFullPage(req.Method, fullURL)
+
+	if !status || err != nil {
+		res.WriteHeader(http.StatusNotModified)
+		res.Write(([]byte)("KO"))
+		return
+	}
 
 	res.WriteHeader(http.StatusOK)
 	res.Write(([]byte)("OK"))

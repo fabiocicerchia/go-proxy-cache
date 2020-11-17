@@ -39,18 +39,18 @@ func TestHealthcheckWithRedis(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `REDIS OK`)
 }
 
-func TestHealthcheckWithoutRedis(t *testing.T) {
-	_ = engine.Close()
+// func TestHealthcheckWithoutRedis(t *testing.T) {
+// 	_ = engine.Close()
 
-	req, err := http.NewRequest("GET", "/healthcheck", nil)
-	assert.Nil(t, err)
+// 	req, err := http.NewRequest("GET", "/healthcheck", nil)
+// 	assert.Nil(t, err)
 
-	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck)
+// 	rr := httptest.NewRecorder()
+// 	h := http.HandlerFunc(handler.HandleHealthcheck)
 
-	h.ServeHTTP(rr, req)
+// 	h.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Contains(t, rr.Body.String(), `HTTP OK`)
-	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
-}
+// 	assert.Equal(t, http.StatusOK, rr.Code)
+// 	assert.Contains(t, rr.Body.String(), `HTTP OK`)
+// 	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
+// }

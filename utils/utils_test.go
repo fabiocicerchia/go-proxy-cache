@@ -108,6 +108,35 @@ func TestGetHeadersNotEmpty(t *testing.T) {
 	tearDown()
 }
 
+// --- CastToString
+
+func TestCastToStringEmpty(t *testing.T) {
+	input := []string{}
+	value := utils.CastToString(input)
+
+	assert.Equal(t, "", value)
+
+	tearDown()
+}
+
+func TestCastToStringOneElement(t *testing.T) {
+	input := []string{"a"}
+	value := utils.CastToString(input)
+
+	assert.Equal(t, "a", value)
+
+	tearDown()
+}
+
+func TestCastToStringTwoElements(t *testing.T) {
+	input := []string{"a", "b"}
+	value := utils.CastToString(input)
+
+	assert.Equal(t, "a", value)
+
+	tearDown()
+}
+
 func tearDown() {
 	config.Config = config.Configuration{}
 	os.Unsetenv("testing")

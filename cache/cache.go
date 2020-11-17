@@ -59,7 +59,7 @@ func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (st
 	response := &Response{}
 
 	meta, err := FetchMetadata(method, url)
-	if err != nil || len(meta) == 0 {
+	if err != nil {
 		return statusCode, headers, content, err
 	}
 
@@ -88,7 +88,8 @@ func PurgeFullPage(method, url string) (bool, error) {
 	reqHeaders := make(map[string]interface{})
 	key := CacheKey(method, url, meta, reqHeaders)
 
-	err = engine.DelWildcard(key)
+	keyPattern := strings.Replace(key, "@@PURGE@@", "@@*@@", 1) + "*"
+	err = engine.DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
 	}
@@ -103,8 +104,6 @@ func CacheKey(method, url string, meta []string, reqHeaders map[string]interface
 	for _, k := range vary {
 		if val, ok := reqHeaders[k]; ok {
 			key = append(key, val.(string))
-		} else {
-			key = append(key, "")
 		}
 	}
 
@@ -128,6 +127,7 @@ func DeleteMetadata(method, url string) error {
 func StoreMetadata(method, url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + method + "@@" + url
 
+	_ = engine.Del(key)
 	err := engine.Push(key, meta)
 	if err != nil {
 		return false, err

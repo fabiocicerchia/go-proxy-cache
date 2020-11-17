@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -62,6 +63,8 @@ func TestEndToEndCallWithoutCache(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
 	body := rr.Body.String()
 
 	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
@@ -89,6 +92,7 @@ func TestEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	engine.Connect(config.Config.Cache)
+	_, _ = engine.PurgeAll()
 
 	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
 	assert.Nil(t, err)
@@ -99,6 +103,8 @@ func TestEndToEndCallWithCacheMiss(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
 
 	body := rr.Body.String()
 
@@ -119,14 +125,18 @@ func TestEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:     RedisLocalHost,
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host:            RedisLocalHost,
+			Port:            "6379",
+			Password:        "",
+			DB:              0,
+			AllowedStatuses: []string{"200", "301", "302"},
+			AllowedMethods:  []string{"HEAD", "GET"},
 		},
 	}
 
 	engine.Connect(config.Config.Cache)
+
+	// --- MISS
 
 	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
 	assert.Nil(t, err)
@@ -138,7 +148,29 @@ func TestEndToEndCallWithCacheHit(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
 	body := rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
+	assert.Contains(t, body, "</body>\n</html>")
+
+	time.Sleep(1 * time.Second)
+
+	// --- HIT
+
+	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "HIT", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
 
 	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
 	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)

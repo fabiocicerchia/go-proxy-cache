@@ -10,14 +10,14 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-const CacheStatusHeader = "X-GoProxyCache-Status"
+const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
 const CacheStatusHeaderHit = "HIT"
 const CacheStatusHeaderMiss = "MISS"
 
 func ServeCachedContent(rw http.ResponseWriter, method string, reqHeaders map[string]interface{}, url string) bool {
 	code, headers, page, _ := cache.RetrieveFullPage(method, url, reqHeaders)
 
-	if code != http.StatusOK || page != "" {
+	if !cache.IsStatusAllowed(code) || len(page) == 0 {
 		rw.Header().Set(CacheStatusHeader, CacheStatusHeaderMiss)
 
 		return false

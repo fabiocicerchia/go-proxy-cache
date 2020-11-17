@@ -33,6 +33,19 @@ func Close() error {
 	return rdb.Close()
 }
 
+func PurgeAll() (bool, error) {
+	if rdb == nil {
+		return false, fmt.Errorf("Not Connected to Redis")
+	}
+
+	err := rdb.FlushDB(ctx).Err()
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // test the connection
 func Ping() bool {
 	if rdb == nil {
@@ -82,8 +95,8 @@ func DelWildcard(key string) error {
 		return fmt.Errorf("Not Connected to Redis")
 	}
 
-	keys, err := rdb.Keys(ctx, key+"*").Result()
-	if err == nil {
+	keys, err := rdb.Keys(ctx, key).Result()
+	if err != nil {
 		return err
 	}
 

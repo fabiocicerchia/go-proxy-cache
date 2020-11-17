@@ -1,0 +1,110 @@
+// +build functional
+
+package handler_test
+
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
+	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestEndToEndCallPurge(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Forwarding: config.Forward{
+				Host:      "developer.mozilla.org",
+				Scheme:    "https",
+				Endpoints: []string{"developer.mozilla.org"},
+			},
+		},
+		Cache: config.Cache{
+			Host:            RedisLocalHost,
+			Port:            "6379",
+			Password:        "",
+			DB:              0,
+			AllowedStatuses: []string{"200", "301", "302"},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+	}
+
+	engine.Connect(config.Config.Cache)
+
+	// --- MISS
+
+	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	assert.Nil(t, err)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+
+	_, _ = engine.PurgeAll()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	body := rr.Body.String()
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
+	assert.Contains(t, body, "</body>\n</html>")
+
+	// --- HIT
+
+	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "HIT", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
+	assert.Contains(t, body, "</body>\n</html>")
+
+	// --- PURGE
+
+	req, err = http.NewRequest("PURGE", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	body = rr.Body.String()
+
+	assert.Equal(t, body, "OK")
+
+	time.Sleep(1 * time.Second)
+
+	// --- MISS
+
+	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
+	assert.Contains(t, body, "</body>\n</html>")
+}
