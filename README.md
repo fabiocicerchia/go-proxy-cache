@@ -1,5 +1,11 @@
 # Go Proxy Cache
 
+<center>
+
+![Logo](logo_small.png)
+
+Simple caching proxy written in golang backed by redis.
+
 [![MIT License](https://img.shields.io/badge/License-MIT-lightgrey.svg?longCache=true)](LICENSE)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
 ![Last Commit](https://img.shields.io/github/last-commit/fabiocicerchia/go-proxy-cache)
@@ -11,28 +17,31 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
 ![Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Builds/badge.svg)
-
-Simple caching proxy written in golang backed by redis.
+</center>
 
 ## Features
 
-  - HTTP Forward Traffic
   - Full Page Caching (via Redis)
   - Load Balancing (only Round-Robin)
+  - `PURGE` Method to invalidate
+  - HTTP & HTTPS Forward Traffic
+  - HTTP/2 Support
+  - SSL/TLS Certificates via ACME
+  - Using your own SSL/TLS Certificates (optional)
   - Small, Pragmatic and Easy to Use
   - Easily Configurable (via YAML or Environment Variables)
+  - Healthcheck Endpoint (`/healthcheck`)
   - Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
   - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
   - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
-  - Healthcheck Endpoint (`/healthcheck`)
-  - `PURGE` Method to invalidate
 
 ## Docker
 
 ```console
 $ docker run \
     -it --rm -n goproxycache \
-    --env SERVER_PORT=8080 \
+    --env SERVER_HTTP_PORT=80 \
+    --env SERVER_HTTPS_PORT=443 \
     --env DEFAULT_TTL=0 \
     --env FORWARD_HOST=www.google.com \
     --env FORWARD_SCHEME=https \
@@ -41,6 +50,8 @@ $ docker run \
     --env REDIS_PORT=6379 \
     --env REDIS_PASSWORD= \
     --env REDIS_DB=0 \
+    -p 8080:80
+    -p 8443:443
     fabiocicerchia/go-proxy-cache
 ```
 
@@ -48,11 +59,19 @@ $ docker run \
 
 ### Environment Variables
 
-- `SERVER_PORT` = 8080
+- `SERVER_HTTP_PORT` = 80
+- `SERVER_HTTPS_PORT` = 443
 - `DEFAULT_TTL` = 0
 - `FORWARD_HOST`
 - `FORWARD_SCHEME`
 - `LB_ENDPOINT_LIST`
+- `TLS_AUTO_CERT` = 0
+- `TLS_EMAIL`
+- `TLS_CERT_FILE`
+- `TLS_KEY_FILE`
+- `TIMEOUT_READ` = 5
+- `TIMEOUT_WRITE` = 5
+- `TIMEOUT_IDLE` = 120
 - `REDIS_DB` = 0
 - `REDIS_HOST`
 - `REDIS_PASSWORD`
@@ -64,8 +83,19 @@ $ docker run \
 
 ```yaml
 server:
-  port: "8081"
+  port:
+    http: "80"
+    https: "443"
   ttl: 0
+  tls:
+    auto: 0
+    email: info@fabiocicerchia.it
+    certfile: server.pem
+    keyfile: server.key
+  timeouts:
+    read: 5
+    write: 5
+    idle: 120
   forwarding:
     host: fabiocicerchia.it
     scheme: https
@@ -84,13 +114,14 @@ cache:
   allowedmethods:
   - HEAD
   - GET
+
 ```
 
 ## TODO
 
-  - HTTPS
-  - HTTP/2
   - WebSockets
+  - GZip Compression
+  - HTTP to HTTPS Redirects
   - Support Chunking
   - Serve STALE cache
   - Cache Circuit Breaker

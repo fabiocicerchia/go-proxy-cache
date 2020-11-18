@@ -60,7 +60,7 @@ func Ping() bool {
 }
 
 // Set - Sets a key, with certain value, with TTL for expiring.
-func Set(key, value string, expiration time.Duration) (bool, error) {
+func Set(key string, value string, expiration time.Duration) (bool, error) {
 	if rdb == nil {
 		return false, fmt.Errorf("Not Connected to Redis")
 	}
@@ -97,26 +97,32 @@ func Del(key string) error {
 }
 
 // DelWildcard - Removes the matching keys based on a pattern.
-func DelWildcard(key string) error {
+func DelWildcard(key string) (int, error) {
 	if rdb == nil {
-		return fmt.Errorf("Not Connected to Redis")
+		return 0, fmt.Errorf("Not Connected to Redis")
 	}
 
 	keys, err := rdb.Keys(ctx, key).Result()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	return rdb.Del(ctx, keys...).Err()
+	if len(keys) == 0 {
+		return len(keys), nil
+	}
+
+	return len(keys), rdb.Del(ctx, keys...).Err()
 }
 
 // List - Returns the values in a list.
-func List(key string) (value []string, err error) {
+func List(key string) ([]string, error) {
+	var value []string
+
 	if rdb == nil {
 		return value, fmt.Errorf("Not Connected to Redis")
 	}
 
-	value, err = rdb.LRange(ctx, key, 0, -1).Result()
+	value, err := rdb.LRange(ctx, key, 0, -1).Result()
 	if err != nil {
 		return value, err
 	}
@@ -130,7 +136,7 @@ func Push(key string, values []string) error {
 		return fmt.Errorf("Not Connected to Redis")
 	}
 
-	return rdb.LPush(ctx, key, values).Err()
+	return rdb.RPush(ctx, key, values).Err()
 }
 
 // Expire - Sets a TTL on a key.

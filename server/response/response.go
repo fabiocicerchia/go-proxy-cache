@@ -1,9 +1,11 @@
 package response
 
 import (
+	"log"
 	"net/http"
 )
 
+// LoggedResponseWriter - Decorator for http.ResponseWriter
 type LoggedResponseWriter struct {
 	http.ResponseWriter
 	StatusCode int
@@ -30,7 +32,7 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 // CopyHeaders - Adds the headers to the response.
 func CopyHeaders(rw http.ResponseWriter, headers map[string]interface{}) {
 	for k, v := range headers {
-		rw.Header().Set(k, string(v.([]byte)))
+		rw.Header().Add(k, string(v.([]byte)))
 	}
 }
 
@@ -48,7 +50,8 @@ func WriteBody(rw http.ResponseWriter, page string) bool {
 
 	// try again
 	if sent == 0 && err != nil {
-		// TODO: log
+		log.Printf("Failed to Write: %s (Trying again)\n", err)
+
 		sent, err = rw.Write(pageByte)
 		return sent > 0 && err == nil
 	}

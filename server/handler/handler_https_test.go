@@ -8,13 +8,71 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
-	"github.com/stretchr/testify/assert"
 )
 
-func TestEndToEndCallPurgeDoNothing(t *testing.T) {
+func TestHTTPSEndToEndCallRedirect(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Forwarding: config.Forward{
+				Host:      "www.fabiocicerchia.it",
+				Scheme:    "https",
+				Endpoints: []string{"www.fabiocicerchia.it"},
+			},
+		},
+	}
+
+	req, err := http.NewRequest("GET", "/", nil)
+	assert.Nil(t, err)
+
+	rr := httptest.NewRecorder()
+	h := http.HandlerFunc(handler.HandleRequestAndProxy)
+
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
+	assert.Contains(t, rr.Body.String(), `<title>301 Moved Permanently</title>`)
+
+	tearDownHTTPSFunctional()
+}
+
+func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Forwarding: config.Forward{
+				Host:      "fabiocicerchia.it",
+				Scheme:    "https",
+				Endpoints: []string{"fabiocicerchia.it"},
+			},
+		},
+	}
+
+	req, err := http.NewRequest("GET", "/", nil)
+	assert.Nil(t, err)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body := rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Fabio Cicerchia`)
+	assert.Contains(t, body, "</body>\n</html>")
+
+	tearDownHTTPSFunctional()
+}
+
+func TestEndToEndCallWithCacheMiss(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -24,38 +82,38 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            "localhost",
-			Port:            "6379",
-			Password:        "",
-			DB:              0,
-			AllowedStatuses: []string{"200", "301", "302"},
-			AllowedMethods:  []string{"HEAD", "GET"},
+			Host:     "localhost",
+			Port:     "6379",
+			Password: "",
+			DB:       0,
 		},
 	}
 
 	engine.Connect(config.Config.Cache)
+	_, _ = engine.PurgeAll()
 
-	// --- PURGE
-
-	req, err := http.NewRequest("PURGE", "/", nil)
+	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
 
-	_, _ = engine.PurgeAll()
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusNotModified, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
 
 	body := rr.Body.String()
 
-	assert.Equal(t, body, "KO")
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
+	assert.Contains(t, body, "</body>\n</html>")
 
-	time.Sleep(1 * time.Second)
+	tearDownHTTPSFunctional()
 }
 
-func TestEndToEndCallPurge(t *testing.T) {
+func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -84,18 +142,19 @@ func TestEndToEndCallPurge(t *testing.T) {
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
 
-	_, _ = engine.PurgeAll()
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	body := rr.Body.String()
-
 	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body := rr.Body.String()
 
 	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
 	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
 	assert.Contains(t, body, "</body>\n</html>")
+
+	time.Sleep(1 * time.Second)
 
 	// --- HIT
 
@@ -115,37 +174,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
 	assert.Contains(t, body, "</body>\n</html>")
 
-	// --- PURGE
+	tearDownHTTPSFunctional()
+}
 
-	req, err = http.NewRequest("PURGE", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
-	assert.Nil(t, err)
-
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	body = rr.Body.String()
-
-	assert.Equal(t, body, "OK")
-
-	time.Sleep(1 * time.Second)
-
-	// --- MISS
-
-	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
-	assert.Nil(t, err)
-
-	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
-
-	body = rr.Body.String()
-
-	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
-	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
-	assert.Contains(t, body, "</body>\n</html>")
+func tearDownHTTPSFunctional() {
+	config.Config = config.Configuration{}
 }

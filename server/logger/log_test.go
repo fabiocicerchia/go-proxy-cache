@@ -42,7 +42,7 @@ func TestLogRequest(t *testing.T) {
 	logger.LogRequest(reqMock, lwrMock, true)
 
 	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
-	expectedOut := fmt.Sprintf(`%s 127.0.0.1 - - "/path/to/file" 404 7 "https://www.google.com" "GoProxyCache" true`+"\n", timeNow)
+	expectedOut := fmt.Sprintf(`%s 127.0.0.1 - - ? ? "/path/to/file" 404 7 "https://www.google.com" "GoProxyCache" true`+"\n", timeNow)
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -58,6 +58,10 @@ func TestLogSetup(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
+			Port: config.Port{
+				HTTP:  "80",
+				HTTPS: "443",
+			},
 			Forwarding: config.Forward{
 				Host:      "www.google.com",
 				Scheme:    "https",
@@ -66,11 +70,11 @@ func TestLogSetup(t *testing.T) {
 		},
 	}
 
-	logger.LogSetup(config.Config.Server.Forwarding, "8081")
+	logger.LogSetup(config.Config.Server)
 
 	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
 
-	expectedOut := fmt.Sprintf("%s Server will run on: 8081\n%s Redirecting to url: https://www.google.com -> [1.2.3.4 8.8.8.8]\n", timeNow, timeNow)
+	expectedOut := fmt.Sprintf("%s Server will run on: 80 and 443\n%s Redirecting to url: https://www.google.com -> [1.2.3.4 8.8.8.8]\n", timeNow, timeNow)
 	assert.Equal(t, expectedOut, buf.String())
 
 	tearDownLog()
