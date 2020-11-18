@@ -36,7 +36,17 @@ func serveReverseProxy(forwarding config.Forward, target string, res *response.L
 
 	stored, err := storage.StoreGeneratedPage(req.Method, req.URL.String(), reqHeaders, *res)
 	if !stored || err != nil {
-		logger.Log(req, fmt.Sprintf("Not Stored: %s", err))
+		logger.Log(req, fmt.Sprintf("Not Stored: %v", err))
+	}
+}
+
+func HandleRequest(w http.ResponseWriter, r *http.Request) {
+	// TODO: COVERAGE
+	if r.Method == http.MethodConnect {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		// HandleTunneling(w, r)
+	} else {
+		HandleRequestAndProxy(w, r)
 	}
 }
 

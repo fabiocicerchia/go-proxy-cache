@@ -51,9 +51,10 @@ type Forward struct {
 
 // Timeout - Defines the server timeouts
 type Timeout struct {
-	Read  int
-	Write int
-	Idle  int
+	Read       int
+	Write      int
+	Idle       int
+	ReadHeader int
 }
 
 // Cache - Defines the config for the cache backend
@@ -90,7 +91,7 @@ func InitConfigFromFileOrEnv(file string) {
 	// --- TLS
 
 	autoTLSCertVal, _ := strconv.Atoi(utils.GetEnv("TLS_AUTO_CERT", "0"))
-	autoTLSCert := autoTLSCertVal == 0
+	autoTLSCert := autoTLSCertVal == 1
 
 	if !Config.Server.TLS.Auto {
 		Config.Server.TLS.Auto = autoTLSCert
@@ -117,7 +118,15 @@ func InitConfigFromFileOrEnv(file string) {
 	}
 	timeoutIdle, err := strconv.Atoi(utils.GetEnv("TIMEOUT_IDLE", ""))
 	if timeoutIdle == 0 || err != nil {
-		timeoutIdle = 120
+		timeoutIdle = 30
+	}
+	timeoutReadHeader, err := strconv.Atoi(utils.GetEnv("TIMEOUT_READ_HEADER", ""))
+	if timeoutReadHeader == 0 || err != nil {
+		timeoutReadHeader = 2
+	}
+	timeoutHandler, err := strconv.Atoi(utils.GetEnv("TIMEOUT_HANDLER", ""))
+	if timeoutHandler == 0 || err != nil {
+		timeoutHandler = 5
 	}
 
 	if Config.Server.Timeout.Read == 0 {
@@ -128,6 +137,9 @@ func InitConfigFromFileOrEnv(file string) {
 	}
 	if Config.Server.Timeout.Idle == 0 {
 		Config.Server.Timeout.Idle = timeoutIdle
+	}
+	if Config.Server.Timeout.ReadHeader == 0 {
+		Config.Server.Timeout.Idle = timeourReadHeader
 	}
 
 	// --- Forwarding
@@ -181,4 +193,9 @@ func InitConfigFromFileOrEnv(file string) {
 // GetForwarding - Returns the forwarding configs.
 func GetForwarding() Forward {
 	return Config.Server.Forwarding
+}
+
+// GetPortHTTPS - Returns the HTTPS port
+func GetPortHTTPS() string {
+	return Config.Server.Port.HTTPS
 }

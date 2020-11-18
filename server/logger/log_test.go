@@ -19,6 +19,30 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
+func TestLogMessage(t *testing.T) {
+	reqMock := &http.Request{
+		Proto:      "HTTPS",
+		Method:     "POST",
+		RemoteAddr: "127.0.0.1",
+		URL:        &url.URL{Path: "/path/to/file"},
+	}
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	logger.Log(reqMock, "message")
+
+	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
+	expectedOut := fmt.Sprintf(`%s HTTPS POST /path/to/file - message`+"\n", timeNow)
+
+	assert.Equal(t, expectedOut, buf.String())
+
+	tearDownLog()
+}
+
 func TestLogRequest(t *testing.T) {
 	reqMock := &http.Request{
 		RemoteAddr: "127.0.0.1",

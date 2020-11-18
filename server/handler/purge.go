@@ -18,7 +18,6 @@ func HandlePurge(res http.ResponseWriter, req *http.Request) {
 	status, err := cache.PurgeFullPage(req.Method, fullURL)
 
 	if !status || err != nil {
-		// TODO: COVERAGE
 		res.WriteHeader(http.StatusNotModified)
 		res.Write(([]byte)("KO"))
 		return

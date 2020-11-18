@@ -4,7 +4,7 @@
 
 ![Logo](logo_small.png)
 
-Simple caching proxy written in golang backed by redis.
+Simple Reverse Proxy with Caching, written in Go, backed by Redis.
 
 [![MIT License](https://img.shields.io/badge/License-MIT-lightgrey.svg?longCache=true)](LICENSE)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
@@ -71,7 +71,9 @@ $ docker run \
 - `TLS_KEY_FILE`
 - `TIMEOUT_READ` = 5
 - `TIMEOUT_WRITE` = 5
-- `TIMEOUT_IDLE` = 120
+- `TIMEOUT_IDLE` = 30
+- `TIMEOUT_READ_HEADER` = 2
+- `TIMEOUT_HANDLER` = 5
 - `REDIS_DB` = 0
 - `REDIS_HOST`
 - `REDIS_PASSWORD`
@@ -95,7 +97,9 @@ server:
   timeouts:
     read: 5
     write: 5
-    idle: 120
+    idle: 30
+    readheader: 2
+    handler: 5
   forwarding:
     host: fabiocicerchia.it
     scheme: https
@@ -114,15 +118,32 @@ cache:
   allowedmethods:
   - HEAD
   - GET
-
 ```
+
+## Common Errors
+
+- `acme/autocert: server name component count invalid`  
+  Let's Encrypt cannot be used locally, as described in [this thread](https://community.letsencrypt.org/t/can-i-test-lets-encrypt-client-on-localhost/15627)
+- `acme/autocert: missing certificate`  
+  Let's Encrypt cannot be used locally, as described in [this thread](https://community.letsencrypt.org/t/can-i-test-lets-encrypt-client-on-localhost/15627)
+
+## References
+
+  - [Proxy servers and tunneling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling)
+  - [Make resilient Go net/http servers using timeouts, deadlines and context cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/)
+  - [So you want to expose Go on the Internet](https://blog.cloudflare.com/exposing-go-on-the-internet/)
+  - [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
+  - [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
 
 ## TODO
 
+  - [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
+  - SSL Passthrough
   - WebSockets
   - GZip Compression
   - HTTP to HTTPS Redirects
   - Support Chunking
+  - Cache [Circuit Breaker](https://github.com/sony/gobreaker)
   - Serve STALE cache
   - Cache Circuit Breaker
   - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)

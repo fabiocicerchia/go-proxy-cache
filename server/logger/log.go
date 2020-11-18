@@ -19,7 +19,6 @@ const dateFormat = "2006/01/02 15:04:05"
 
 // Log - Logs against a requested URL.
 func Log(req *http.Request, message string) {
-	// TODO: COVERAGE
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
 
 	log.Println(logLine)

@@ -4,9 +4,24 @@ import (
 	"crypto/tls"
 	"io/ioutil"
 	"log"
+	"net/http"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"golang.org/x/crypto/acme/autocert"
 )
+
+func ServerOverrides(server *http.Server, certManager *autocert.Manager, certFile *string, keyFile *string) {
+	tlsConfig, err := TLSConfig(*certFile, *keyFile)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	server.TLSConfig = tlsConfig
+
+	if config.Config.Server.TLS.Auto {
+		server.TLSConfig = certManager.TLSConfig()
+	}
+}
 
 func TLSConfig(certFile string, keyFile string) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)

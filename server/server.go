@@ -15,17 +15,15 @@ import (
 )
 
 func CreateServerConfig(port string, timeout config.Timeout, certManager *autocert.Manager, certFile *string, keyFile *string) *http.Server {
-	// TODO: COVERAGE
 	mux := http.NewServeMux()
 
 	// handlers
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodConnect {
-			handler.HandleTunneling(w, r)
-		} else {
-			handler.HandleRequestAndProxy(w, r)
-		}
-	})
+	mux.HandleFunc("/", http.TimeoutHandler(
+		handler.HandleRequest,
+		time.Duration(timeout.Handler) * time.Second,
+		"Timed Out\n"
+	)
+)
 	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
 
 	server := &http.Server{
@@ -33,20 +31,12 @@ func CreateServerConfig(port string, timeout config.Timeout, certManager *autoce
 		ReadTimeout:  time.Duration(timeout.Read) * time.Second,
 		WriteTimeout: time.Duration(timeout.Write) * time.Second,
 		IdleTimeout:  time.Duration(timeout.Idle) * time.Second,
+		ReadHeaderTimeout:  time.Duration(timeout.ReadHeader) * time.Second,
 		Handler:      mux,
 	}
 
-	if port == "443" {
-		tlsConfig, err := srvtls.TLSConfig(*certFile, *keyFile)
-		if err != nil {
-			log.Fatal(err)
-			return nil
-		}
-		server.TLSConfig = tlsConfig
-
-		if config.Config.Server.TLS.Auto {
-			server.TLSConfig = certManager.TLSConfig()
-		}
+	if port == config.GetPortHTTPS() {
+		srvtls.ServerOverrides(server, certManager, certFile, keyFile)
 	}
 
 	return server
@@ -58,7 +48,7 @@ func Start() {
 	config.InitConfigFromFileOrEnv("config.yml")
 
 	serverConfig := config.Config.Server
-	serverTlsConfig := serverConfig.TLS
+	serverTLSConfig := serverConfig.TLS
 
 	// Log setup values
 	logger.LogSetup(serverConfig)
@@ -67,13 +57,25 @@ func Start() {
 	engine.Connect(config.Config.Cache)
 
 	// ssl
-	certManager := srvtls.InitCertManager(config.Config.Server.Forwarding.Host, serverTlsConfig.Email)
+	certManager := srvtls.InitCertManager(config.Config.Server.Forwarding.Host, serverTLSConfig.Email)
 
-	// config server
-	serverHTTP := CreateServerConfig(serverConfig.Port.HTTP, serverConfig.Timeout, nil, nil, nil)
-	serverHTTPS := CreateServerConfig(serverConfig.Port.HTTPS, serverConfig.Timeout, certManager, &serverTlsConfig.CertFile, &serverTlsConfig.KeyFile)
+	// config server http & https
+	serverHTTP := CreateServerConfig(
+		serverConfig.Port.HTTP,
+		serverConfig.Timeout,
+		nil,
+		nil,
+		nil,
+	)
+	serverHTTPS := CreateServerConfig(
+		serverConfig.Port.HTTPS,
+		serverConfig.Timeout,
+		certManager,
+		&serverTLSConfig.CertFile,
+		&serverTLSConfig.KeyFile,
+	)
 
-	// start server
-	go func() { log.Fatal(serverHTTP.ListenAndServe()) }()
+	// start server http & https
 	go func() { log.Fatal(serverHTTPS.ListenAndServeTLS("", "")) }()
+	log.Fatal(serverHTTP.ListenAndServe())
 }
