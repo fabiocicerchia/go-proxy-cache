@@ -15,8 +15,8 @@ import (
 )
 
 func fixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
-	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme) // TODO: TEST!!!
-	host := utils.IfEmpty(forwarding.Host, url.Host)       // TODO: TEST!!!
+	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
+	host := utils.IfEmpty(forwarding.Host, url.Host)
 
 	req.URL.Host = balancer.GetLBRoundRobin(forwarding.Endpoints, url.Host)
 	req.URL.Scheme = scheme
@@ -33,8 +33,21 @@ func serveReverseProxy(forwarding config.Forward, target string, res *response.L
 	proxy.ServeHTTP(res, req)
 
 	reqHeaders := utils.GetHeaders(req.Header)
-	done := storage.StoreGeneratedPage(req.Method, req.URL.String(), reqHeaders, *res)
-	logger.LogRequest(req, res, done)
+
+	stored, err := storage.StoreGeneratedPage(req.Method, req.URL.String(), reqHeaders, *res)
+	if !stored || err != nil {
+		logger.Log(req, fmt.Sprintf("Not Stored: %v", err))
+	}
+}
+
+func HandleRequest(w http.ResponseWriter, r *http.Request) {
+	// TODO: COVERAGE
+	if r.Method == http.MethodConnect {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		// HandleTunneling(w, r)
+	} else {
+		HandleRequestAndProxy(w, r)
+	}
 }
 
 // HandleRequestAndProxy - Handles the requests and proxies to backend server.
@@ -50,8 +63,13 @@ func HandleRequestAndProxy(res http.ResponseWriter, req *http.Request) {
 	fullURL := proxyURL + req.URL.String()
 
 	reqHeaders := utils.GetHeaders(req.Header)
-	if !storage.ServeCachedContent(res, req.Method, reqHeaders, fullURL) {
-		lwr := response.NewLoggedResponseWriter(res)
+
+	lwr := response.NewLoggedResponseWriter(res)
+	cached := storage.ServeCachedContent(lwr, req.Method, reqHeaders, fullURL)
+	if !cached {
 		serveReverseProxy(forwarding, proxyURL, lwr, req)
 	}
+
+	logger.LogRequest(req, lwr, cached)
+
 }

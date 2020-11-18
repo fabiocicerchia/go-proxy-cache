@@ -11,7 +11,8 @@ services:
     env_file:
       - ./.env
     ports:
-      - 8080:8080
+      - 8080:80
+      - 8443:443
 
   redis:
     image: redis:6.0.8-alpine3.12

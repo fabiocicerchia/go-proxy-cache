@@ -15,9 +15,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 )
 
-const RedisLocalHost = "localhost"
-
-func TestEndToEndCallRedirect(t *testing.T) {
+func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -39,10 +37,10 @@ func TestEndToEndCallRedirect(t *testing.T) {
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
 	assert.Contains(t, rr.Body.String(), `<title>301 Moved Permanently</title>`)
 
-	tearDownFunctional()
+	tearDownHTTPFunctional()
 }
 
-func TestEndToEndCallWithoutCache(t *testing.T) {
+func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -71,10 +69,10 @@ func TestEndToEndCallWithoutCache(t *testing.T) {
 	assert.Contains(t, body, `<title>Fabio Cicerchia`)
 	assert.Contains(t, body, "</body>\n</html>")
 
-	tearDownFunctional()
+	tearDownHTTPFunctional()
 }
 
-func TestEndToEndCallWithCacheMiss(t *testing.T) {
+func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -84,7 +82,7 @@ func TestEndToEndCallWithCacheMiss(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:     RedisLocalHost,
+			Host:     "localhost",
 			Port:     "6379",
 			Password: "",
 			DB:       0,
@@ -112,10 +110,10 @@ func TestEndToEndCallWithCacheMiss(t *testing.T) {
 	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
 	assert.Contains(t, body, "</body>\n</html>")
 
-	tearDownFunctional()
+	tearDownHTTPFunctional()
 }
 
-func TestEndToEndCallWithCacheHit(t *testing.T) {
+func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -125,7 +123,7 @@ func TestEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            RedisLocalHost,
+			Host:            "localhost",
 			Port:            "6379",
 			Password:        "",
 			DB:              0,
@@ -176,9 +174,9 @@ func TestEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
 	assert.Contains(t, body, "</body>\n</html>")
 
-	tearDownFunctional()
+	tearDownHTTPFunctional()
 }
 
-func tearDownFunctional() {
+func tearDownHTTPFunctional() {
 	config.Config = config.Configuration{}
 }

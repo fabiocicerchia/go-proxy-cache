@@ -11,6 +11,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
+// Response - Holds details about the response
 type Response struct {
 	Method     string
 	StatusCode int
@@ -34,6 +35,10 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 		return false, nil
 	}
 
+	if expiration < 1 {
+		return false, nil
+	}
+
 	response := &Response{
 		Method:     method,
 		StatusCode: status,
@@ -43,7 +48,6 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 
 	encoded, err := engine.Encode(response)
 	if err != nil {
-		// TODO: log
 		return false, err
 	}
 
@@ -51,7 +55,11 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 	if err != nil {
 		return false, err
 	}
-	StoreMetadata(method, url, meta, expiration)
+
+	_, err = StoreMetadata(method, url, meta, expiration)
+	if err != nil {
+		return false, err
+	}
 
 	key := CacheKey(method, url, meta, reqHeaders)
 
@@ -59,31 +67,33 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method, url string, reqHeaders map[string]interface{}) (statusCode int, headers map[string]interface{}, content string, err error) {
+func RetrieveFullPage(method string, url string, reqHeaders map[string]interface{}) (int, map[string]interface{}, string, error) {
+	var headers map[string]interface{}
+
 	response := &Response{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return statusCode, headers, content, err
+		return 0, headers, "", err
 	}
 
 	key := CacheKey(method, url, meta, reqHeaders)
 
 	encoded, err := engine.Get(key)
 	if err != nil {
-		return statusCode, headers, content, err
+		return 0, headers, "", err
 	}
 
 	err = engine.Decode(encoded, response)
 	if err != nil {
-		return statusCode, headers, content, err
+		return 0, headers, "", err
 	}
 
 	return response.StatusCode, response.Headers, response.Content, nil
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
-func PurgeFullPage(method, url string) (bool, error) {
+func PurgeFullPage(method string, url string) (bool, error) {
 	err := DeleteMetadata(method, url)
 	if err != nil {
 		return false, err
@@ -94,16 +104,18 @@ func PurgeFullPage(method, url string) (bool, error) {
 	key := CacheKey(method, url, meta, reqHeaders)
 
 	keyPattern := strings.Replace(key, "@@PURGE@@", "@@*@@", 1) + "*"
-	err = engine.DelWildcard(keyPattern)
+	affected, err := engine.DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
 	}
 
-	return true, nil
+	done := affected > 0
+
+	return done, nil
 }
 
 // CacheKey - Returns the cache key for the requested URL.
-func CacheKey(method, url string, meta []string, reqHeaders map[string]interface{}) string {
+func CacheKey(method string, url string, meta []string, reqHeaders map[string]interface{}) string {
 	key := []string{"DATA", method, url}
 
 	vary := meta
@@ -119,21 +131,21 @@ func CacheKey(method, url string, meta []string, reqHeaders map[string]interface
 }
 
 // FetchMetadata - Returns the cache metadata for the requested URL.
-func FetchMetadata(method, url string) (meta []string, err error) {
+func FetchMetadata(method string, url string) ([]string, error) {
 	key := "META@@" + method + "@@" + url
 
 	return engine.List(key)
 }
 
 // DeleteMetadata - Removes the cache metadata for the requested URL.
-func DeleteMetadata(method, url string) error {
+func DeleteMetadata(method string, url string) error {
 	key := "META@@" + method + "@@" + url
 
 	return engine.Del(key)
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
-func StoreMetadata(method, url string, meta []string, expiration time.Duration) (bool, error) {
+func StoreMetadata(method string, url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + method + "@@" + url
 
 	_ = engine.Del(key)
@@ -154,7 +166,8 @@ func StoreMetadata(method, url string, meta []string, expiration time.Duration) 
 }
 
 // GetVary - Returns the content from the Vary HTTP header.
-func GetVary(headers map[string]interface{}) (varyList []string, err error) {
+func GetVary(headers map[string]interface{}) ([]string, error) {
+	var varyList []string
 	var vary string
 	if value, ok := headers["Vary"]; ok {
 		vary = value.(string)

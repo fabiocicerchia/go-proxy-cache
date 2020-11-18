@@ -31,7 +31,7 @@ func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 	if cacheControl != nil {
 		cacheControlValue := strings.ToLower(cacheControl.(string))
 
-		// TODO: check which priority
+		// Ref: https://tools.ietf.org/html/rfc7234#section-4.2.1
 		if maxage := GetTTLFromCacheControl("max-age", cacheControlValue); maxage > 0 {
 			ttl = maxage
 		}

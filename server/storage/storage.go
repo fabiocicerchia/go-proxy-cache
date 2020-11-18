@@ -1,21 +1,23 @@
 package storage
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
+// CacheStatusHeader - HTTP Header for showing cache status
 const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
+
+// CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status
 const CacheStatusHeaderHit = "HIT"
+
+// CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status
 const CacheStatusHeaderMiss = "MISS"
 
 // ServeCachedContent - Retrives and sends to the client the cached response.
-func ServeCachedContent(rw http.ResponseWriter, method string, reqHeaders map[string]interface{}, url string) bool {
+func ServeCachedContent(rw *response.LoggedResponseWriter, method string, reqHeaders map[string]interface{}, url string) bool {
 	code, headers, page, _ := cache.RetrieveFullPage(method, url, reqHeaders)
 
 	if !cache.IsStatusAllowed(code) || len(page) == 0 {
@@ -35,7 +37,7 @@ func ServeCachedContent(rw http.ResponseWriter, method string, reqHeaders map[st
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
-func StoreGeneratedPage(method, url string, reqHeaders map[string]interface{}, lwr response.LoggedResponseWriter) bool {
+func StoreGeneratedPage(method string, url string, reqHeaders map[string]interface{}, lwr response.LoggedResponseWriter) (bool, error) {
 	status := lwr.StatusCode
 
 	headers := utils.GetHeaders(lwr.Header())
@@ -45,9 +47,6 @@ func StoreGeneratedPage(method, url string, reqHeaders map[string]interface{}, l
 
 	// TODO: pass obj
 	done, err := cache.StoreFullPage(url, method, status, headers, reqHeaders, content, ttl)
-	if err != nil {
-		log.Printf("Error: %s\n", err)
-	}
 
-	return done
+	return done, err
 }

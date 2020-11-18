@@ -14,6 +14,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestEndToEndCallPurgeDoNothing(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Forwarding: config.Forward{
+				Host:      "developer.mozilla.org",
+				Scheme:    "https",
+				Endpoints: []string{"developer.mozilla.org"},
+			},
+		},
+		Cache: config.Cache{
+			Host:            "localhost",
+			Port:            "6379",
+			Password:        "",
+			DB:              0,
+			AllowedStatuses: []string{"200", "301", "302"},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+	}
+
+	engine.Connect(config.Config.Cache)
+
+	// --- PURGE
+
+	req, err := http.NewRequest("PURGE", "/", nil)
+	assert.Nil(t, err)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+
+	_, _ = engine.PurgeAll()
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusNotModified, rr.Code)
+
+	body := rr.Body.String()
+
+	assert.Equal(t, body, "KO")
+
+	time.Sleep(1 * time.Second)
+}
+
 func TestEndToEndCallPurge(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -24,7 +65,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            RedisLocalHost,
+			Host:            "localhost",
 			Port:            "6379",
 			Password:        "",
 			DB:              0,
