@@ -18,21 +18,22 @@ func CreateServerConfig(port string, timeout config.Timeout, certManager *autoce
 	mux := http.NewServeMux()
 
 	// handlers
-	mux.HandleFunc("/", http.TimeoutHandler(
-		handler.HandleRequest,
-		time.Duration(timeout.Handler) * time.Second,
-		"Timed Out\n"
-	)
-)
+	mux.HandleFunc("/", handler.HandleRequest)
 	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
 
+	muxWithMiddlewares := http.TimeoutHandler(
+		mux,
+		time.Duration(timeout.Handler)*time.Second,
+		"Timed Out\n",
+	)
+
 	server := &http.Server{
-		Addr:         ":" + port,
-		ReadTimeout:  time.Duration(timeout.Read) * time.Second,
-		WriteTimeout: time.Duration(timeout.Write) * time.Second,
-		IdleTimeout:  time.Duration(timeout.Idle) * time.Second,
-		ReadHeaderTimeout:  time.Duration(timeout.ReadHeader) * time.Second,
-		Handler:      mux,
+		Addr:              ":" + port,
+		ReadTimeout:       time.Duration(timeout.Read) * time.Second,
+		WriteTimeout:      time.Duration(timeout.Write) * time.Second,
+		IdleTimeout:       time.Duration(timeout.Idle) * time.Second,
+		ReadHeaderTimeout: time.Duration(timeout.ReadHeader) * time.Second,
+		Handler:           muxWithMiddlewares,
 	}
 
 	if port == config.GetPortHTTPS() {

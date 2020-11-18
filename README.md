@@ -145,7 +145,6 @@ cache:
   - Support Chunking
   - Cache [Circuit Breaker](https://github.com/sony/gobreaker)
   - Serve STALE cache
-  - Cache Circuit Breaker
   - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
   - LB Algorithms
   - Tags

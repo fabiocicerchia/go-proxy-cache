@@ -55,6 +55,7 @@ type Timeout struct {
 	Write      int
 	Idle       int
 	ReadHeader int
+	Handler    int
 }
 
 // Cache - Defines the config for the cache backend
@@ -139,7 +140,10 @@ func InitConfigFromFileOrEnv(file string) {
 		Config.Server.Timeout.Idle = timeoutIdle
 	}
 	if Config.Server.Timeout.ReadHeader == 0 {
-		Config.Server.Timeout.Idle = timeourReadHeader
+		Config.Server.Timeout.ReadHeader = timeoutReadHeader
+	}
+	if Config.Server.Timeout.Handler == 0 {
+		Config.Server.Timeout.Handler = timeoutHandler
 	}
 
 	// --- Forwarding
