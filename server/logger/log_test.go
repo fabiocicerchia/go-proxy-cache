@@ -22,7 +22,7 @@ import (
 func TestLogMessage(t *testing.T) {
 	setUpLog()
 
-	reqMock := &http.Request{
+	reqMock := http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
 		RemoteAddr: "127.0.0.1",
@@ -48,7 +48,7 @@ func TestLogMessage(t *testing.T) {
 func TestLogRequest(t *testing.T) {
 	setUpLog()
 
-	reqMock := &http.Request{
+	reqMock := http.Request{
 		RemoteAddr: "127.0.0.1",
 		URL:        &url.URL{Path: "/path/to/file"},
 	}
@@ -56,7 +56,7 @@ func TestLogRequest(t *testing.T) {
 	reqMock.Header.Set("Referer", "https://www.google.com")
 	reqMock.Header.Set("User-Agent", "GoProxyCache")
 
-	lwrMock := &response.LoggedResponseWriter{
+	lwrMock := response.LoggedResponseWriter{
 		StatusCode: 404,
 		Content:    []byte("testing"),
 	}

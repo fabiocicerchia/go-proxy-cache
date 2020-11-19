@@ -103,9 +103,7 @@ func InitConfigFromFileOrEnv(file string) {
 	// --- TLS
 
 	autoTLSCertVal, err := strconv.Atoi(utils.GetEnv("TLS_AUTO_CERT", "0"))
-	if err != nil {
-		autoTLSCertVal = 0
-	}
+	autoTLSCertVal = Coalesce(autoTLSCertVal, 0, err != nil).(int)
 	autoTLSCert := autoTLSCertVal == 1
 
 	Config.Server.TLS.Auto = Coalesce(Config.Server.TLS.Auto, autoTLSCert, !Config.Server.TLS.Auto).(bool)
@@ -142,15 +140,11 @@ func InitConfigFromFileOrEnv(file string) {
 	endpoints := strings.Split(lbEnpointList, ",")
 
 	http2httpsVal, err := strconv.Atoi(utils.GetEnv("HTTP2HTTPS", "0"))
-	if err != nil {
-		http2httpsVal = 0
-	}
+	http2httpsVal = Coalesce(http2httpsVal, 0, err != nil).(int)
 	http2https := http2httpsVal == 1
 
 	redirectStatusCode, err := strconv.Atoi(utils.GetEnv("REDIRECT_STATUS_CODE", "301"))
-	if redirectStatusCode == 0 {
-		redirectStatusCode = 301
-	}
+	redirectStatusCode = Coalesce(redirectStatusCode, 301, redirectStatusCode == 0 || err != nil).(int)
 
 	Config.Server.Forwarding.Host = Coalesce(Config.Server.Forwarding.Host, utils.GetEnv("FORWARD_HOST", ""), Config.Server.Forwarding.Host == "").(string)
 	Config.Server.Forwarding.Scheme = Coalesce(Config.Server.Forwarding.Scheme, utils.GetEnv("FORWARD_SCHEME", ""), Config.Server.Forwarding.Scheme == "").(string)
@@ -161,9 +155,7 @@ func InitConfigFromFileOrEnv(file string) {
 	// --- Cache
 
 	cacheDb, err := strconv.Atoi(utils.GetEnv("REDIS_DB", "0"))
-	if err != nil {
-		cacheDb = 0
-	}
+	cacheDb = Coalesce(cacheDb, 0, err != nil).(int)
 
 	ttlSecs, err := strconv.Atoi(utils.GetEnv("DEFAULT_TTL", "0"))
 	ttlSecs = Coalesce(ttlSecs, 0, err != nil).(int)

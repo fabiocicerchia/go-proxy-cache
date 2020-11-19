@@ -3,6 +3,7 @@ package cache
 import (
 	"errors"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -13,11 +14,13 @@ import (
 )
 
 // Response - Holds details about the response
-type Response struct {
-	Method     string
-	StatusCode int
-	Headers    http.Header
-	Content    string
+type URIObj struct {
+	URL             url.URL
+	Method          string
+	StatusCode      int
+	RequestHeaders  http.Header
+	ResponseHeaders http.Header
+	Content         string
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
@@ -31,8 +34,11 @@ func IsMethodAllowed(method string) bool {
 }
 
 // StoreFullPage - Stores the whole page response in cache.
-func StoreFullPage(url string, method string, status int, headers http.Header, reqHeaders http.Header, content string, expiration time.Duration) (bool, error) {
-	if !IsStatusAllowed(status) || !IsMethodAllowed(method) {
+func StoreFullPage(
+	obj URIObj,
+	expiration time.Duration,
+) (bool, error) {
+	if !IsStatusAllowed(obj.StatusCode) || !IsMethodAllowed(obj.Method) {
 		return false, nil
 	}
 
@@ -40,36 +46,29 @@ func StoreFullPage(url string, method string, status int, headers http.Header, r
 		return false, nil
 	}
 
-	response := &Response{
-		Method:     method,
-		StatusCode: status,
-		Headers:    headers,
-		Content:    content,
-	}
-
-	encoded, err := engine.Encode(response)
+	encoded, err := engine.Encode(obj)
 	if err != nil {
 		return false, err
 	}
 
-	meta, err := GetVary(headers)
+	meta, err := GetVary(obj.ResponseHeaders)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = StoreMetadata(method, url, meta, expiration)
+	_, err = StoreMetadata(obj.Method, obj.URL, meta, expiration)
 	if err != nil {
 		return false, err
 	}
 
-	key := StorageKey(method, url, meta, reqHeaders)
+	key := StorageKey(obj.Method, obj.URL, meta, obj.RequestHeaders)
 
 	return engine.Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method string, url string, reqHeaders http.Header) (int, http.Header, string, error) {
-	response := &Response{}
+func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, http.Header, string, error) {
+	obj := &URIObj{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
@@ -83,16 +82,16 @@ func RetrieveFullPage(method string, url string, reqHeaders http.Header) (int, h
 		return 0, http.Header{}, "", err
 	}
 
-	err = engine.Decode(encoded, response)
+	err = engine.Decode(encoded, obj)
 	if err != nil {
 		return 0, http.Header{}, "", err
 	}
 
-	return response.StatusCode, response.Headers, response.Content, nil
+	return obj.StatusCode, obj.ResponseHeaders, obj.Content, nil
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
-func PurgeFullPage(method string, url string) (bool, error) {
+func PurgeFullPage(method string, url url.URL) (bool, error) {
 	err := DeleteMetadata(method, url)
 	if err != nil {
 		return false, err
@@ -101,7 +100,9 @@ func PurgeFullPage(method string, url string) (bool, error) {
 	var meta []string
 	key := StorageKey(method, url, meta, http.Header{})
 
-	keyPattern := strings.Replace(key, "@@PURGE@@", "@@*@@", 1) + "*"
+	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
+	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
+	keyPattern := strings.Replace(key, match, replace, 1) + "*"
 	affected, err := engine.DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
@@ -113,42 +114,41 @@ func PurgeFullPage(method string, url string) (bool, error) {
 }
 
 // StorageKey - Returns the cache key for the requested URL.
-func StorageKey(method string, url string, meta []string, reqHeaders http.Header) string {
-	key := []string{"DATA", method, url}
+func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Header) string {
+	key := []string{"DATA", method, url.String()}
 
 	vary := meta
 	for _, k := range vary {
-		// TODO: USE get/values?
 		if val, ok := reqHeaders[k]; ok {
-			key = append(key, val[0])
+			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
 		}
 	}
 
-	storageKey := strings.Join(key, "@@")
+	storageKey := strings.Join(key, utils.StringSeparatorOne)
 
 	return storageKey
 }
 
 // FetchMetadata - Returns the cache metadata for the requested URL.
-func FetchMetadata(method string, url string) ([]string, error) {
-	key := "META@@" + method + "@@" + url
+func FetchMetadata(method string, url url.URL) ([]string, error) {
+	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
 	return engine.List(key)
 }
 
 // DeleteMetadata - Removes the cache metadata for the requested URL.
-func DeleteMetadata(method string, url string) error {
-	key := "META@@" + method + "@@" + url
+func DeleteMetadata(method string, url url.URL) error {
+	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
 	return engine.Del(key)
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
-func StoreMetadata(method string, url string, meta []string, expiration time.Duration) (bool, error) {
-	key := "META@@" + method + "@@" + url
+func StoreMetadata(method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
+	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	err := engine.Del(key) // ignore error
-	err = engine.Push(key, meta)
+	_ = engine.Del(key) //nolint:golint,errcheck
+	err := engine.Push(key, meta)
 	if err != nil {
 		return false, err
 	}

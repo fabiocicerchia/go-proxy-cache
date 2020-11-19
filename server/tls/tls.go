@@ -11,13 +11,17 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
+type CertificatePair struct {
+	Cert string
+	Key  string
+}
+
 func ServerOverrides(
 	server *http.Server,
 	certManager *autocert.Manager,
-	certFile *string,
-	keyFile *string,
+	certPair *CertificatePair,
 ) {
-	tlsConfig, err := Config(*certFile, *keyFile)
+	tlsConfig, err := Config(*&certPair.Cert, *&certPair.Key)
 	if err != nil {
 		log.Fatal(err)
 		return

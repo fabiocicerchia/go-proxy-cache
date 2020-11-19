@@ -7,10 +7,10 @@ import (
 )
 
 func RedirectToHTTPS(w http.ResponseWriter, req *http.Request, redirectStatusCode int) {
-	targetUrl := req.URL
-	targetUrl.Scheme = "https"
+	targetURL := req.URL
+	targetURL.Scheme = "https"
 
-	target := targetUrl.String()
+	target := targetURL.String()
 
 	log.Infof("Redirect to: %s", target)
 

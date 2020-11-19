@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+const StringSeparatorOne = "@@"
+const StringSeparatorTwo = "--"
+
 // GetEnv - Gets environment variable or default.
 func GetEnv(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {
@@ -58,6 +61,7 @@ func CastToString(i interface{}) string {
 
 // Unique - Returns a slice with unique values
 func Unique(slice []string) []string {
+	// TODO: COVERAGE
 	keys := make(map[string]bool)
 	list := []string{}
 

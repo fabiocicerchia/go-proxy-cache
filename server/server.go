@@ -18,8 +18,7 @@ func CreateServerConfig(
 	port string,
 	timeout config.Timeout,
 	certManager *autocert.Manager,
-	certFile *string,
-	keyFile *string,
+	certPair *srvtls.CertificatePair,
 ) *http.Server {
 	mux := http.NewServeMux()
 
@@ -33,6 +32,7 @@ func CreateServerConfig(
 		"Timed Out\n",
 	)
 
+	// TODO: TEST timeouts with custom handlers
 	server := &http.Server{
 		Addr:              ":" + port,
 		ReadTimeout:       time.Duration(timeout.Read) * time.Second,
@@ -43,7 +43,7 @@ func CreateServerConfig(
 	}
 
 	if port == config.GetPortHTTPS() {
-		srvtls.ServerOverrides(server, certManager, certFile, keyFile)
+		srvtls.ServerOverrides(server, certManager, certPair)
 	}
 
 	return server
@@ -72,14 +72,15 @@ func Start() {
 		serverConfig.Timeout,
 		nil,
 		nil,
-		nil,
 	)
 	serverHTTPS := CreateServerConfig(
 		serverConfig.Port.HTTPS,
 		serverConfig.Timeout,
 		certManager,
-		&serverTLSConfig.CertFile,
-		&serverTLSConfig.KeyFile,
+		&srvtls.CertificatePair{
+			Cert: serverTLSConfig.CertFile,
+			Key:  serverTLSConfig.KeyFile,
+		},
 	)
 
 	// start server http & https

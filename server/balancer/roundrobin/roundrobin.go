@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	//ErrNoAvailableItem no item is available
+	// ErrNoAvailableItem no item is available
 	ErrNoAvailableItem = errors.New("no item is available")
 )
 

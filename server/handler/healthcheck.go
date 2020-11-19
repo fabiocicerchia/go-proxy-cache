@@ -4,18 +4,19 @@ import (
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
-	log "github.com/sirupsen/logrus"
+	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
 // HandleHealthcheck - Returns healthcheck status.
 func HandleHealthcheck(res http.ResponseWriter, req *http.Request) {
-	res.WriteHeader(http.StatusOK)
-	res.Write(([]byte)("HTTP OK\n"))
+	lwr := response.NewLoggedResponseWriter(res)
+
+	lwr.WriteHeader(http.StatusOK)
+	_ = response.WriteBody(lwr, "HTTP OK\n")
 
 	if engine.Ping() {
-		_, err := res.Write(([]byte)("REDIS OK\n"))
-		if err != nil {
-			log.Warnf("Error Writing: %s\n", err)
-		}
+		_ = response.WriteBody(lwr, "REDIS OK\n")
+	} else {
+		_ = response.WriteBody(lwr, "REDIS KO\n")
 	}
 }

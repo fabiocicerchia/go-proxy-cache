@@ -16,7 +16,8 @@ func TestMsgpackEncodeDecode(t *testing.T) {
 	assert.Nil(t, err)
 
 	var decoded []byte
-	_ = utils.MsgpackDecode(encoded, &decoded)
+	err = utils.MsgpackDecode(encoded, &decoded)
+	assert.Nil(t, err)
 
 	assert.Equal(t, str, decoded)
 }

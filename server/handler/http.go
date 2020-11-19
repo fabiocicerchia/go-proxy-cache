@@ -14,7 +14,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-func fixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
+func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
+	// TODO: COVERAGE (Test roundrobin)
 	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
 	host := utils.IfEmpty(forwarding.Host, url.Host)
 
@@ -26,29 +27,32 @@ func fixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
 
 func serveReverseProxy(
 	forwarding config.Forward,
-	target string,
-	res *response.LoggedResponseWriter,
+	target url.URL,
+	lwr *response.LoggedResponseWriter,
 	req *http.Request,
 ) {
-	// TODO: avoid err suppressing
-	url, _ := url.Parse(target)
-	fixRequest(*url, forwarding, req)
+	FixRequest(target, forwarding, req)
 
-	proxy := httputil.NewSingleHostReverseProxy(url)
-	proxy.ServeHTTP(res, req)
+	proxyURL := &url.URL{
+		Scheme: target.Scheme,
+		Host:   target.Host,
+	}
 
-	// reqHeaders := utils.GetHeaders(req.Header)
+	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	proxy.ServeHTTP(lwr, req)
 
-	stored, err := storage.StoreGeneratedPage(req.Method, req.URL.String(), req.Header, *res)
+	stored, err := storage.StoreGeneratedPage(*req, *lwr)
 	if !stored || err != nil {
-		logger.Log(req, fmt.Sprintf("Not Stored: %v", err))
+		logger.Log(*req, fmt.Sprintf("Not Stored: %v", err))
 	}
 }
 
-func HandleRequest(lwr http.ResponseWriter, req *http.Request) {
-	// TODO: COVERAGE
+func HandleRequest(res http.ResponseWriter, req *http.Request) {
+	lwr := response.NewLoggedResponseWriter(res)
+
 	if config.Config.Server.Forwarding.HTTP2HTTPS {
-		RedirectToHTTPS(lwr, req, config.Config.Server.Forwarding.RedirectStatusCode)
+		// TODO: COVERAGE
+		RedirectToHTTPS(lwr.ResponseWriter, req, config.Config.Server.Forwarding.RedirectStatusCode)
 		return
 	}
 
@@ -58,6 +62,7 @@ func HandleRequest(lwr http.ResponseWriter, req *http.Request) {
 	}
 
 	if req.Method == http.MethodConnect {
+		// TODO: COVERAGE
 		lwr.WriteHeader(http.StatusMethodNotAllowed)
 		// HandleTunneling(lwr, req)
 	} else {
@@ -66,21 +71,19 @@ func HandleRequest(lwr http.ResponseWriter, req *http.Request) {
 }
 
 // HandleRequestAndProxy - Handles the requests and proxies to backend server.
-func HandleRequestAndProxy(res http.ResponseWriter, req *http.Request) {
+func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request) {
 	forwarding := config.GetForwarding()
 
 	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
-	proxyURL := fmt.Sprintf("%s://%s", scheme, forwarding.Host)
-	fullURL := proxyURL + req.URL.String()
 
-	// reqHeaders := utils.GetHeaders(req.Header)
+	proxyURL := *req.URL
+	proxyURL.Scheme = scheme
+	proxyURL.Host = forwarding.Host
 
-	lwr := response.NewLoggedResponseWriter(res)
-	cached := storage.ServeCachedContent(lwr, req.Method, req.Header, fullURL)
+	cached := storage.ServeCachedContent(lwr, *req, proxyURL)
 	if !cached {
 		serveReverseProxy(forwarding, proxyURL, lwr, req)
 	}
 
-	logger.LogRequest(req, lwr, cached)
-
+	logger.LogRequest(*req, *lwr, cached)
 }

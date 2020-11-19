@@ -2,6 +2,7 @@ package storage
 
 import (
 	"net/http"
+	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,48 +23,52 @@ const CacheStatusHeaderMiss = "MISS"
 
 // ServeCachedContent - Retrives and sends to the client the cached response.
 func ServeCachedContent(
-	rw *response.LoggedResponseWriter,
-	method string,
-	reqHeaders http.Header,
-	url string,
+	lwr *response.LoggedResponseWriter,
+	req http.Request,
+	url url.URL,
 ) bool {
+	method := req.Method
+	reqHeaders := req.Header
+
 	code, headers, page, err := cache.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
-		log.Infof("Cannot retrieve page %s: %s\n", url, err)
+		log.Infof("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
 	if !cache.IsStatusAllowed(code) || len(page) == 0 {
-		rw.Header().Set(CacheStatusHeader, CacheStatusHeaderMiss)
+		lwr.Header().Set(CacheStatusHeader, CacheStatusHeaderMiss)
 
 		return false
 	}
 
-	response.CopyHeaders(rw, headers)
-	rw.Header().Set(CacheStatusHeader, CacheStatusHeaderHit)
+	response.CopyHeaders(lwr, headers)
+	lwr.Header().Set(CacheStatusHeader, CacheStatusHeaderHit)
 
-	rw.WriteHeader(code)
+	lwr.WriteHeader(code)
 
-	response.Flush(rw)
+	response.Flush(lwr)
 
-	return response.WriteBody(rw, page)
+	return response.WriteBody(lwr, page)
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(
-	method string,
-	url string,
-	reqHeaders http.Header,
+	req http.Request,
 	lwr response.LoggedResponseWriter,
 ) (bool, error) {
-	status := lwr.StatusCode
-
-	// headers := utils.GetHeaders(lwr.Header())
-
 	content := string(lwr.Content)
 	ttl := utils.GetTTL(lwr.Header(), config.Config.Cache.TTL)
 
-	// TODO: pass obj
-	done, err := cache.StoreFullPage(url, method, status, lwr.Header(), reqHeaders, content, ttl)
+	response := cache.URIObj{
+		URL:             *req.URL,
+		Method:          req.Method,
+		StatusCode:      lwr.StatusCode,
+		RequestHeaders:  req.Header,
+		ResponseHeaders: lwr.Header(),
+		Content:         content,
+	}
+
+	done, err := cache.StoreFullPage(response, ttl)
 
 	return done, err
 }

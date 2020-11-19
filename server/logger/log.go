@@ -19,14 +19,14 @@ const logFormat = `$remote_addr - $remote_user $protocol $request_method "$reque
 const dateFormat = "2006/01/02 15:04:05"
 
 // Log - Logs against a requested URL.
-func Log(req *http.Request, message string) {
+func Log(req http.Request, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
 
 	log.Info(logLine)
 }
 
 // LogRequest - Logs the requested URL.
-func LogRequest(req *http.Request, res *response.LoggedResponseWriter, cached bool) {
+func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool) {
 	logLine := logFormat
 
 	protocol := strings.Trim(req.Proto, " ")
@@ -39,18 +39,21 @@ func LogRequest(req *http.Request, res *response.LoggedResponseWriter, cached bo
 		method = "?"
 	}
 
-	// TODO: replace with array mapping
-	logLine = strings.ReplaceAll(logLine, `$remote_addr`, req.RemoteAddr)
-	logLine = strings.ReplaceAll(logLine, `$remote_user`, "-")
-	logLine = strings.ReplaceAll(logLine, `$time_local`, time.Now().Local().Format(dateFormat))
-	logLine = strings.ReplaceAll(logLine, `$protocol`, protocol)
-	logLine = strings.ReplaceAll(logLine, `$request_method`, method)
-	logLine = strings.ReplaceAll(logLine, `$request`, req.URL.String())
-	logLine = strings.ReplaceAll(logLine, `$status`, strconv.Itoa(res.StatusCode))
-	logLine = strings.ReplaceAll(logLine, `$body_bytes_sent`, strconv.Itoa(len(res.Content)))
-	logLine = strings.ReplaceAll(logLine, `$http_referer`, req.Referer())
-	logLine = strings.ReplaceAll(logLine, `$http_user_agent`, req.UserAgent())
-	logLine = strings.ReplaceAll(logLine, `$cached_status`, fmt.Sprintf("%v", cached))
+	r := strings.NewReplacer(
+		`$remote_addr`, req.RemoteAddr,
+		`$remote_user`, "-",
+		`$time_local`, time.Now().Local().Format(dateFormat),
+		`$protocol`, protocol,
+		`$request_method`, method,
+		`$request`, req.URL.String(),
+		`$status`, strconv.Itoa(lwr.StatusCode),
+		`$body_bytes_sent`, strconv.Itoa(len(lwr.Content)),
+		`$http_referer`, req.Referer(),
+		`$http_user_agent`, req.UserAgent(),
+		`$cached_status`, fmt.Sprintf("%v", cached),
+	)
+
+	logLine = r.Replace(logLine)
 
 	log.Info(logLine)
 }

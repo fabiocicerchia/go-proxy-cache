@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
@@ -12,23 +11,25 @@ import (
 )
 
 // HandlePurge - Purges the cache for the requested URI.
-func HandlePurge(res http.ResponseWriter, req *http.Request) {
+func HandlePurge(lwr *response.LoggedResponseWriter, req *http.Request) {
 	forwarding := config.GetForwarding()
 
 	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
-	proxyURL := fmt.Sprintf("%s://%s", scheme, forwarding.Host)
-	fullURL := proxyURL + req.URL.String()
 
-	status, err := cache.PurgeFullPage(req.Method, fullURL)
+	proxyURL := *req.URL
+	proxyURL.Scheme = scheme
+	proxyURL.Host = forwarding.Host
+
+	status, err := cache.PurgeFullPage(req.Method, proxyURL)
 
 	if !status || err != nil {
-		res.WriteHeader(http.StatusNotFound)
-		_ = response.WriteBody(res, "KO")
+		lwr.WriteHeader(http.StatusNotFound)
+		_ = response.WriteBody(lwr, "KO")
 
-		log.Warnf("URL Not Purged %s: %v\n", fullURL, err)
+		log.Warnf("URL Not Purged %s: %v\n", proxyURL.String(), err)
 		return
 	}
 
-	res.WriteHeader(http.StatusOK)
-	_ = response.WriteBody(res, "OK")
+	lwr.WriteHeader(http.StatusOK)
+	_ = response.WriteBody(lwr, "OK")
 }

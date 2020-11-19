@@ -16,6 +16,8 @@ Simple Reverse Proxy with Caching, written in Go, backed by Redis.
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
+[![Maintainability](https://api.codeclimate.com/v1/badges/6cf8c9ea02b75fccf8b5/maintainability)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/fabiocicerchia/go-proxy-cache.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/fabiocicerchia/go-proxy-cache/alerts/)
 ![Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Builds/badge.svg)
 
 </center>
@@ -28,6 +30,7 @@ Simple Reverse Proxy with Caching, written in Go, backed by Redis.
 - HTTP & HTTPS Forward Traffic
 - HTTP/2 Support
 - SSL/TLS Certificates via ACME
+- HTTP to HTTPS Redirects
 - Using your own SSL/TLS Certificates (optional)
 - Small, Pragmatic and Easy to Use
 - Easily Configurable (via YAML or Environment Variables)
@@ -276,12 +279,25 @@ cache:
 ## TODO
 
 - [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
-- SSL Passthrough
-- WebSockets
-- GZip Compression
-- HTTP to HTTPS Redirects
 - Support Chunking
+- [GZip Compression](github.com/NYTimes/gziphandler) + Config Flag
 - Cache [Circuit Breaker](https://github.com/sony/gobreaker)
+- [Go Language - Web Application Secure Coding Practices](https://github.com/OWASP/Go-SCP)
+- [HTTP/2 Adventure in the Go World](https://posener.github.io/http2/)
+- https://cipherli.st/
+- Check [SSL Labs Score](https://blog.bracelab.com/achieving-perfect-ssl-labs-score-with-go)
+- Use [X-Forwarded-Proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)
+- Configure log verbosity level
+- [tlsfuzzer](https://github.com/tlsfuzzer/tlsfuzzer)
+- [Check Timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+- [Building Web Servers in Go](https://getgophish.com/blog/post/2018-12-02-building-web-servers-in-go/)
+- [TLS mutual authentication with golang and nginx](https://medium.com/rahasak/tls-mutual-authentication-with-golang-and-nginx-937f0da22a0e)
+- [SSL Passthrough](https://stackoverflow.com/a/35399699/888162)
+- Check file descriptors usage
+- LB Algorithms
+- AB Benchmarks
+- WebSockets
+- SOCKS4/SOCKS5
 - Serve STALE cache
 - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
 - Tags

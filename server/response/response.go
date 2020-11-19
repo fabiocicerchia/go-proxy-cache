@@ -10,7 +10,7 @@ import (
 type LoggedResponseWriter struct {
 	http.ResponseWriter
 	StatusCode int
-	Content    []byte
+	Content    []byte // TODO: chunks
 }
 
 // NewLoggedResponseWriter - Creates new instance of ResponseWriter.
@@ -32,6 +32,7 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 
 // CopyHeaders - Adds the headers to the response.
 func CopyHeaders(rw http.ResponseWriter, headers http.Header) {
+	// TODO: COVERAGE
 	for k, _ := range headers {
 		for _, val := range headers.Values(k) {
 			rw.Header().Add(k, val)

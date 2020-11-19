@@ -53,4 +53,6 @@ func TestHealthcheckWithRedis(t *testing.T) {
 // 	assert.Equal(t, http.StatusOK, rr.Code)
 // 	assert.Contains(t, rr.Body.String(), `HTTP OK`)
 // 	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
+
+// 	_ = engine.Connect(config.Config.Cache)
 // }
