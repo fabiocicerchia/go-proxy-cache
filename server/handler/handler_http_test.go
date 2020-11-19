@@ -30,7 +30,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequestAndProxy)
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -55,7 +55,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+	handler := http.HandlerFunc(handler.HandleRequest)
 
 	handler.ServeHTTP(rr, req)
 
@@ -90,13 +90,14 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	engine.Connect(config.Config.Cache)
-	_, _ = engine.PurgeAll()
+	_, err := engine.PurgeAll()
+	assert.Nil(t, err)
 
 	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+	handler := http.HandlerFunc(handler.HandleRequest)
 
 	handler.ServeHTTP(rr, req)
 
@@ -140,7 +141,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+	handler := http.HandlerFunc(handler.HandleRequest)
 
 	handler.ServeHTTP(rr, req)
 

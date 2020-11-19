@@ -2,11 +2,12 @@ package logger
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
@@ -21,7 +22,7 @@ const dateFormat = "2006/01/02 15:04:05"
 func Log(req *http.Request, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
 
-	log.Println(logLine)
+	log.Info(logLine)
 }
 
 // LogRequest - Logs the requested URL.
@@ -51,7 +52,7 @@ func LogRequest(req *http.Request, res *response.LoggedResponseWriter, cached bo
 	logLine = strings.ReplaceAll(logLine, `$http_user_agent`, req.UserAgent())
 	logLine = strings.ReplaceAll(logLine, `$cached_status`, fmt.Sprintf("%v", cached))
 
-	log.Println(logLine)
+	log.Info(logLine)
 }
 
 // LogSetup - Logs the env variables required for a reverse proxy.
@@ -60,6 +61,6 @@ func LogSetup(server config.Server) {
 	forwardProto := server.Forwarding.Scheme
 	lbEndpointList := server.Forwarding.Endpoints
 
-	log.Printf("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)
-	log.Printf("Redirecting to url: %s://%s -> %v\n", forwardProto, forwardHost, lbEndpointList)
+	log.Infof("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)
+	log.Infof("Redirecting to url: %s://%s -> %v\n", forwardProto, forwardHost, lbEndpointList)
 }

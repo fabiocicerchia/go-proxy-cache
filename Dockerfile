@@ -5,7 +5,7 @@ WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 COPY . ./
 
 RUN apk update \
-    && apk add \
+    && apk add --no-cache \
       gcc \
       libc-dev \
       make \
@@ -16,6 +16,9 @@ RUN apk update \
 
 FROM alpine:3.12.1
 
+WORKDIR /app
+
 COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/go-proxy-cache /usr/local/bin/
+COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/config.yml /app/
 
 CMD ["go-proxy-cache"]

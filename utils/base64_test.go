@@ -13,7 +13,8 @@ func TestBase64EncodeDecode(t *testing.T) {
 	str := []byte("test string")
 
 	encoded := utils.Base64Encode(str)
-	decoded, _ := utils.Base64Decode(encoded)
+	decoded, err := utils.Base64Decode(encoded)
+	assert.Nil(t, err)
 
 	assert.Equal(t, str, decoded)
 }
@@ -22,7 +23,8 @@ func TestBase64CorruptedDecode(t *testing.T) {
 	str := []byte("test string")
 
 	encoded := utils.Base64Encode(str)
-	decoded, _ := utils.Base64Decode(encoded)
+	decoded, err := utils.Base64Decode(encoded)
+	assert.Nil(t, err)
 
 	assert.Equal(t, str, decoded)
 }

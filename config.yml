@@ -1,0 +1,97 @@
+server:
+  # --- GENERIC
+  port:
+    http: "80"
+    https: "443"
+  # --- TLS
+  tls:
+    # Automatic Certificate Management Environment
+    # Provides automatic generation of SSL/TLS certificates from Let's Encrypt
+    # and any other ACME-based CA.
+    # Default: false (need to provide `certfile` and `keyfile`)
+    auto: false
+    # Email optionally specifies a contact email address.
+    # This is used by CAs, such as Let's Encrypt, to notify about problems with
+    # issued certificates.
+    email: info@fabiocicerchia.it
+    # Pair or files: the certificate and the key.
+    # Used by LoadX509KeyPair to read and parse a public/private key pair from a
+    # pair of files. The files must contain PEM encoded data. The certificate
+    # file may contain intermediate certificates following the leaf certificate
+    # to form a certificate chain.
+    certfile: server.pem
+    keyfile: server.key
+  # --- TIMEOUT
+  timeout:
+    # It is the maximum duration for reading the entire request, including the
+    # body.
+    # Because it does not let Handlers make per-request decisions on each
+    # request body's acceptable deadline or upload rate, most users will prefer
+    # to use `readheader`. It is valid to use them both.
+    read: 5000000000
+    # It is the amount of time allowed to read request headers. The connection's
+    # read deadline is reset after reading the headers and the Handler can
+    # decide what is considered too slow for the body. If it is zero, the value
+    # of `read` is used. If both are zero, there is no timeout.
+    readheader: 2000000000
+    # It is the maximum duration before timing out writes of the response. It is
+    # reset whenever a new request's header is read. Like `read`, it does not
+    # let Handlers make decisions on a per-request basis.
+    write: 5000000000
+    # It is the maximum amount of time to wait for the next request when
+    # keep-alives are enabled. If is zero, the value of `read` is used. If both
+    # ara zero, there is no timeout.
+    idle: 20000000000
+    handler: 5000000000
+  # --- FORWARDING
+  forwarding:
+    # Hostname to be used for requests forwarding.
+    host: fabiocicerchia.it
+    # Endpoint scheme to be used when forwarding traffic.
+    # Default: incoming connection.
+    # Values: http, https.
+    scheme: https
+    # List of IPs/Hostnames to be used as load balanced backend servers.
+    # They'll be selected using a round robin algorithm.
+    endpoints:
+    - fabiocicerchia.it
+    # Forces redirect from HTTP to HTTPS.
+    # Default: false
+    http2https: false
+    # Status code to be used when redirecting HTTP to HTTPS.
+    # Default: 301
+    redirectstatuscode: 301
+
+# --- TIMEOUT
+cache:
+  # --- REDIS SERVER
+  host: localhost
+  port: "6379"
+  password: ""
+  db: 0
+  # --- TTL
+  # Fallback storage TTL when saving the cache when no header is specified.
+  # It follows the order:
+  #  - If the cache is shared and the s-maxage response directives present, use
+  #    its value, or
+  #  - If the max-age response directive is present, use its value, or
+  #  - If the Expires response header field is present, use its value minus the
+  #    value of the Date response header field, or
+  #  - Otherwise, no explicit expiration time is present in the response.
+  #    A heuristic freshness lifetime might be applicable.
+  # Default: 0
+  ttl: 0
+  # --- ALLOWED VALUES
+  # Allows caching for different response codes.
+  # Default: 200, 301, 302
+  allowedstatuses:
+  - "200"
+  - "301"
+  - "302"
+  # If the client request method is listed in this directive then the response
+  # will be cached. "GET" and "HEAD" methods are always added to the list,
+  # though it is recommended to specify them explicitly.
+  # Default: HEAD, GET
+  allowedmethods:
+  - HEAD
+  - GET

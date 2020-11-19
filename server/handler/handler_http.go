@@ -24,7 +24,12 @@ func fixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
 	req.Host = host
 }
 
-func serveReverseProxy(forwarding config.Forward, target string, res *response.LoggedResponseWriter, req *http.Request) {
+func serveReverseProxy(
+	forwarding config.Forward,
+	target string,
+	res *response.LoggedResponseWriter,
+	req *http.Request,
+) {
 	// TODO: avoid err suppressing
 	url, _ := url.Parse(target)
 	fixRequest(*url, forwarding, req)
@@ -32,40 +37,46 @@ func serveReverseProxy(forwarding config.Forward, target string, res *response.L
 	proxy := httputil.NewSingleHostReverseProxy(url)
 	proxy.ServeHTTP(res, req)
 
-	reqHeaders := utils.GetHeaders(req.Header)
+	// reqHeaders := utils.GetHeaders(req.Header)
 
-	stored, err := storage.StoreGeneratedPage(req.Method, req.URL.String(), reqHeaders, *res)
+	stored, err := storage.StoreGeneratedPage(req.Method, req.URL.String(), req.Header, *res)
 	if !stored || err != nil {
 		logger.Log(req, fmt.Sprintf("Not Stored: %v", err))
 	}
 }
 
-func HandleRequest(w http.ResponseWriter, r *http.Request) {
+func HandleRequest(lwr http.ResponseWriter, req *http.Request) {
 	// TODO: COVERAGE
-	if r.Method == http.MethodConnect {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		// HandleTunneling(w, r)
+	if config.Config.Server.Forwarding.HTTP2HTTPS {
+		RedirectToHTTPS(lwr, req, config.Config.Server.Forwarding.RedirectStatusCode)
+		return
+	}
+
+	if req.Method == "PURGE" {
+		HandlePurge(lwr, req)
+		return
+	}
+
+	if req.Method == http.MethodConnect {
+		lwr.WriteHeader(http.StatusMethodNotAllowed)
+		// HandleTunneling(lwr, req)
 	} else {
-		HandleRequestAndProxy(w, r)
+		HandleRequestAndProxy(lwr, req)
 	}
 }
 
 // HandleRequestAndProxy - Handles the requests and proxies to backend server.
 func HandleRequestAndProxy(res http.ResponseWriter, req *http.Request) {
-	if req.Method == "PURGE" {
-		HandlePurge(res, req)
-		return
-	}
-
 	forwarding := config.GetForwarding()
 
-	proxyURL := fmt.Sprintf("%s://%s", forwarding.Scheme, forwarding.Host)
+	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
+	proxyURL := fmt.Sprintf("%s://%s", scheme, forwarding.Host)
 	fullURL := proxyURL + req.URL.String()
 
-	reqHeaders := utils.GetHeaders(req.Header)
+	// reqHeaders := utils.GetHeaders(req.Header)
 
 	lwr := response.NewLoggedResponseWriter(res)
-	cached := storage.ServeCachedContent(lwr, req.Method, reqHeaders, fullURL)
+	cached := storage.ServeCachedContent(lwr, req.Method, req.Header, fullURL)
 	if !cached {
 		serveReverseProxy(forwarding, proxyURL, lwr, req)
 	}

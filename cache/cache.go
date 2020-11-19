@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,7 @@ import (
 type Response struct {
 	Method     string
 	StatusCode int
-	Headers    map[string]interface{}
+	Headers    http.Header
 	Content    string
 }
 
@@ -30,7 +31,7 @@ func IsMethodAllowed(method string) bool {
 }
 
 // StoreFullPage - Stores the whole page response in cache.
-func StoreFullPage(url string, method string, status int, headers map[string]interface{}, reqHeaders map[string]interface{}, content string, expiration time.Duration) (bool, error) {
+func StoreFullPage(url string, method string, status int, headers http.Header, reqHeaders http.Header, content string, expiration time.Duration) (bool, error) {
 	if !IsStatusAllowed(status) || !IsMethodAllowed(method) {
 		return false, nil
 	}
@@ -61,32 +62,30 @@ func StoreFullPage(url string, method string, status int, headers map[string]int
 		return false, err
 	}
 
-	key := CacheKey(method, url, meta, reqHeaders)
+	key := StorageKey(method, url, meta, reqHeaders)
 
 	return engine.Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method string, url string, reqHeaders map[string]interface{}) (int, map[string]interface{}, string, error) {
-	var headers map[string]interface{}
-
+func RetrieveFullPage(method string, url string, reqHeaders http.Header) (int, http.Header, string, error) {
 	response := &Response{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return 0, headers, "", err
+		return 0, http.Header{}, "", err
 	}
 
-	key := CacheKey(method, url, meta, reqHeaders)
+	key := StorageKey(method, url, meta, reqHeaders)
 
 	encoded, err := engine.Get(key)
 	if err != nil {
-		return 0, headers, "", err
+		return 0, http.Header{}, "", err
 	}
 
 	err = engine.Decode(encoded, response)
 	if err != nil {
-		return 0, headers, "", err
+		return 0, http.Header{}, "", err
 	}
 
 	return response.StatusCode, response.Headers, response.Content, nil
@@ -100,8 +99,7 @@ func PurgeFullPage(method string, url string) (bool, error) {
 	}
 
 	var meta []string
-	reqHeaders := make(map[string]interface{})
-	key := CacheKey(method, url, meta, reqHeaders)
+	key := StorageKey(method, url, meta, http.Header{})
 
 	keyPattern := strings.Replace(key, "@@PURGE@@", "@@*@@", 1) + "*"
 	affected, err := engine.DelWildcard(keyPattern)
@@ -114,20 +112,21 @@ func PurgeFullPage(method string, url string) (bool, error) {
 	return done, nil
 }
 
-// CacheKey - Returns the cache key for the requested URL.
-func CacheKey(method string, url string, meta []string, reqHeaders map[string]interface{}) string {
+// StorageKey - Returns the cache key for the requested URL.
+func StorageKey(method string, url string, meta []string, reqHeaders http.Header) string {
 	key := []string{"DATA", method, url}
 
 	vary := meta
 	for _, k := range vary {
+		// TODO: USE get/values?
 		if val, ok := reqHeaders[k]; ok {
-			key = append(key, val.(string))
+			key = append(key, val[0])
 		}
 	}
 
-	cacheKey := strings.Join(key, "@@")
+	storageKey := strings.Join(key, "@@")
 
-	return cacheKey
+	return storageKey
 }
 
 // FetchMetadata - Returns the cache metadata for the requested URL.
@@ -148,8 +147,8 @@ func DeleteMetadata(method string, url string) error {
 func StoreMetadata(method string, url string, meta []string, expiration time.Duration) (bool, error) {
 	key := "META@@" + method + "@@" + url
 
-	_ = engine.Del(key)
-	err := engine.Push(key, meta)
+	err := engine.Del(key) // ignore error
+	err = engine.Push(key, meta)
 	if err != nil {
 		return false, err
 	}
@@ -166,12 +165,9 @@ func StoreMetadata(method string, url string, meta []string, expiration time.Dur
 }
 
 // GetVary - Returns the content from the Vary HTTP header.
-func GetVary(headers map[string]interface{}) ([]string, error) {
+func GetVary(headers http.Header) ([]string, error) {
 	var varyList []string
-	var vary string
-	if value, ok := headers["Vary"]; ok {
-		vary = value.(string)
-	}
+	vary := headers.Get("Vary")
 
 	if vary == "*" {
 		return varyList, errors.New("Vary: *")

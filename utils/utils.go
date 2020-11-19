@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"net/http"
 	"os"
 	"strings"
 )
@@ -12,20 +13,6 @@ func GetEnv(key string, fallback string) string {
 	}
 
 	return fallback
-}
-
-// GetHeaders - Returns converted HTTP headers.
-func GetHeaders(headers map[string][]string) map[string]interface{} {
-	headersConverted := make(map[string]interface{})
-	for k, v := range headers {
-		str := []string{}
-		for _, item := range v {
-			str = append(str, item)
-		}
-
-		headersConverted[k] = strings.Join(str, " ") // TODO: is correct join " " ?
-	}
-	return headersConverted
 }
 
 // IfEmpty - Returns value if not empty, fallback otherwise.
@@ -48,7 +35,7 @@ func Contains(items []string, value string) bool {
 }
 
 // GetByKeyCaseInsensitive - Retrieves value by key matched case-insensitively.
-func GetByKeyCaseInsensitive(items map[string]interface{}, key string) interface{} {
+func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
 	keyLower := strings.ToLower(key)
 	for k, v := range items {
 		if strings.ToLower(k) == keyLower {
@@ -67,4 +54,19 @@ func CastToString(i interface{}) string {
 	}
 
 	return ""
+}
+
+// Unique - Returns a slice with unique values
+func Unique(slice []string) []string {
+	keys := make(map[string]bool)
+	list := []string{}
+
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+
+	return list
 }

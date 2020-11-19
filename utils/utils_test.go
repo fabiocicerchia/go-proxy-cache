@@ -85,29 +85,6 @@ func TestContainsValue(t *testing.T) {
 	tearDown()
 }
 
-// --- GetHeaders
-
-func TestGetHeadersEmpty(t *testing.T) {
-	var input map[string][]string
-	headers := utils.GetHeaders(input)
-
-	assert.Len(t, headers, 0)
-
-	tearDown()
-}
-
-func TestGetHeadersNotEmpty(t *testing.T) {
-	input := make(map[string][]string)
-	input["key"] = []string{"a", "b", "c"}
-
-	headers := utils.GetHeaders(input)
-
-	assert.Len(t, headers, 1)
-	assert.Equal(t, "a b c", headers["key"])
-
-	tearDown()
-}
-
 // --- CastToString
 
 func TestCastToStringEmpty(t *testing.T) {

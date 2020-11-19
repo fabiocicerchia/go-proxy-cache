@@ -9,13 +9,13 @@ import (
 )
 
 // GetTTL - Retrieves TTL is seconds from Expires and Cache-Control HTTP headers.
-func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
+func GetTTL(headers http.Header, defaultTTL int) time.Duration {
 	ttl := time.Duration(defaultTTL) * time.Second
 
 	expires := GetByKeyCaseInsensitive(headers, "Expires")
 
 	if expires != nil {
-		expiresValue := expires.(string)
+		expiresValue := expires.([]string)[0]
 
 		expiresDate, err := http.ParseTime(expiresValue)
 		if err == nil {
@@ -29,7 +29,7 @@ func GetTTL(headers map[string]interface{}, defaultTTL int) time.Duration {
 	cacheControl := GetByKeyCaseInsensitive(headers, "Cache-Control")
 
 	if cacheControl != nil {
-		cacheControlValue := strings.ToLower(cacheControl.(string))
+		cacheControlValue := strings.ToLower(cacheControl.([]string)[0])
 
 		// Ref: https://tools.ietf.org/html/rfc7234#section-4.2.1
 		if maxage := GetTTLFromCacheControl("max-age", cacheControlValue); maxage > 0 {

@@ -3,15 +3,21 @@ package tls
 import (
 	"crypto/tls"
 	"io/ioutil"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"golang.org/x/crypto/acme/autocert"
 )
 
-func ServerOverrides(server *http.Server, certManager *autocert.Manager, certFile *string, keyFile *string) {
-	tlsConfig, err := TLSConfig(*certFile, *keyFile)
+func ServerOverrides(
+	server *http.Server,
+	certManager *autocert.Manager,
+	certFile *string,
+	keyFile *string,
+) {
+	tlsConfig, err := Config(*certFile, *keyFile)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -23,7 +29,7 @@ func ServerOverrides(server *http.Server, certManager *autocert.Manager, certFil
 	}
 }
 
-func TLSConfig(certFile string, keyFile string) (*tls.Config, error) {
+func Config(certFile string, keyFile string) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err

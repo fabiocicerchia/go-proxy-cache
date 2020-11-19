@@ -41,12 +41,14 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+	handler := http.HandlerFunc(handler.HandleRequest)
 
-	_, _ = engine.PurgeAll()
+	_, err = engine.PurgeAll()
+	assert.Nil(t, err)
+
 	handler.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusNotModified, rr.Code)
+	assert.Equal(t, http.StatusNotFound, rr.Code)
 
 	body := rr.Body.String()
 
@@ -82,9 +84,11 @@ func TestEndToEndCallPurge(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequestAndProxy)
+	handler := http.HandlerFunc(handler.HandleRequest)
 
-	_, _ = engine.PurgeAll()
+	_, err = engine.PurgeAll()
+	assert.Nil(t, err)
+
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)

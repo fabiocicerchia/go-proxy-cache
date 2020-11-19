@@ -1,10 +1,10 @@
 package server
 
 import (
-	"log"
 	"net/http"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -14,7 +14,13 @@ import (
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 )
 
-func CreateServerConfig(port string, timeout config.Timeout, certManager *autocert.Manager, certFile *string, keyFile *string) *http.Server {
+func CreateServerConfig(
+	port string,
+	timeout config.Timeout,
+	certManager *autocert.Manager,
+	certFile *string,
+	keyFile *string,
+) *http.Server {
 	mux := http.NewServeMux()
 
 	// handlers

@@ -57,7 +57,8 @@ func TestCatchContent(t *testing.T) {
 	lwr := response.NewLoggedResponseWriter(rwMock)
 
 	content := []byte("test content")
-	_, _ = lwr.Write(content)
+	_, err := lwr.Write(content)
+	assert.Nil(t, err)
 
 	// checks lwr
 	assert.Equal(t, 0, lwr.StatusCode)

@@ -12,7 +12,8 @@ import (
 func TestMsgpackEncodeDecode(t *testing.T) {
 	str := []byte("test string")
 
-	encoded, _ := utils.MsgpackEncode(str)
+	encoded, err := utils.MsgpackEncode(str)
+	assert.Nil(t, err)
 
 	var decoded []byte
 	_ = utils.MsgpackDecode(encoded, &decoded)

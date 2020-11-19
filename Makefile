@@ -7,6 +7,7 @@
 # Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
+.PHONY: test
 .SILENT: help
 default: help
 
@@ -52,11 +53,12 @@ lint: ## lint
 ################################################################################
 
 test: ## test
-	go test -race --tags=unit ./...
-	go test -race --tags=functional ./...
+	go test -race -count=1 --tags=unit ./...
+	go test -race -count=1 --tags=functional ./...
+	go test -race -count=1 --tags=endtoend ./...
 
 cover: ## coverage
-	go test -race --tags=unit,functional -coverprofile cover.out ./...
+	go test -race -count=1 --tags=unit,functional -coverprofile cover.out ./...
 	go tool cover -html=cover.out
 
 codecov: ## codecov

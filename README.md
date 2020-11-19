@@ -17,25 +17,28 @@ Simple Reverse Proxy with Caching, written in Go, backed by Redis.
 [![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
 ![Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Builds/badge.svg)
+
 </center>
 
 ## Features
 
-  - Full Page Caching (via Redis)
-  - Load Balancing (only Round-Robin)
-  - `PURGE` Method to invalidate
-  - HTTP & HTTPS Forward Traffic
-  - HTTP/2 Support
-  - SSL/TLS Certificates via ACME
-  - Using your own SSL/TLS Certificates (optional)
-  - Small, Pragmatic and Easy to Use
-  - Easily Configurable (via YAML or Environment Variables)
-  - Healthcheck Endpoint (`/healthcheck`)
-  - Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
-  - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
-  - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
+- Full Page Caching (via Redis)
+- Load Balancing (only Round-Robin)
+- `PURGE` Method to invalidate
+- HTTP & HTTPS Forward Traffic
+- HTTP/2 Support
+- SSL/TLS Certificates via ACME
+- Using your own SSL/TLS Certificates (optional)
+- Small, Pragmatic and Easy to Use
+- Easily Configurable (via YAML or Environment Variables)
+- Healthcheck Endpoint (`/healthcheck`)
+- Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
+- Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
+- Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
 
-## Docker
+## Examples
+
+### Docker
 
 ```console
 $ docker run \
@@ -55,6 +58,78 @@ $ docker run \
     fabiocicerchia/go-proxy-cache
 ```
 
+### PURGE
+
+```concole
+$ curl -vX PURGE http://localhost/cached/page
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 80 (#0)
+> PURGE / HTTP/1.1
+> Host: localhost
+> User-Agent: curl/7.64.1
+> Accept: */*
+>
+< HTTP/1.1 200 OK
+< Date: Thu, 19 Nov 2020 11:21:45 GMT
+< Content-Length: 2
+< Content-Type: text/plain; charset=utf-8
+<
+* Connection #0 to host localhost left intact
+OK* Closing connection 0
+```
+
+```concole
+$ curl -vX PURGE http://localhost/page/not/cached
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 80 (#0)
+> PURGE / HTTP/1.1
+> Host: localhost
+> User-Agent: curl/7.64.1
+> Accept: */*
+>
+< HTTP/1.1 404 Not Found
+< Date: Thu, 19 Nov 2020 11:23:36 GMT
+< Content-Length: 2
+< Content-Type: text/plain; charset=utf-8
+<
+* Connection #0 to host localhost left intact
+KO* Closing connection 0
+```
+
+### HTTP/2
+
+```console
+$ curl -4 -s -I -w '%{http_version}\n' -o /dev/null http://localhost
+1.1
+$ curl -4 -k -s -I -w '%{http_version}\n' -o /dev/null https://localhost
+2
+```
+
+### HealthCheck
+
+```console
+$ curl -v http://localhost/healthcheck
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to localhost (127.0.0.1) port 80 (#0)
+> GET /healthcheck HTTP/1.1
+> Host: localhost
+> User-Agent: curl/7.64.1
+> Accept: */*
+>
+< HTTP/1.1 200 OK
+< Date: Thu, 19 Nov 2020 11:26:37 GMT
+< Content-Length: 17
+< Content-Type: text/plain; charset=utf-8
+<
+HTTP OK
+REDIS OK
+* Connection #0 to host localhost left intact
+* Closing connection 0
+```
+
 ## Configuration
 
 ### Environment Variables
@@ -65,15 +140,17 @@ $ docker run \
 - `FORWARD_HOST`
 - `FORWARD_SCHEME`
 - `LB_ENDPOINT_LIST`
+- `HTTP2HTTPS` = 0
+- `REDIRECT_STATUS_CODE` = 301
 - `TLS_AUTO_CERT` = 0
 - `TLS_EMAIL`
 - `TLS_CERT_FILE`
 - `TLS_KEY_FILE`
-- `TIMEOUT_READ` = 5
-- `TIMEOUT_WRITE` = 5
-- `TIMEOUT_IDLE` = 30
-- `TIMEOUT_READ_HEADER` = 2
-- `TIMEOUT_HANDLER` = 5
+- `TIMEOUT_READ` = 50000000000
+- `TIMEOUT_READ_HEADER` = 20000000000
+- `TIMEOUT_WRITE` = 50000000000
+- `TIMEOUT_IDLE` = 300000000000
+- `TIMEOUT_HANDLER` = 50000000000
 - `REDIS_DB` = 0
 - `REDIS_HOST`
 - `REDIS_PASSWORD`
@@ -85,39 +162,100 @@ $ docker run \
 
 ```yaml
 server:
+  # --- GENERIC
   port:
     http: "80"
     https: "443"
-  ttl: 0
+  # --- TLS
   tls:
-    auto: 0
+    # Automatic Certificate Management Environment
+    # Provides automatic generation of SSL/TLS certificates from Let's Encrypt
+    # and any other ACME-based CA.
+    # Default: false (need to provide `certfile` and `keyfile`)
+    auto: false
+    # Email optionally specifies a contact email address.
+    # This is used by CAs, such as Let's Encrypt, to notify about problems with
+    # issued certificates.
     email: info@fabiocicerchia.it
+    # Pair or files: the certificate and the key.
+    # Used by LoadX509KeyPair to read and parse a public/private key pair from a
+    # pair of files. The files must contain PEM encoded data. The certificate
+    # file may contain intermediate certificates following the leaf certificate
+    # to form a certificate chain.
     certfile: server.pem
     keyfile: server.key
-  timeouts:
-    read: 5
-    write: 5
-    idle: 30
-    readheader: 2
-    handler: 5
+  # --- TIMEOUT
+  timeout:
+    # It is the maximum duration for reading the entire request, including the
+    # body.
+    # Because it does not let Handlers make per-request decisions on each
+    # request body's acceptable deadline or upload rate, most users will prefer
+    # to use `readheader`. It is valid to use them both.
+    read: 5000000000
+    # It is the amount of time allowed to read request headers. The connection's
+    # read deadline is reset after reading the headers and the Handler can
+    # decide what is considered too slow for the body. If it is zero, the value
+    # of `read` is used. If both are zero, there is no timeout.
+    readheader: 2000000000
+    # It is the maximum duration before timing out writes of the response. It is
+    # reset whenever a new request's header is read. Like `read`, it does not
+    # let Handlers make decisions on a per-request basis.
+    write: 5000000000
+    # It is the maximum amount of time to wait for the next request when
+    # keep-alives are enabled. If is zero, the value of `read` is used. If both
+    # ara zero, there is no timeout.
+    idle: 20000000000
+    handler: 5000000000
+  # --- FORWARDING
   forwarding:
+    # Hostname to be used for requests forwarding.
     host: fabiocicerchia.it
+    # Endpoint scheme to be used when forwarding traffic.
+    # Default: incoming connection.
+    # Values: http, https.
     scheme: https
+    # List of IPs/Hostnames to be used as load balanced backend servers.
+    # They'll be selected using a round robin algorithm.
     endpoints:
     - fabiocicerchia.it
+    # Forces redirect from HTTP to HTTPS.
+    # Default: false
+    http2https: false
 
+# --- TIMEOUT
 cache:
+  # --- REDIS SERVER
   host: localhost
   port: "6379"
   password: ""
   db: 0
+  # --- TTL
+  # Fallback storage TTL when saving the cache when no header is specified.
+  # It follows the order:
+  #  - If the cache is shared and the s-maxage response directives present, use
+  #    its value, or
+  #  - If the max-age response directive is present, use its value, or
+  #  - If the Expires response header field is present, use its value minus the
+  #    value of the Date response header field, or
+  #  - Otherwise, no explicit expiration time is present in the response.
+  #    A heuristic freshness lifetime might be applicable.
+  # Default: 0
+  ttl: 0
+  # --- ALLOWED VALUES
+  # Allows caching for different response codes.
+  # Default: 200, 301, 302
   allowedstatuses:
   - "200"
   - "301"
   - "302"
+  # If the client request method is listed in this directive then the response
+  # will be cached. "GET" and "HEAD" methods are always added to the list,
+  # though it is recommended to specify them explicitly.
+  # Default: HEAD, GET
   allowedmethods:
   - HEAD
   - GET
+
 ```
 
 ## Common Errors
@@ -129,31 +267,29 @@ cache:
 
 ## References
 
-  - [Proxy servers and tunneling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling)
-  - [Make resilient Go net/http servers using timeouts, deadlines and context cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/)
-  - [So you want to expose Go on the Internet](https://blog.cloudflare.com/exposing-go-on-the-internet/)
-  - [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
-  - [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
+- [Proxy servers and tunneling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling)
+- [Make resilient Go net/http servers using timeouts, deadlines and context cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/)
+- [So you want to expose Go on the Internet](https://blog.cloudflare.com/exposing-go-on-the-internet/)
+- [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
+- [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
 
 ## TODO
 
-  - [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
-  - SSL Passthrough
-  - WebSockets
-  - GZip Compression
-  - HTTP to HTTPS Redirects
-  - Support Chunking
-  - Cache [Circuit Breaker](https://github.com/sony/gobreaker)
-  - Serve STALE cache
-  - Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
-  - LB Algorithms
-  - Tags
-  - Improve Logging
-  - Define eviction: LRU, LFU, ...
-  - Byte-Range Cache
-  - Dashboard
-  - CLI Monitor
-  - HTTP/3
+- [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
+- SSL Passthrough
+- WebSockets
+- GZip Compression
+- HTTP to HTTPS Redirects
+- Support Chunking
+- Cache [Circuit Breaker](https://github.com/sony/gobreaker)
+- Serve STALE cache
+- Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
+- Tags
+- Define eviction: LRU, LFU, ...
+- Byte-Range Cache
+- Dashboard
+- CLI Monitor
+- HTTP/3
 
 ## License
 
