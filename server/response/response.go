@@ -6,6 +6,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// CacheStatusHeader - HTTP Header for showing cache status
+const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
+
+// CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status
+const CacheStatusHeaderHit = "HIT"
+
+// CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status
+const CacheStatusHeaderMiss = "MISS"
+
 // LoggedResponseWriter - Decorator for http.ResponseWriter
 type LoggedResponseWriter struct {
 	http.ResponseWriter
@@ -15,7 +24,8 @@ type LoggedResponseWriter struct {
 
 // NewLoggedResponseWriter - Creates new instance of ResponseWriter.
 func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
-	return &LoggedResponseWriter{w, 0, []byte("")}
+	var content []byte
+	return &LoggedResponseWriter{w, 0, content}
 }
 
 // WriteHeader - ResponseWriter's WriteHeader method decorator.
@@ -31,19 +41,12 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 }
 
 // CopyHeaders - Adds the headers to the response.
-func CopyHeaders(rw http.ResponseWriter, headers http.Header) {
-	// TODO: COVERAGE
-	for k, _ := range headers {
-		for _, val := range headers.Values(k) {
-			rw.Header().Add(k, val)
+func CopyHeaders(dst http.Header, src http.Header) {
+	// TODO: COVERAGE: need to find a different domain in config.yml (at it will fix itself)
+	for k, vv := range src {
+		for _, v := range vv {
+			dst.Add(k, v)
 		}
-	}
-}
-
-// Flush - Sends output to client.
-func Flush(rw http.ResponseWriter) {
-	if fl, ok := rw.(http.Flusher); ok {
-		fl.Flush()
 	}
 }
 

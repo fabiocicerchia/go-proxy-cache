@@ -81,6 +81,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -104,6 +107,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- HIT
 
 	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -122,6 +128,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- PURGE
 
 	req, err = http.NewRequest("PURGE", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -138,6 +147,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- MISS
 
 	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()

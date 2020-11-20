@@ -9,6 +9,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
@@ -82,6 +83,9 @@ func Start() {
 			Key:  serverTLSConfig.KeyFile,
 		},
 	)
+
+	// lb
+	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 
 	// start server http & https
 	go func() { log.Fatal(serverHTTPS.ListenAndServeTLS("", "")) }()

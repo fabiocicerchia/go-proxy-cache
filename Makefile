@@ -52,9 +52,15 @@ lint: ## lint
 ##@ TEST
 ################################################################################
 
-test: ## test
+test: test-unit test-functional test-endtoend ## test
+
+test-unit: ## test unit
 	go test -race -count=1 --tags=unit ./...
+
+test-functional: ## test functional
 	go test -race -count=1 --tags=functional ./...
+
+test-endtoend: ## test endtoend
 	go test -race -count=1 --tags=endtoend ./...
 
 cover: ## coverage

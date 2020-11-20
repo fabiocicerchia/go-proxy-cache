@@ -85,31 +85,74 @@ func TestContainsValue(t *testing.T) {
 	tearDown()
 }
 
-// --- CastToString
+// --- Unique
 
-func TestCastToStringEmpty(t *testing.T) {
+func TestUniqueEmpty(t *testing.T) {
 	input := []string{}
-	value := utils.CastToString(input)
+	value := utils.Unique(input)
 
-	assert.Equal(t, "", value)
+	assert.Equal(t, []string{}, value)
 
 	tearDown()
 }
 
-func TestCastToStringOneElement(t *testing.T) {
+func TestUniqueOneElement(t *testing.T) {
 	input := []string{"a"}
-	value := utils.CastToString(input)
+	value := utils.Unique(input)
 
-	assert.Equal(t, "a", value)
+	assert.Equal(t, []string{"a"}, value)
 
 	tearDown()
 }
 
-func TestCastToStringTwoElements(t *testing.T) {
+func TestUniqueTwoElements(t *testing.T) {
 	input := []string{"a", "b"}
-	value := utils.CastToString(input)
+	value := utils.Unique(input)
 
-	assert.Equal(t, "a", value)
+	assert.Equal(t, []string{"a", "b"}, value)
+
+	tearDown()
+}
+
+func TestUniqueTwoElementsWithDuplicates(t *testing.T) {
+	input := []string{"a", "b", "c", "b", "a"}
+	value := utils.Unique(input)
+
+	assert.Equal(t, []string{"a", "b", "c"}, value)
+
+	tearDown()
+}
+
+// --- LenSliceBytes
+
+func TestLenSliceByteEmpty(t *testing.T) {
+	input := [][]byte{}
+	value := utils.LenSliceBytes(input)
+
+	assert.Equal(t, 0, value)
+
+	tearDown()
+}
+
+func TestLenSliceBytesOneItem(t *testing.T) {
+	input := make([][]byte, 0)
+	input = append(input, []byte("testing"))
+
+	value := utils.LenSliceBytes(input)
+
+	assert.Equal(t, 7, value)
+
+	tearDown()
+}
+
+func TestLenSliceBytesTwosItems(t *testing.T) {
+	input := make([][]byte, 1)
+	input = append(input, []byte("testing"))
+	input = append(input, []byte("sample"))
+
+	value := utils.LenSliceBytes(input)
+
+	assert.Equal(t, 13, value)
 
 	tearDown()
 }

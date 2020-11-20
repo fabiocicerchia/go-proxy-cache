@@ -15,18 +15,18 @@ type Balancer struct {
 	m sync.Mutex
 
 	next  int
-	items []interface{}
+	items []string
 }
 
 // New - Creates a new instance.
-func New(items []interface{}) *Balancer {
+func New(items []string) *Balancer {
 	return &Balancer{items: items}
 }
 
 // Pick - Chooses next available item.
-func (b *Balancer) Pick() (interface{}, error) {
+func (b *Balancer) Pick() (string, error) {
 	if len(b.items) == 0 {
-		return nil, ErrNoAvailableItem
+		return "", ErrNoAvailableItem
 	}
 
 	b.m.Lock()

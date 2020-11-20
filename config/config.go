@@ -176,6 +176,7 @@ func InitConfigFromFileOrEnv(file string) {
 	Config.Cache.AllowedMethods = append(Config.Cache.AllowedMethods, "HEAD", "GET")
 	Config.Cache.AllowedMethods = utils.Unique(Config.Cache.AllowedMethods)
 
+	// TODO: split in 2 methods
 	configAsYaml, err := yaml.Marshal(Config)
 	if err == nil {
 		log.Info("Config Settings:\n")

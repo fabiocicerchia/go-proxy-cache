@@ -11,16 +11,18 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // Response - Holds details about the response
 type URIObj struct {
 	URL             url.URL
+	Host            string
 	Method          string
 	StatusCode      int
 	RequestHeaders  http.Header
 	ResponseHeaders http.Header
-	Content         string
+	Content         []byte
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
@@ -38,12 +40,21 @@ func StoreFullPage(
 	obj URIObj,
 	expiration time.Duration,
 ) (bool, error) {
-	if !IsStatusAllowed(obj.StatusCode) || !IsMethodAllowed(obj.Method) {
+	if !IsStatusAllowed(obj.StatusCode) || !IsMethodAllowed(obj.Method) || expiration < 1 {
 		return false, nil
 	}
 
-	if expiration < 1 {
-		return false, nil
+	targetUrl := obj.URL
+	targetUrl.Host = obj.Host
+
+	meta, err := GetVary(obj.ResponseHeaders)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = StoreMetadata(obj.Method, targetUrl, meta, expiration)
+	if err != nil {
+		return false, err
 	}
 
 	encoded, err := engine.Encode(obj)
@@ -51,40 +62,31 @@ func StoreFullPage(
 		return false, err
 	}
 
-	meta, err := GetVary(obj.ResponseHeaders)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = StoreMetadata(obj.Method, obj.URL, meta, expiration)
-	if err != nil {
-		return false, err
-	}
-
-	key := StorageKey(obj.Method, obj.URL, meta, obj.RequestHeaders)
+	key := StorageKey(obj.Method, targetUrl, meta, obj.RequestHeaders)
 
 	return engine.Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, http.Header, string, error) {
+func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, http.Header, []byte, error) {
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return 0, http.Header{}, "", err
+		return 0, http.Header{}, []byte{}, err
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
+	log.Infof("StorageKey: %s", key)
 
 	encoded, err := engine.Get(key)
 	if err != nil {
-		return 0, http.Header{}, "", err
+		return 0, http.Header{}, []byte{}, err
 	}
 
 	err = engine.Decode(encoded, obj)
 	if err != nil {
-		return 0, http.Header{}, "", err
+		return 0, http.Header{}, []byte{}, err
 	}
 
 	return obj.StatusCode, obj.ResponseHeaders, obj.Content, nil

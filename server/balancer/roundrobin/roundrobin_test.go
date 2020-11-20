@@ -11,7 +11,7 @@ import (
 )
 
 func TestPickEmpty(t *testing.T) {
-	b := roundrobin.New([]interface{}{})
+	b := roundrobin.New([]string{})
 
 	value, err := b.Pick()
 
@@ -19,11 +19,11 @@ func TestPickEmpty(t *testing.T) {
 	assert.Equal(t, "*errors.errorString", fmt.Sprintf("%T", err))
 	assert.Equal(t, err.Error(), "no item is available")
 
-	assert.Nil(t, value)
+	assert.Empty(t, value)
 }
 
 func TestPickWithData(t *testing.T) {
-	b := roundrobin.New([]interface{}{
+	b := roundrobin.New([]string{
 		"item1",
 		"item2",
 		"item3",
@@ -39,7 +39,7 @@ func TestPickWithData(t *testing.T) {
 }
 
 func TestPickCorrectness(t *testing.T) {
-	b := roundrobin.New([]interface{}{
+	b := roundrobin.New([]string{
 		"item1",
 		"item2",
 		"item3",

@@ -4,12 +4,10 @@ package logger_test
 
 import (
 	"bytes"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
 	"testing"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -37,8 +35,7 @@ func TestLogMessage(t *testing.T) {
 
 	logger.Log(reqMock, "message")
 
-	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
-	expectedOut := fmt.Sprintf(`time="%s" level=info msg="HTTPS POST /path/to/file - message"`+"\n", timeNow)
+	expectedOut := `time=" " level=info msg="HTTPS POST /path/to/file - message"` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -69,11 +66,7 @@ func TestLogRequest(t *testing.T) {
 
 	logger.LogRequest(reqMock, lwrMock, true)
 
-	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
-	expectedOut := fmt.Sprintf(
-		`time="%s" level=info msg="127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true"`+"\n",
-		timeNow,
-	)
+	expectedOut := `time=" " level=info msg="127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true"` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -105,14 +98,8 @@ func TestLogSetup(t *testing.T) {
 
 	logger.LogSetup(config.Config.Server)
 
-	timeNow := time.Now().Local().Format("2006/01/02 15:04:05")
-
-	expectedOut := fmt.Sprintf(
-		`time="%s" level=info msg="Server will run on: 80 and 443\n"`+"\n"+
-			`time="%s" level=info msg="Redirecting to url: https://www.google.com -> [1.2.3.4 8.8.8.8]\n"`+"\n",
-		timeNow,
-		timeNow,
-	)
+	expectedOut := `time=" " level=info msg="Server will run on: 80 and 443\n"` + "\n" +
+		`time=" " level=info msg="Redirecting to url: https://www.google.com -> [1.2.3.4 8.8.8.8]\n"` + "\n"
 	assert.Equal(t, expectedOut, buf.String())
 
 	tearDownLog()
@@ -121,8 +108,8 @@ func TestLogSetup(t *testing.T) {
 func setUpLog() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006/01/02 15:04:05",
+		FullTimestamp:   false,
+		TimestampFormat: " ",
 	})
 	log.SetReportCaller(false)
 	log.SetOutput(os.Stdout)

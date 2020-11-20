@@ -2,16 +2,20 @@ package balancer
 
 import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer/roundrobin"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
+var lb *roundrobin.Balancer
+
+func InitRoundRobin(endpoints []string) {
+	lb = roundrobin.New(endpoints)
+}
+
 // GetLBRoundRobin - Returns backend server using RoundRobin algorithm.
-func GetLBRoundRobin(endpoints []string, defaultHost string) string {
-	lb := roundrobin.New([]interface{}{endpoints})
+func GetLBRoundRobin(defaultHost string) string {
 	endpoint, err := lb.Pick()
-	if err != nil || utils.CastToString(endpoint) == "" {
+	if err != nil || endpoint == "" {
 		return defaultHost
 	}
 
-	return utils.CastToString(endpoint)
+	return endpoint
 }

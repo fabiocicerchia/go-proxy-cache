@@ -1,8 +1,8 @@
 package storage
 
 import (
+	"fmt"
 	"net/http"
-	"net/url"
 
 	log "github.com/sirupsen/logrus"
 
@@ -12,43 +12,27 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-// CacheStatusHeader - HTTP Header for showing cache status
-const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
-
-// CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status
-const CacheStatusHeaderHit = "HIT"
-
-// CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status
-const CacheStatusHeaderMiss = "MISS"
-
-// ServeCachedContent - Retrives and sends to the client the cached response.
-func ServeCachedContent(
+// RetrieveCachedContent - Retrives the cached response.
+func RetrieveCachedContent(
 	lwr *response.LoggedResponseWriter,
 	req http.Request,
-	url url.URL,
-) bool {
+) (int, http.Header, []byte, error) {
 	method := req.Method
 	reqHeaders := req.Header
 
-	code, headers, page, err := cache.RetrieveFullPage(method, url, reqHeaders)
+	url := *req.URL
+	// url.Host = req.Host
+
+	code, headers, content, err := cache.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
 		log.Infof("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
-	if !cache.IsStatusAllowed(code) || len(page) == 0 {
-		lwr.Header().Set(CacheStatusHeader, CacheStatusHeaderMiss)
-
-		return false
+	if !cache.IsStatusAllowed(code) || len(content) == 0 {
+		return 0, http.Header{}, []byte{}, fmt.Errorf("Not allowed")
 	}
 
-	response.CopyHeaders(lwr, headers)
-	lwr.Header().Set(CacheStatusHeader, CacheStatusHeaderHit)
-
-	lwr.WriteHeader(code)
-
-	response.Flush(lwr)
-
-	return response.WriteBody(lwr, page)
+	return code, headers, content, nil
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
@@ -56,16 +40,16 @@ func StoreGeneratedPage(
 	req http.Request,
 	lwr response.LoggedResponseWriter,
 ) (bool, error) {
-	content := string(lwr.Content)
 	ttl := utils.GetTTL(lwr.Header(), config.Config.Cache.TTL)
 
 	response := cache.URIObj{
 		URL:             *req.URL,
+		Host:            req.Host,
 		Method:          req.Method,
 		StatusCode:      lwr.StatusCode,
 		RequestHeaders:  req.Header,
 		ResponseHeaders: lwr.Header(),
-		Content:         content,
+		Content:         lwr.Content,
 	}
 
 	done, err := cache.StoreFullPage(response, ttl)

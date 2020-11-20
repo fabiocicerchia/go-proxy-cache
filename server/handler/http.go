@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,15 +13,16 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
-	// TODO: COVERAGE (Test roundrobin)
 	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
 	host := utils.IfEmpty(forwarding.Host, url.Host)
 
-	req.URL.Host = balancer.GetLBRoundRobin(forwarding.Endpoints, url.Host)
+	req.URL.Host = balancer.GetLBRoundRobin(url.Host)
 	req.URL.Scheme = scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 	req.Host = host
@@ -38,6 +41,10 @@ func serveReverseProxy(
 		Host:   target.Host,
 	}
 
+	log.Infof("ProxyURL: %s", proxyURL.String())
+	log.Infof("Req URL: %s", req.URL.String())
+	log.Infof("Req Host: %s", req.Host)
+
 	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
 	proxy.ServeHTTP(lwr, req)
 
@@ -47,11 +54,38 @@ func serveReverseProxy(
 	}
 }
 
+func serveCachedContent(
+	lwr *response.LoggedResponseWriter,
+	req http.Request,
+	url url.URL,
+) bool {
+	code, headers, content, err := storage.RetrieveCachedContent(lwr, req)
+	if err != nil {
+		lwr.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
+
+		log.Warnf("Error on serving cached content: %s", err)
+		return false
+	}
+
+	body := ioutil.NopCloser(bytes.NewBuffer(content))
+
+	res := http.Response{
+		StatusCode: code,
+		Header:     headers,
+		Body:       body,
+	}
+	res.Header.Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
+
+	ctx := req.Context()
+	transport.ServeResponse(ctx, lwr, res, url)
+
+	return true
+}
+
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	lwr := response.NewLoggedResponseWriter(res)
 
-	if config.Config.Server.Forwarding.HTTP2HTTPS {
-		// TODO: COVERAGE
+	if req.URL.Scheme == "http" && config.Config.Server.Forwarding.HTTP2HTTPS {
 		RedirectToHTTPS(lwr.ResponseWriter, req, config.Config.Server.Forwarding.RedirectStatusCode)
 		return
 	}
@@ -62,9 +96,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if req.Method == http.MethodConnect {
-		// TODO: COVERAGE
 		lwr.WriteHeader(http.StatusMethodNotAllowed)
-		// HandleTunneling(lwr, req)
 	} else {
 		HandleRequestAndProxy(lwr, req)
 	}
@@ -80,7 +112,7 @@ func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request
 	proxyURL.Scheme = scheme
 	proxyURL.Host = forwarding.Host
 
-	cached := storage.ServeCachedContent(lwr, *req, proxyURL)
+	cached := serveCachedContent(lwr, *req, proxyURL)
 	if !cached {
 		serveReverseProxy(forwarding, proxyURL, lwr, req)
 	}

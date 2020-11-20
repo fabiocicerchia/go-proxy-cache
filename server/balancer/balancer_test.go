@@ -15,7 +15,8 @@ func TestGetLBRoundRobinUndefined(t *testing.T) {
 	setUp()
 
 	var endpoints []string
-	endpoint := balancer.GetLBRoundRobin(endpoints, "8.8.8.8")
+	balancer.InitRoundRobin(endpoints)
+	endpoint := balancer.GetLBRoundRobin("8.8.8.8")
 
 	assert.Equal(t, "8.8.8.8", endpoint)
 
@@ -26,7 +27,8 @@ func TestGetLBRoundRobinDefined(t *testing.T) {
 	setUp()
 
 	var endpoints = []string{"1.2.3.4"}
-	endpoint := balancer.GetLBRoundRobin(endpoints, "8.8.8.8")
+	balancer.InitRoundRobin(endpoints)
+	endpoint := balancer.GetLBRoundRobin("8.8.8.8")
 
 	assert.Equal(t, "1.2.3.4", endpoint)
 

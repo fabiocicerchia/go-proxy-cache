@@ -49,19 +49,8 @@ func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
 	return nil
 }
 
-// CastToString - Converts a value to string.
-func CastToString(i interface{}) string {
-	arr := i.([]string)
-	if len(arr) > 0 {
-		return arr[0]
-	}
-
-	return ""
-}
-
 // Unique - Returns a slice with unique values
 func Unique(slice []string) []string {
-	// TODO: COVERAGE
 	keys := make(map[string]bool)
 	list := []string{}
 
@@ -73,4 +62,14 @@ func Unique(slice []string) []string {
 	}
 
 	return list
+}
+
+// LenSliceBytes - Returns total length of a slice of bytes
+func LenSliceBytes(data [][]byte) int {
+	l := 0
+	for _, v := range data {
+		l += len(v)
+	}
+
+	return l
 }

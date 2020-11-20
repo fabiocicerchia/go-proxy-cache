@@ -19,7 +19,7 @@ type ResponseWriterMock struct {
 
 func (rwm ResponseWriterMock) WriteHeader(statusCode int) { MockStatusCode = statusCode }
 func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
-	MockContent = p
+	MockContent = append(MockContent, p...)
 	return 0, nil
 }
 
@@ -29,7 +29,7 @@ func TestNewWriter(t *testing.T) {
 	lwr := response.NewLoggedResponseWriter(rwMock)
 
 	assert.Equal(t, 0, lwr.StatusCode)
-	assert.Equal(t, "", string(lwr.Content))
+	assert.Len(t, lwr.Content, 0)
 
 	tearDownResponse()
 }
@@ -42,11 +42,11 @@ func TestCatchStatusCode(t *testing.T) {
 
 	// checks lwr
 	assert.Equal(t, 201, lwr.StatusCode)
-	assert.Equal(t, "", string(lwr.Content))
+	assert.Len(t, lwr.Content, 0)
 
 	// verify calls on rwMock
 	assert.Equal(t, 201, MockStatusCode)
-	assert.Equal(t, "undefined", string(MockContent))
+	assert.Len(t, MockContent, 0)
 
 	tearDownResponse()
 }
@@ -60,18 +60,20 @@ func TestCatchContent(t *testing.T) {
 	_, err := lwr.Write(content)
 	assert.Nil(t, err)
 
+	expectedContent := content
+
 	// checks lwr
 	assert.Equal(t, 0, lwr.StatusCode)
-	assert.Equal(t, content, lwr.Content)
+	assert.Equal(t, expectedContent, lwr.Content)
 
 	// verify calls on rwMock
 	assert.Equal(t, -1, MockStatusCode)
-	assert.Equal(t, content, MockContent)
+	assert.Equal(t, expectedContent, MockContent)
 
 	tearDownResponse()
 }
 
 func tearDownResponse() {
 	MockStatusCode = -1
-	MockContent = []byte("undefined")
+	MockContent = make([]byte, 0)
 }

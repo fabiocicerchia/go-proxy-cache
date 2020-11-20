@@ -135,6 +135,9 @@ REDIS OK
 
 ## Configuration
 
+> ![Timeouts](https://blog.cloudflare.com/content/images/2016/06/Timeouts-001.png)
+> - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+
 ### Environment Variables
 
 - `SERVER_HTTP_PORT` = 80
