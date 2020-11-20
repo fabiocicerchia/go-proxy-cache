@@ -4,7 +4,7 @@
 
 ![Logo](logo_small.png)
 
-Simple Reverse Proxy with Caching, written in Go, backed by Redis.
+Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 [![MIT License](https://img.shields.io/badge/License-MIT-lightgrey.svg?longCache=true)](LICENSE)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
@@ -281,21 +281,23 @@ cache:
 
 ## TODO
 
-- [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
 - Support Chunking
+- https://stackoverflow.com/questions/26769626/send-a-chunked-http-response-from-a-go-server 30m
+- Cache [Circuit Breaker](https://github.com/sony/gobreaker) 30m
+- Test server timeout with custom handlers 15m
+- [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
+- [Check Timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
 - [GZip Compression](github.com/NYTimes/gziphandler) + Config Flag
-- Cache [Circuit Breaker](https://github.com/sony/gobreaker)
-- [Go Language - Web Application Secure Coding Practices](https://github.com/OWASP/Go-SCP)
+- [SSL Passthrough](https://stackoverflow.com/a/35399699/888162)
+- [Go Language - Web Application Secure Coding Practices](https://github.com/OWASP/Go-SCP/raw/master/dist/go-webapp-scp.pdf)
 - [HTTP/2 Adventure in the Go World](https://posener.github.io/http2/)
 - https://cipherli.st/
 - Check [SSL Labs Score](https://blog.bracelab.com/achieving-perfect-ssl-labs-score-with-go)
 - Use [X-Forwarded-Proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)
 - Configure log verbosity level
 - [tlsfuzzer](https://github.com/tlsfuzzer/tlsfuzzer)
-- [Check Timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
 - [Building Web Servers in Go](https://getgophish.com/blog/post/2018-12-02-building-web-servers-in-go/)
 - [TLS mutual authentication with golang and nginx](https://medium.com/rahasak/tls-mutual-authentication-with-golang-and-nginx-937f0da22a0e)
-- [SSL Passthrough](https://stackoverflow.com/a/35399699/888162)
 - Check file descriptors usage
 - LB Algorithms
 - AB Benchmarks
