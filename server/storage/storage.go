@@ -21,7 +21,6 @@ func RetrieveCachedContent(
 	reqHeaders := req.Header
 
 	url := *req.URL
-	// url.Host = req.Host
 
 	code, headers, content, err := cache.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
@@ -50,7 +49,6 @@ func StoreGeneratedPage(
 		RequestHeaders:  req.Header,
 		ResponseHeaders: lwr.Header(),
 		Content:         lwr.Content,
-		// ContentTwo:      lwr.ContentTwo,
 	}
 
 	done, err := cache.StoreFullPage(response, ttl)

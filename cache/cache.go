@@ -91,12 +91,6 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, 
 		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot decode: %s", err)
 	}
 
-	// var cnt []byte
-	// for _, v := range obj.Content {
-	// 	cnt = append(cnt, v...)
-	// }
-	// fmt.Println(cnt)
-	// fmt.Println(obj.ContentTwo)
 	return obj.StatusCode, obj.ResponseHeaders, obj.Content, nil
 }
 

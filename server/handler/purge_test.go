@@ -131,41 +131,41 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	// // --- PURGE
 
-	// req, err = http.NewRequest("PURGE", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
-	// req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	// req.URL.Host = config.Config.Server.Forwarding.Host
-	// req.Host = config.Config.Server.Forwarding.Host
-	// assert.Nil(t, err)
+	req, err = http.NewRequest("PURGE", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
+	assert.Nil(t, err)
 
-	// rr = httptest.NewRecorder()
-	// h.ServeHTTP(rr, req)
+	rr = httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
 
-	// assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
 
-	// body = rr.Body.String()
+	body = rr.Body.String()
 
-	// assert.Equal(t, body, "OK")
+	assert.Equal(t, body, "OK")
 
-	// time.Sleep(1 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	// // --- MISS
+	// --- MISS
 
-	// req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
-	// req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	// req.URL.Host = config.Config.Server.Forwarding.Host
-	// req.Host = config.Config.Server.Forwarding.Host
-	// assert.Nil(t, err)
+	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
+	assert.Nil(t, err)
 
-	// rr = httptest.NewRecorder()
-	// h.ServeHTTP(rr, req)
+	rr = httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
 
-	// assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code)
 
-	// assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
 
-	// body = rr.Body.String()
+	body = rr.Body.String()
 
-	// assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
-	// assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
-	// assert.Contains(t, body, "</body>\n</html>")
+	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
+	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
+	assert.Contains(t, body, "</body>\n</html>")
 }

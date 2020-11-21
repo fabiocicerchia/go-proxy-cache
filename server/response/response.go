@@ -50,13 +50,8 @@ func (lwr *LoggedResponseWriter) WriteHeader(statusCode int) {
 func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 	lwr.Content = append(lwr.Content, []byte{})
 	chunk := len(lwr.Content) - 1
-	// log.Infof("---- %d\n", chunk)
 	lwr.Content[chunk] = append(lwr.Content[chunk], p...)
 
-	// lwr.ContentTwo = append(lwr.ContentTwo, p...)
-	// log.Infof("---- %d -> %d\n", len(p), utils.LenSliceBytes(lwr.Content))
-	// log.Infof("---- %d -> %d\n", len(p), len(lwr.ContentTwo))
-	// log.Infof("---- %s\n", lwr.Content[0][0:8])
 	return lwr.ResponseWriter.Write(p)
 }
 
