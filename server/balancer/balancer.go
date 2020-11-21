@@ -6,6 +6,7 @@ import (
 
 var lb *roundrobin.Balancer
 
+// InitRoundRobin - Initialise the LB algorithm for round robin.
 func InitRoundRobin(endpoints []string) {
 	lb = roundrobin.New(endpoints)
 }

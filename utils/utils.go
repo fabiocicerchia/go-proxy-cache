@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
+// StringSeparatorOne - Main text separator, used for joins.
 const StringSeparatorOne = "@@"
+
+// StringSeparatorTwo - Secondary text separator, used for joins.
 const StringSeparatorTwo = "--"
 
 // GetEnv - Gets environment variable or default.

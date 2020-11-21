@@ -15,6 +15,7 @@ import (
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 )
 
+// CreateServerConfig - Generates the http.Server configuration.
 func CreateServerConfig(
 	port string,
 	timeout config.Timeout,

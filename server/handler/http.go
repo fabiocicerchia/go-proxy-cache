@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// FixRequest - Fixes the Request in order to use the load balanced host.
 func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
 	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
 	host := utils.IfEmpty(forwarding.Host, url.Host)
@@ -67,12 +68,12 @@ func serveCachedContent(
 		return false
 	}
 
+	// TODO: Duplication with chunks.
 	var bodyBytes []byte
 	for _, chunk := range chunks {
 		bodyBytes = append(bodyBytes, chunk...)
 	}
 	body := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-	// body := ioutil.NopCloser(bytes.NewBuffer([]byte(chunks)))
 
 	res := http.Response{
 		StatusCode: code,
@@ -87,6 +88,7 @@ func serveCachedContent(
 	return true
 }
 
+// HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	lwr := response.NewLoggedResponseWriter(res)
 

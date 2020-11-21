@@ -19,7 +19,9 @@ type ResponseWriterMock struct {
 
 func (rwm ResponseWriterMock) WriteHeader(statusCode int) { MockStatusCode = statusCode }
 func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
-	MockContent = append(MockContent, p)
+	MockContent = append(MockContent, []byte{})
+	chunk := len(MockContent) - 1
+	MockContent[chunk] = append(MockContent[chunk], p...)
 	return 0, nil
 }
 

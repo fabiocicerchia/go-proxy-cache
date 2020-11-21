@@ -20,24 +20,19 @@ type LoggedResponseWriter struct {
 	http.ResponseWriter
 	StatusCode int
 	Content    [][]byte
-	// ContentTwo []byte
 }
 
 // NewLoggedResponseWriter - Creates new instance of ResponseWriter.
 func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
 	lwr := &LoggedResponseWriter{ResponseWriter: w}
-	// TODO: NON e' thread isolated. il contenuto viene resettato.
-	// TODO: try print lwr.content[0] e inspect
 	lwr.Reset()
-	// log.Info("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
 	return lwr
 }
 
+// Reset - Reset the stored content of LoggedResponseWriter.
 func (lwr *LoggedResponseWriter) Reset() {
-	// log.Info("**************************************************")
 	lwr.StatusCode = 0
 	lwr.Content = make([][]byte, 0)
-	// lwr.ContentTwo = make([]byte, 0)
 }
 
 // WriteHeader - ResponseWriter's WriteHeader method decorator.

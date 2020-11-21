@@ -11,11 +11,13 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
+// CertificatePair - Pair of certificate and key.
 type CertificatePair struct {
 	Cert string
 	Key  string
 }
 
+// ServerOverrides - Overrides the http.Server configuration for TLS.
 func ServerOverrides(
 	server *http.Server,
 	certManager *autocert.Manager,
@@ -33,6 +35,7 @@ func ServerOverrides(
 	}
 }
 
+// Config - Returns a TLS configuration.
 func Config(certFile string, keyFile string) (*tls.Config, error) {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -70,6 +73,7 @@ func Config(certFile string, keyFile string) (*tls.Config, error) {
 	return tlsConfig, nil
 }
 
+// InitCertManager - Initialise the Certification Manager for auto generation.
 func InitCertManager(host string, email string) *autocert.Manager {
 	cacheDir, err := ioutil.TempDir("", "cache_dir")
 	if err != nil {

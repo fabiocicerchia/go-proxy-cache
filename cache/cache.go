@@ -15,7 +15,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Response - Holds details about the response
+// URIObj - Holds details about the response
 type URIObj struct {
 	URL             url.URL
 	Host            string
@@ -24,7 +24,6 @@ type URIObj struct {
 	RequestHeaders  http.Header
 	ResponseHeaders http.Header
 	Content         [][]byte
-	// ContentTwo      []byte
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.

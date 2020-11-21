@@ -3,7 +3,6 @@ package transport
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// HopHeaders - List of Ho-by-hop headers.
 // Hop-by-hop headers. These are removed when sent to the backend.
 // As of RFC 7230, hop-by-hop headers are required to appear in the
 // Connection header field. These are the headers defined by the
@@ -41,14 +41,22 @@ func removeConnectionHeaders(h http.Header) {
 	}
 }
 
-func copyResponse(dst io.Writer, src io.Reader) error {
-	bodyBytes, err := ioutil.ReadAll(src)
-	if err != nil {
-		log.Warnf("ERROR: %s", err)
-	}
+func copyResponse(dst io.Writer, src io.Reader, chunks [][]byte) error {
+	// bodyBytes, err := ioutil.ReadAll(src)
+	// if err != nil {
+	// 	log.Warnf("ERROR: %s", err)
+	// }
 
-	_, err = dst.Write(bodyBytes)
-	return err
+	// _, err = dst.Write(bodyBytes)
+	// return err
+
+	for _, chunk := range chunks {
+		_, _ = dst.Write(chunk)
+		if fl, ok := dst.(http.Flusher); ok {
+			fl.Flush()
+		}
+	}
+	return nil
 }
 
 // shouldPanicOnCopyError reports whether the reverse proxy should
@@ -67,6 +75,7 @@ func shouldPanicOnCopyError(ctx context.Context) bool {
 	return false
 }
 
+// ServeResponse - Serve a cached response.
 func ServeResponse(
 	ctx context.Context,
 	lwr *response.LoggedResponseWriter,
@@ -108,26 +117,19 @@ func ServeResponse(
 
 	lwr.WriteHeader(res.StatusCode)
 
-	for _, chunk := range chunks {
-		_, _ = lwr.Write(chunk)
-		if fl, ok := lwr.ResponseWriter.(http.Flusher); ok {
-			fl.Flush()
+	err := copyResponse(lwr, res.Body, chunks)
+	if err != nil {
+		defer res.Body.Close()
+		// Since we're streaming the response, if we run into an error all we can do
+		// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
+		// on read error while copying body.
+		if !shouldPanicOnCopyError(ctx) {
+			log.Errorf("suppressing panic for copyResponse error in test; copy error: %v", err)
+			return
 		}
+		panic(http.ErrAbortHandler)
 	}
-
-	// err := copyResponse(lwr, res.Body)
-	// if err != nil {
-	// 	defer res.Body.Close()
-	// 	// Since we're streaming the response, if we run into an error all we can do
-	// 	// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
-	// 	// on read error while copying body.
-	// 	if !shouldPanicOnCopyError(ctx) {
-	// 		log.Errorf("suppressing panic for copyResponse error in test; copy error: %v", err)
-	// 		return
-	// 	}
-	// 	panic(http.ErrAbortHandler)
-	// }
-	// res.Body.Close() // close now, instead of defer, to populate res.Trailer
+	res.Body.Close() // close now, instead of defer, to populate res.Trailer
 
 	handleTrailer(announcedTrailers, lwr, res)
 }

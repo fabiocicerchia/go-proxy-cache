@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// RedirectToHTTPS - Redirects from HTTP to HTTPS.
 func RedirectToHTTPS(w http.ResponseWriter, req *http.Request, redirectStatusCode int) {
 	targetURL := req.URL
 	targetURL.Scheme = "https"
