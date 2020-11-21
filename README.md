@@ -2,7 +2,7 @@
 
 <center>
 
-![Logo](logo_small.png)
+![Logo](https://github.com/fabiocicerchia/go-proxy-cache/raw/main/logo_small.png)
 
 Simple Reverse Proxy with Caching, written in Go, using Redis.
 
