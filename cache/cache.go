@@ -2,6 +2,7 @@ package cache
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -22,7 +23,8 @@ type URIObj struct {
 	StatusCode      int
 	RequestHeaders  http.Header
 	ResponseHeaders http.Header
-	Content         []byte
+	Content         [][]byte
+	// ContentTwo      []byte
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
@@ -68,12 +70,12 @@ func StoreFullPage(
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, http.Header, []byte, error) {
+func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, http.Header, [][]byte, error) {
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return 0, http.Header{}, []byte{}, err
+		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot fetch metadata: %s", err)
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
@@ -81,14 +83,20 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, 
 
 	encoded, err := engine.Get(key)
 	if err != nil {
-		return 0, http.Header{}, []byte{}, err
+		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot get key: %s", err)
 	}
 
 	err = engine.Decode(encoded, obj)
 	if err != nil {
-		return 0, http.Header{}, []byte{}, err
+		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot decode: %s", err)
 	}
 
+	// var cnt []byte
+	// for _, v := range obj.Content {
+	// 	cnt = append(cnt, v...)
+	// }
+	// fmt.Println(cnt)
+	// fmt.Println(obj.ContentTwo)
 	return obj.StatusCode, obj.ResponseHeaders, obj.Content, nil
 }
 

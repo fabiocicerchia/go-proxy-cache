@@ -72,6 +72,7 @@ func ServeResponse(
 	lwr *response.LoggedResponseWriter,
 	res http.Response,
 	url url.URL,
+	chunks [][]byte,
 ) {
 	if cn, ok := lwr.ResponseWriter.(http.CloseNotifier); ok {
 		var cancel context.CancelFunc
@@ -107,19 +108,26 @@ func ServeResponse(
 
 	lwr.WriteHeader(res.StatusCode)
 
-	err := copyResponse(lwr, res.Body)
-	if err != nil {
-		defer res.Body.Close()
-		// Since we're streaming the response, if we run into an error all we can do
-		// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
-		// on read error while copying body.
-		if !shouldPanicOnCopyError(ctx) {
-			log.Errorf("suppressing panic for copyResponse error in test; copy error: %v", err)
-			return
+	for _, chunk := range chunks {
+		_, _ = lwr.Write(chunk)
+		if fl, ok := lwr.ResponseWriter.(http.Flusher); ok {
+			fl.Flush()
 		}
-		panic(http.ErrAbortHandler)
 	}
-	res.Body.Close() // close now, instead of defer, to populate res.Trailer
+
+	// err := copyResponse(lwr, res.Body)
+	// if err != nil {
+	// 	defer res.Body.Close()
+	// 	// Since we're streaming the response, if we run into an error all we can do
+	// 	// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
+	// 	// on read error while copying body.
+	// 	if !shouldPanicOnCopyError(ctx) {
+	// 		log.Errorf("suppressing panic for copyResponse error in test; copy error: %v", err)
+	// 		return
+	// 	}
+	// 	panic(http.ErrAbortHandler)
+	// }
+	// res.Body.Close() // close now, instead of defer, to populate res.Trailer
 
 	handleTrailer(announcedTrailers, lwr, res)
 }

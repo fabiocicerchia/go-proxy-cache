@@ -19,13 +19,25 @@ const CacheStatusHeaderMiss = "MISS"
 type LoggedResponseWriter struct {
 	http.ResponseWriter
 	StatusCode int
-	Content    []byte // TODO: chunks
+	Content    [][]byte
+	// ContentTwo []byte
 }
 
 // NewLoggedResponseWriter - Creates new instance of ResponseWriter.
 func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
-	var content []byte
-	return &LoggedResponseWriter{w, 0, content}
+	lwr := &LoggedResponseWriter{ResponseWriter: w}
+	// TODO: NON e' thread isolated. il contenuto viene resettato.
+	// TODO: try print lwr.content[0] e inspect
+	lwr.Reset()
+	// log.Info("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+	return lwr
+}
+
+func (lwr *LoggedResponseWriter) Reset() {
+	// log.Info("**************************************************")
+	lwr.StatusCode = 0
+	lwr.Content = make([][]byte, 0)
+	// lwr.ContentTwo = make([]byte, 0)
 }
 
 // WriteHeader - ResponseWriter's WriteHeader method decorator.
@@ -36,7 +48,15 @@ func (lwr *LoggedResponseWriter) WriteHeader(statusCode int) {
 
 // Write - ResponseWriter's Write method decorator.
 func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
-	lwr.Content = append(lwr.Content, p...)
+	lwr.Content = append(lwr.Content, []byte{})
+	chunk := len(lwr.Content) - 1
+	// log.Infof("---- %d\n", chunk)
+	lwr.Content[chunk] = append(lwr.Content[chunk], p...)
+
+	// lwr.ContentTwo = append(lwr.ContentTwo, p...)
+	// log.Infof("---- %d -> %d\n", len(p), utils.LenSliceBytes(lwr.Content))
+	// log.Infof("---- %d -> %d\n", len(p), len(lwr.ContentTwo))
+	// log.Infof("---- %s\n", lwr.Content[0][0:8])
 	return lwr.ResponseWriter.Write(p)
 }
 

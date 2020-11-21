@@ -55,7 +55,7 @@ func TestLogRequest(t *testing.T) {
 
 	lwrMock := response.LoggedResponseWriter{
 		StatusCode: 404,
-		Content:    []byte("testing"),
+		Content:    [][]byte{[]byte("testing")},
 	}
 
 	var buf bytes.Buffer

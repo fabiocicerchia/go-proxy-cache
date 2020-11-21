@@ -11,7 +11,7 @@ import (
 )
 
 var MockStatusCode int
-var MockContent []byte
+var MockContent [][]byte
 
 type ResponseWriterMock struct {
 	http.ResponseWriter
@@ -19,7 +19,7 @@ type ResponseWriterMock struct {
 
 func (rwm ResponseWriterMock) WriteHeader(statusCode int) { MockStatusCode = statusCode }
 func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
-	MockContent = append(MockContent, p...)
+	MockContent = append(MockContent, p)
 	return 0, nil
 }
 
@@ -60,7 +60,7 @@ func TestCatchContent(t *testing.T) {
 	_, err := lwr.Write(content)
 	assert.Nil(t, err)
 
-	expectedContent := content
+	expectedContent := [][]byte{content}
 
 	// checks lwr
 	assert.Equal(t, 0, lwr.StatusCode)
@@ -75,5 +75,5 @@ func TestCatchContent(t *testing.T) {
 
 func tearDownResponse() {
 	MockStatusCode = -1
-	MockContent = make([]byte, 0)
+	MockContent = make([][]byte, 0)
 }

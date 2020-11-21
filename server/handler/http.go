@@ -41,9 +41,9 @@ func serveReverseProxy(
 		Host:   target.Host,
 	}
 
-	log.Infof("ProxyURL: %s", proxyURL.String())
-	log.Infof("Req URL: %s", req.URL.String())
-	log.Infof("Req Host: %s", req.Host)
+	log.Debugf("ProxyURL: %s", proxyURL.String())
+	log.Debugf("Req URL: %s", req.URL.String())
+	log.Debugf("Req Host: %s", req.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
 	proxy.ServeHTTP(lwr, req)
@@ -59,7 +59,7 @@ func serveCachedContent(
 	req http.Request,
 	url url.URL,
 ) bool {
-	code, headers, content, err := storage.RetrieveCachedContent(lwr, req)
+	code, headers, chunks, err := storage.RetrieveCachedContent(lwr, req)
 	if err != nil {
 		lwr.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 
@@ -67,7 +67,12 @@ func serveCachedContent(
 		return false
 	}
 
-	body := ioutil.NopCloser(bytes.NewBuffer(content))
+	var bodyBytes []byte
+	for _, chunk := range chunks {
+		bodyBytes = append(bodyBytes, chunk...)
+	}
+	body := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+	// body := ioutil.NopCloser(bytes.NewBuffer([]byte(chunks)))
 
 	res := http.Response{
 		StatusCode: code,
@@ -77,7 +82,7 @@ func serveCachedContent(
 	res.Header.Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 
 	ctx := req.Context()
-	transport.ServeResponse(ctx, lwr, res, url)
+	transport.ServeResponse(ctx, lwr, res, url, chunks)
 
 	return true
 }

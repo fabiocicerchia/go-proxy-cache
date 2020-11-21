@@ -66,9 +66,9 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequest)
+	h := http.HandlerFunc(handler.HandleRequest)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -113,9 +113,9 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequest)
+	h := http.HandlerFunc(handler.HandleRequest)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -162,9 +162,9 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequest)
+	h := http.HandlerFunc(handler.HandleRequest)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -187,7 +187,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
@@ -224,9 +224,9 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handler.HandleRequest)
+	h := http.HandlerFunc(handler.HandleRequest)
 
-	handler.ServeHTTP(rr, req)
+	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusFound, rr.Code)
 

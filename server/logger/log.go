@@ -11,6 +11,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 const logFormat = `$remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`
@@ -47,7 +48,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 		`$request_method`, method,
 		`$request`, req.URL.String(),
 		`$status`, strconv.Itoa(lwr.StatusCode),
-		`$body_bytes_sent`, strconv.Itoa(len(lwr.Content)),
+		`$body_bytes_sent`, strconv.Itoa(utils.LenSliceBytes(lwr.Content)),
 		`$http_referer`, req.Referer(),
 		`$http_user_agent`, req.UserAgent(),
 		`$cached_status`, fmt.Sprintf("%v", cached),

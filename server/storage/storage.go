@@ -16,7 +16,7 @@ import (
 func RetrieveCachedContent(
 	lwr *response.LoggedResponseWriter,
 	req http.Request,
-) (int, http.Header, []byte, error) {
+) (int, http.Header, [][]byte, error) {
 	method := req.Method
 	reqHeaders := req.Header
 
@@ -25,11 +25,11 @@ func RetrieveCachedContent(
 
 	code, headers, content, err := cache.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
-		log.Infof("Cannot retrieve page %s: %s\n", url.String(), err)
+		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
-	if !cache.IsStatusAllowed(code) || len(content) == 0 {
-		return 0, http.Header{}, []byte{}, fmt.Errorf("Not allowed")
+	if !cache.IsStatusAllowed(code) || utils.LenSliceBytes(content) == 0 {
+		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Not allowed. Status %d - Content length %d", code, len(content))
 	}
 
 	return code, headers, content, nil
@@ -50,6 +50,7 @@ func StoreGeneratedPage(
 		RequestHeaders:  req.Header,
 		ResponseHeaders: lwr.Header(),
 		Content:         lwr.Content,
+		// ContentTwo:      lwr.ContentTwo,
 	}
 
 	done, err := cache.StoreFullPage(response, ttl)
