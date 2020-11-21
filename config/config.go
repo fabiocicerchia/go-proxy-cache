@@ -70,6 +70,14 @@ type Cache struct {
 	TTL             int
 	AllowedStatuses []string
 	AllowedMethods  []string
+	CircuitBreaker  CircuitBreaker
+}
+
+type CircuitBreaker struct {
+	Threshold   uint32
+	FailureRate float64
+	Interval    time.Duration
+	Timeout     time.Duration
 }
 
 // Coalesce - Returns the original value if the conditions is not met, fallback value otherwise.
@@ -175,6 +183,13 @@ func InitConfigFromFileOrEnv(file string) {
 	Config.Cache.AllowedMethods = Coalesce(Config.Cache.AllowedMethods, methodList, len(Config.Cache.AllowedMethods) == 0).([]string)
 	Config.Cache.AllowedMethods = append(Config.Cache.AllowedMethods, "HEAD", "GET")
 	Config.Cache.AllowedMethods = utils.Unique(Config.Cache.AllowedMethods)
+
+	Config.Cache.CircuitBreaker = CircuitBreaker{
+		Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+		FailureRate: 0.5,              // 1 out of 2 fails, or more
+		Interval:    60 * time.Second, // clears counts after 60s
+		Timeout:     60 * time.Second, // clears state after 60s
+	}
 
 	// TODO: split in 2 methods
 	configAsYaml, err := yaml.Marshal(Config)

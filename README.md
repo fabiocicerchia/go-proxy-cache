@@ -38,6 +38,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 - Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
 - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
 - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
+- Support Chunking (by replicating exactly the same original amount)
 
 ## Examples
 

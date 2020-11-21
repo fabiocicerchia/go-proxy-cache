@@ -31,9 +31,21 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 			DB:              0,
 			AllowedStatuses: []string{"200", "301", "302"},
 			AllowedMethods:  []string{"HEAD", "GET"},
+			CircuitBreaker: config.CircuitBreaker{
+				Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
+				FailureRate: 0.5, // 1 out of 2 fails, or more
+				Interval:    time.Duration(1),
+				Timeout:     time.Duration(1), // clears state immediately
+			},
 		},
 	}
 
+	engine.InitCircuitBreaker(
+		config.Config.Cache.CircuitBreaker.Threshold,
+		config.Config.Cache.CircuitBreaker.FailureRate,
+		config.Config.Cache.CircuitBreaker.Interval,
+		config.Config.Cache.CircuitBreaker.Timeout,
+	)
 	engine.Connect(config.Config.Cache)
 
 	// --- PURGE
@@ -74,11 +86,23 @@ func TestEndToEndCallPurge(t *testing.T) {
 			DB:              0,
 			AllowedStatuses: []string{"200", "301", "302"},
 			AllowedMethods:  []string{"HEAD", "GET"},
+			CircuitBreaker: config.CircuitBreaker{
+				Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
+				FailureRate: 0.5, // 1 out of 2 fails, or more
+				Interval:    time.Duration(1),
+				Timeout:     time.Duration(1), // clears state immediately
+			},
 		},
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 
+	engine.InitCircuitBreaker(
+		config.Config.Cache.CircuitBreaker.Threshold,
+		config.Config.Cache.CircuitBreaker.FailureRate,
+		config.Config.Cache.CircuitBreaker.Interval,
+		config.Config.Cache.CircuitBreaker.Timeout,
+	)
 	engine.Connect(config.Config.Cache)
 
 	// --- MISS
