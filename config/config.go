@@ -10,15 +10,18 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	log "github.com/sirupsen/logrus"
+	"github.com/sony/gobreaker"
 )
 
 // Config - Holds the server configuration
 var Config Configuration
+var cb *gobreaker.CircuitBreaker
 
 // Configuration - Defines the server configuration
 type Configuration struct {
-	Server Server
-	Cache  Cache
+	Server         Server
+	Cache          Cache
+	CircuitBreaker CircuitBreaker
 }
 
 // Server - Defines basic info for the server
@@ -70,7 +73,6 @@ type Cache struct {
 	TTL             int
 	AllowedStatuses []string
 	AllowedMethods  []string
-	CircuitBreaker  CircuitBreaker
 }
 
 type CircuitBreaker struct {
@@ -78,6 +80,7 @@ type CircuitBreaker struct {
 	FailureRate float64
 	Interval    time.Duration
 	Timeout     time.Duration
+	MaxRequests uint32
 }
 
 // Coalesce - Returns the original value if the conditions is not met, fallback value otherwise.
@@ -184,11 +187,12 @@ func InitConfigFromFileOrEnv(file string) {
 	Config.Cache.AllowedMethods = append(Config.Cache.AllowedMethods, "HEAD", "GET")
 	Config.Cache.AllowedMethods = utils.Unique(Config.Cache.AllowedMethods)
 
-	Config.Cache.CircuitBreaker = CircuitBreaker{
+	Config.CircuitBreaker = CircuitBreaker{
 		Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 		FailureRate: 0.5,              // 1 out of 2 fails, or more
-		Interval:    60 * time.Second, // clears counts after 60s
+		Interval:    0,                // doesn't clears counts
 		Timeout:     60 * time.Second, // clears state after 60s
+		MaxRequests: 1,
 	}
 
 	// TODO: split in 2 methods
@@ -207,4 +211,26 @@ func GetForwarding() Forward {
 // GetPortHTTPS - Returns the HTTPS port
 func GetPortHTTPS() string {
 	return Config.Server.Port.HTTPS
+}
+
+// InitCircuitBreaker - Initialise the Circuit Breaker.
+func InitCircuitBreaker(config CircuitBreaker) {
+	var st gobreaker.Settings
+	st.ReadyToTrip = func(counts gobreaker.Counts) bool {
+		failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+		return counts.Requests >= config.Threshold && failureRatio >= config.FailureRate
+	}
+	st.OnStateChange = func(name string, from gobreaker.State, to gobreaker.State) {
+		log.Warnf("Circuit Breaker - Changed from %s to %s", from.String(), to.String())
+	}
+	st.Interval = config.Interval
+	st.Timeout = config.Timeout
+	st.MaxRequests = config.MaxRequests
+
+	cb = gobreaker.NewCircuitBreaker(st)
+}
+
+// CB - Returns instance of gobreaker.CircuitBreaker.
+func CB() *gobreaker.CircuitBreaker {
+	return cb
 }

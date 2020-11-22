@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
@@ -120,13 +119,10 @@ func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request
 	proxyURL.Scheme = scheme
 	proxyURL.Host = forwarding.Host
 
-	cached, err := engine.CB().Execute(func() (interface{}, error) {
-		cached := serveCachedContent(lwr, *req, proxyURL)
-		return cached, nil
-	})
-	if err != nil || !cached.(bool) {
+	cached := serveCachedContent(lwr, *req, proxyURL)
+	if !cached {
 		serveReverseProxy(forwarding, proxyURL, lwr, req)
 	}
 
-	logger.LogRequest(*req, *lwr, cached.(bool))
+	logger.LogRequest(*req, *lwr, cached)
 }

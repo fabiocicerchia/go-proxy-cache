@@ -39,6 +39,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 - Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
 - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
 - Support Chunking (by replicating exactly the same original amount)
+- Cache Circuit Breaker, bypassing Redis when not available
 
 ## Examples
 
@@ -282,9 +283,6 @@ cache:
 
 ## TODO
 
-- Support Chunking
-- https://stackoverflow.com/questions/26769626/send-a-chunked-http-response-from-a-go-server 30m
-- Cache [Circuit Breaker](https://github.com/sony/gobreaker) 30m
 - Test server timeout with custom handlers 15m
 - [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
 - [Check Timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)

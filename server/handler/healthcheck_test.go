@@ -22,12 +22,12 @@ func TestHealthcheckWithRedis(t *testing.T) {
 			Port:     "6379",
 			Password: "",
 			DB:       0,
-			CircuitBreaker: config.CircuitBreaker{
-				Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
-				FailureRate: 0.5, // 1 out of 2 fails, or more
-				Interval:    time.Duration(1),
-				Timeout:     time.Duration(1), // clears state immediately
-			},
+		},
+		CircuitBreaker: config.CircuitBreaker{
+			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5, // 1 out of 2 fails, or more
+			Interval:    time.Duration(1),
+			Timeout:     time.Duration(1), // clears state immediately
 		},
 	}
 
@@ -37,12 +37,8 @@ func TestHealthcheckWithRedis(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleHealthcheck)
 
-	engine.InitCircuitBreaker(
-		config.Config.Cache.CircuitBreaker.Threshold,
-		config.Config.Cache.CircuitBreaker.FailureRate,
-		config.Config.Cache.CircuitBreaker.Interval,
-		config.Config.Cache.CircuitBreaker.Timeout,
-	)
+	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+
 	engine.Connect(config.Config.Cache)
 
 	h.ServeHTTP(rr, req)

@@ -2,10 +2,7 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"time"
-
-	"github.com/sony/gobreaker"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
@@ -14,30 +11,6 @@ import (
 
 var ctx = context.Background()
 var rdb *redis.Client
-var cb *gobreaker.CircuitBreaker
-
-// InitCircuitBreaker - Initialise the Circuit Breaker.
-func InitCircuitBreaker(threshold uint32, failureRate float64, interval time.Duration, timeout time.Duration) {
-	var st gobreaker.Settings
-	st.ReadyToTrip = func(counts gobreaker.Counts) bool {
-		failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-		return counts.Requests >= threshold && failureRatio >= failureRate
-	}
-	st.Interval = interval
-	st.Timeout = timeout
-	// TODO: FOR TESTING
-	st.MaxRequests = 1
-	st.OnStateChange = func(name string, from gobreaker.State, to gobreaker.State) {
-		fmt.Printf("STATE %s -> %s\n", from.String(), to.String())
-	}
-
-	cb = gobreaker.NewCircuitBreaker(st)
-}
-
-// CB - Returns instance of gobreaker.CircuitBreaker.
-func CB() *gobreaker.CircuitBreaker {
-	return cb
-}
 
 // Connect - Connects to DB.
 func Connect(config config.Cache) bool {
@@ -59,11 +32,6 @@ func Connect(config config.Cache) bool {
 	return Ping()
 }
 
-// Destroy - Destroys the client.
-func Destroy() {
-	rdb = nil
-}
-
 // Close - Closes the connection.
 func Close() error {
 	return rdb.Close()
@@ -71,11 +39,7 @@ func Close() error {
 
 // PurgeAll - Purges all the existing keys on a DB.
 func PurgeAll() (bool, error) {
-	if rdb == nil {
-		return false, fmt.Errorf("Not Connected to Redis")
-	}
-
-	_, err := cb.Execute(func() (interface{}, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.FlushDB(ctx).Err()
 		return nil, err
 	})
@@ -89,11 +53,7 @@ func PurgeAll() (bool, error) {
 
 // Ping - Tests the connection.
 func Ping() bool {
-	if rdb == nil {
-		return false
-	}
-
-	_, err := cb.Execute(func() (interface{}, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.Ping(ctx).Err()
 		return nil, err
 	})
@@ -103,11 +63,7 @@ func Ping() bool {
 
 // Set - Sets a key, with certain value, with TTL for expiring.
 func Set(key string, value string, expiration time.Duration) (bool, error) {
-	if rdb == nil {
-		return false, fmt.Errorf("Not Connected to Redis")
-	}
-
-	_, err := cb.Execute(func() (interface{}, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.Set(ctx, key, value, expiration).Err()
 		return nil, err
 	})
@@ -121,11 +77,7 @@ func Set(key string, value string, expiration time.Duration) (bool, error) {
 
 // Get - Gets a key.
 func Get(key string) (string, error) {
-	if rdb == nil {
-		return "", fmt.Errorf("Not Connected to Redis")
-	}
-
-	value, err := cb.Execute(func() (interface{}, error) {
+	value, err := config.CB().Execute(func() (interface{}, error) {
 		value, err := rdb.Get(ctx, key).Result()
 		return value, err
 	})
@@ -139,11 +91,7 @@ func Get(key string) (string, error) {
 
 // Del - Removes a key.
 func Del(key string) error {
-	if rdb == nil {
-		return fmt.Errorf("Not Connected to Redis")
-	}
-
-	_, err := cb.Execute(func() (interface{}, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.Del(ctx, key).Err()
 		return nil, err
 	})
@@ -153,11 +101,7 @@ func Del(key string) error {
 
 // DelWildcard - Removes the matching keys based on a pattern.
 func DelWildcard(key string) (int, error) {
-	if rdb == nil {
-		return 0, fmt.Errorf("Not Connected to Redis")
-	}
-
-	k, err := cb.Execute(func() (interface{}, error) {
+	k, err := config.CB().Execute(func() (interface{}, error) {
 		keys, err := rdb.Keys(ctx, key).Result()
 		return keys, err
 	})
@@ -173,7 +117,7 @@ func DelWildcard(key string) (int, error) {
 		return l, nil
 	}
 
-	_, errDel := cb.Execute(func() (interface{}, error) {
+	_, errDel := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.Del(ctx, keys...).Err()
 		return nil, err
 	})
@@ -183,11 +127,7 @@ func DelWildcard(key string) (int, error) {
 
 // List - Returns the values in a list.
 func List(key string) ([]string, error) {
-	if rdb == nil {
-		return []string{}, fmt.Errorf("Not Connected to Redis")
-	}
-
-	value, err := cb.Execute(func() (interface{}, error) {
+	value, err := config.CB().Execute(func() (interface{}, error) {
 		value, err := rdb.LRange(ctx, key, 0, -1).Result()
 		return value, err
 	})
@@ -201,11 +141,7 @@ func List(key string) ([]string, error) {
 
 // Push - Append values to a list.
 func Push(key string, values []string) error {
-	if rdb == nil {
-		return fmt.Errorf("Not Connected to Redis")
-	}
-
-	_, err := cb.Execute(func() (interface{}, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.RPush(ctx, key, values).Err()
 		return nil, err
 	})
@@ -215,11 +151,7 @@ func Push(key string, values []string) error {
 
 // Expire - Sets a TTL on a key.
 func Expire(key string, expiration time.Duration) error {
-	if rdb == nil {
-		return fmt.Errorf("Not Connected to Redis")
-	}
-
-	_, err := cb.Execute(func() (interface{}, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
 		err := rdb.Expire(ctx, key, expiration).Err()
 		return nil, err
 	})

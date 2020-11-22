@@ -63,14 +63,9 @@ func Start() {
 	logger.LogSetup(serverConfig)
 
 	// redis connect
-	cacheConfig := config.Config.Cache
-	engine.InitCircuitBreaker(
-		cacheConfig.CircuitBreaker.Threshold,
-		cacheConfig.CircuitBreaker.FailureRate,
-		cacheConfig.CircuitBreaker.Interval,
-		cacheConfig.CircuitBreaker.Timeout,
-	)
-	engine.Connect(cacheConfig)
+	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+
+	engine.Connect(config.Config.Cache)
 
 	// ssl
 	certManager := srvtls.InitCertManager(config.Config.Server.Forwarding.Host, serverTLSConfig.Email)
