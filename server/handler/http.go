@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package handler
 
 import (
@@ -20,8 +28,16 @@ import (
 func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
 	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
 	host := utils.IfEmpty(forwarding.Host, url.Host)
+	port := forwarding.Port
+	// TODO: what's fallback?
+	// TODO: dups with purge
+	if port == "" && scheme == "http" {
+		port = "80"
+	} else if port == "" && scheme == "https" {
+		port = "443"
+	}
 
-	req.URL.Host = balancer.GetLBRoundRobin(url.Host)
+	req.URL.Host = balancer.GetLBRoundRobin(url.Host) + ":" + port
 	req.URL.Scheme = scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 	req.Host = host
@@ -75,10 +91,12 @@ func serveCachedContent(
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
+	domainConfig := config.DomainConf(req.Host)
+
 	lwr := response.NewLoggedResponseWriter(res)
 
-	if req.URL.Scheme == "http" && config.Config.Server.Forwarding.HTTP2HTTPS {
-		RedirectToHTTPS(lwr.ResponseWriter, req, config.Config.Server.Forwarding.RedirectStatusCode)
+	if req.URL.Scheme == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
+		RedirectToHTTPS(lwr.ResponseWriter, req, domainConfig.Server.Forwarding.RedirectStatusCode)
 		return
 	}
 
@@ -96,13 +114,29 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 // HandleRequestAndProxy - Handles the requests and proxies to backend server.
 func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request) {
-	forwarding := config.GetForwarding()
+	domainConfig := config.DomainConf(req.Host)
+	if domainConfig == nil {
+		// TODO: SERVE A 404?
+		log.Errorf("Missing configuration in HandleRequestAndProxy for %s.", req.Host)
+		return
+	}
+	forwarding := domainConfig.Server.Forwarding
 
 	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
 
+	port := forwarding.Port
+	// TODO: what's fallback?
+	// TODO: dups with purge
+	if port == "" && scheme == "http" {
+		port = "80"
+	} else if port == "" && scheme == "https" {
+		port = "443"
+	}
+
 	proxyURL := *req.URL
 	proxyURL.Scheme = scheme
-	proxyURL.Host = forwarding.Host
+	// TODO: WHAT IF IT HAS ALREADY PORT?
+	proxyURL.Host = forwarding.Host + ":" + port
 
 	cached := serveCachedContent(lwr, *req, proxyURL)
 	if !cached {

@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package utils
 
 import (
@@ -30,8 +38,18 @@ func IfEmpty(val string, fallback string) string {
 	return val
 }
 
-// Contains - Checks if a value is contained in a slice.
-func Contains(items []string, value string) bool {
+// ContainsInt - Checks if an int value is contained in a slice.
+func ContainsInt(items []int, value int) bool {
+	for _, v := range items {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsString - Checks if a string value is contained in a slice.
+func ContainsString(items []string, value string) bool {
 	for _, v := range items {
 		if v == value {
 			return true

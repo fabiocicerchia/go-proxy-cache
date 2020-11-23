@@ -1,7 +1,15 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package tls
 
 import (
-	"crypto/tls"
+	crypto_tls "crypto/tls"
 	"io/ioutil"
 	"net/http"
 
@@ -19,10 +27,12 @@ type CertificatePair struct {
 
 // ServerOverrides - Overrides the http.Server configuration for TLS.
 func ServerOverrides(
+	domain string,
 	server *http.Server,
-	certManager *autocert.Manager,
 	certPair *CertificatePair,
 ) {
+	domainConfig := config.DomainConf(domain)
+
 	tlsConfig, err := Config(*&certPair.Cert, *&certPair.Key)
 	if err != nil {
 		log.Fatal(err)
@@ -30,44 +40,28 @@ func ServerOverrides(
 	}
 	server.TLSConfig = tlsConfig
 
-	if config.Config.Server.TLS.Auto {
+	if domainConfig.Server.TLS.Auto {
+		certManager := InitCertManager(domainConfig.Server.Forwarding.Host, domainConfig.Server.TLS.Email)
+
 		server.TLSConfig = certManager.TLSConfig()
 	}
 }
 
 // Config - Returns a TLS configuration.
-func Config(certFile string, keyFile string) (*tls.Config, error) {
-	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+func Config(certFile string, keyFile string) (*crypto_tls.Config, error) {
+	cert, err := crypto_tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err
 	}
 
-	tlsConfig := &tls.Config{
-		// Causes servers to use Go's default ciphersuite preferences,
-		// which are tuned to avoid attacks. Does nothing on clients.
-		PreferServerCipherSuites: true,
-		// Only use curves which have assembly implementations
-		CurvePreferences: []tls.CurveID{
-			tls.CurveP256,
-			tls.X25519, // Go 1.8 only
-		},
-		// TODO: Configurable
-		MinVersion: tls.VersionTLS12,
-		// TODO: Configurable
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, // Go 1.8 only
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,   // Go 1.8 only
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-
-			// Best disabled, as they don't provide Forward Secrecy,
-			// but might be necessary for some clients
-			// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-			// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-		},
-		Certificates: []tls.Certificate{cert},
+	tlsConfig := &crypto_tls.Config{
+		// TODO: SINCE IT IS NOT OVERRIDABLE IT IS FINE...
+		PreferServerCipherSuites: config.Config.Server.TLS.Override.PreferServerCipherSuites,
+		CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
+		MinVersion:               config.Config.Server.TLS.Override.MinVersion,
+		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
+		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
+		Certificates:             []crypto_tls.Certificate{cert},
 	}
 
 	return tlsConfig, nil

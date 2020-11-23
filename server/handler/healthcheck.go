@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package handler
 
 import (
@@ -14,7 +22,8 @@ func HandleHealthcheck(res http.ResponseWriter, req *http.Request) {
 	lwr.WriteHeader(http.StatusOK)
 	_ = response.WriteBody(lwr, "HTTP OK\n")
 
-	if engine.Ping() {
+	// if engine.GetConn(req.URL.Host).Ping() {
+	if engine.GetConn("global").Ping() {
 		_ = response.WriteBody(lwr, "REDIS OK\n")
 	} else {
 		_ = response.WriteBody(lwr, "REDIS KO\n")

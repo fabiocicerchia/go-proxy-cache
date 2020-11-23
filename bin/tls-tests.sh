@@ -25,15 +25,3 @@ curl --ipv4 --insecure --include --verbose --write-out @curl_vars.txt --http2 ht
 # PROXY TESTS
 curl --ipv4 --insecure --verbose --proxy http://localhost:80 http://fabiocicerchia.it
 curl --ipv4 --insecure --proxy-insecure --verbose --proxy https://localhost:443 https://fabiocicerchia.it
-
-# WEBSOCKET
-export FORWARD_HOST=echo.websocket.org
-export LB_ENDPOINT_LIST=echo.websocket.org
-go run main.go
-curl --http1.1 --include \
-     --no-buffer \
-     --header "Connection: Upgrade" \
-     --header "Upgrade: websocket" \
-     --header "Host: localhost" \
-     --header "Origin: https://localhost" \
-     https://localhost/

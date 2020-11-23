@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package server
 
 import (
@@ -9,7 +17,6 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -21,16 +28,21 @@ import (
 
 // CreateServerConfig - Generates the http.Server configuration.
 func CreateServerConfig(
+	domain string,
 	port string,
-	timeout config.Timeout,
-	certManager *autocert.Manager,
+	httpsPort string,
 	certPair *srvtls.CertificatePair,
 ) *http.Server {
+	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE. ACCEPTS AS LIMITATION (CREATE AN ISSUE)
+	timeout := config.Config.Server.Timeout
+	gzip := config.Config.Server.GZip
+
+	// TODO: CHECK THAT PORT IS LINKED WITH DOMAIN
 	mux := http.NewServeMux()
 
 	// handlers
-	mux.HandleFunc("/", handler.HandleRequest)
 	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
+	mux.HandleFunc("/", handler.HandleRequest)
 
 	muxWithMiddlewares := http.TimeoutHandler(
 		mux,
@@ -38,9 +50,9 @@ func CreateServerConfig(
 		"Timed Out\n",
 	)
 
-	if config.Config.Server.GZip {
+	if gzip {
 		// TODO: COVERAGE
-		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
+		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares) // TODO: NEEDS TO HANDLE DOMAINS
 	}
 
 	// TODO: TEST timeouts with custom handlers
@@ -53,12 +65,14 @@ func CreateServerConfig(
 		Handler:           muxWithMiddlewares,
 	}
 
-	if port == config.GetPortHTTPS() {
-		srvtls.ServerOverrides(server, certManager, certPair)
+	if port == httpsPort { // TODO: NEEDS TO HANDLE DOMAINS
+		srvtls.ServerOverrides(domain, server, certPair)
 	}
 
 	return server
 }
+
+// TODO: SPLIT THE HELL FROM THIS MESS.
 
 // Start the GoProxyCache server.
 func Start() {
@@ -66,43 +80,66 @@ func Start() {
 	config.InitConfigFromFileOrEnv("config.yml")
 	config.Print()
 
-	serverConfig := config.Config.Server
-	serverTLSConfig := serverConfig.TLS
-
-	// Log setup values
-	logger.LogSetup(serverConfig)
-
 	// redis connect
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	// TODO: ALLOW CUSTOM REDIS PER DOMAIN + DEDICATED CB PER REDIS SERVER WITH PREFIX
+	engine.InitConn("global", config.Config.Cache)
 
-	engine.Connect(config.Config.Cache)
+	domains := config.GetDomains()
 
-	// ssl
-	certManager := srvtls.InitCertManager(config.Config.Server.Forwarding.Host, serverTLSConfig.Email)
+	serversHTTP := make(map[string]*http.Server)
+	serversHTTPS := make(map[string]*http.Server)
 
-	// config server http & https
-	serverHTTP := CreateServerConfig(
-		serverConfig.Port.HTTP,
-		serverConfig.Timeout,
-		nil,
-		nil,
-	)
-	serverHTTPS := CreateServerConfig(
-		serverConfig.Port.HTTPS,
-		serverConfig.Timeout,
-		certManager,
-		&srvtls.CertificatePair{
-			Cert: serverTLSConfig.CertFile,
-			Key:  serverTLSConfig.KeyFile,
-		},
-	)
+	// TODO: use go routine.
+	for _, domain := range domains {
+		domainConfig := config.DomainConf(domain)
+		if domainConfig == nil {
+			log.Errorf("Missing configuration for %s.", domain)
+			continue
+		}
 
-	// lb
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
+		// Log setup values
+		logger.LogSetup(domainConfig.Server)
+
+		// config server http & https
+		srvHTTP := CreateServerConfig(
+			domain,
+			domainConfig.Server.Port.HTTP,
+			domainConfig.Server.Port.HTTPS,
+			nil,
+		)
+
+		srvHTTPS := CreateServerConfig(
+			domain,
+			domainConfig.Server.Port.HTTPS,
+			domainConfig.Server.Port.HTTPS,
+			&srvtls.CertificatePair{
+				Cert: domainConfig.Server.TLS.CertFile,
+				Key:  domainConfig.Server.TLS.KeyFile,
+			},
+		)
+
+		if _, ok := serversHTTP[domainConfig.Server.Port.HTTP]; !ok {
+			serversHTTP[domainConfig.Server.Port.HTTP] = srvHTTP
+		}
+		if _, ok := serversHTTPS[domainConfig.Server.Port.HTTPS]; !ok {
+			serversHTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
+		}
+
+		// lb
+		// TODO: HOW TO HANDLE THIS?
+		balancer.InitRoundRobin(domainConfig.Server.Forwarding.Endpoints)
+	}
 
 	// start server http & https
-	go func() { log.Fatal(serverHTTPS.ListenAndServeTLS("", "")) }()
-	go func() { log.Fatal(serverHTTP.ListenAndServe()) }()
+	// TODO: NEED TO HANDLE CLASH ON PORTS
+	for _, v := range serversHTTP {
+		go func() { log.Fatal(v.ListenAndServe()) }()
+	}
+
+	for _, v := range serversHTTPS {
+		go func() { log.Fatal(v.ListenAndServeTLS("", "")) }()
+	}
 
 	// Wait for an interrupt
 	c := make(chan os.Signal, 1)
@@ -112,6 +149,12 @@ func Start() {
 	// Attempt a graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	serverHTTP.Shutdown(ctx)
-	serverHTTPS.Shutdown(ctx)
+
+	for _, v := range serversHTTP {
+		v.Shutdown(ctx)
+	}
+
+	for _, v := range serversHTTPS {
+		v.Shutdown(ctx)
+	}
 }

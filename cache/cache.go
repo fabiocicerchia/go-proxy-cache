@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package cache
 
 import (
@@ -5,7 +13,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,12 +35,12 @@ type URIObj struct {
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
 func IsStatusAllowed(statusCode int) bool {
-	return utils.Contains(config.Config.Cache.AllowedStatuses, strconv.Itoa(statusCode))
+	return utils.ContainsInt(config.Config.Cache.AllowedStatuses, statusCode)
 }
 
 // IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
 func IsMethodAllowed(method string) bool {
-	return utils.Contains(config.Config.Cache.AllowedMethods, method)
+	return utils.ContainsString(config.Config.Cache.AllowedMethods, method)
 }
 
 // StoreFullPage - Stores the whole page response in cache.
@@ -58,14 +65,14 @@ func StoreFullPage(
 		return false, err
 	}
 
-	encoded, err := engine.Encode(obj)
+	encoded, err := engine.GetConn("global").Encode(obj)
 	if err != nil {
 		return false, err
 	}
 
 	key := StorageKey(obj.Method, targetUrl, meta, obj.RequestHeaders)
 
-	return engine.Set(key, encoded, expiration)
+	return engine.GetConn("global").Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
@@ -80,12 +87,12 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIOb
 	key := StorageKey(method, url, meta, reqHeaders)
 	log.Infof("StorageKey: %s", key)
 
-	encoded, err := engine.Get(key)
+	encoded, err := engine.GetConn("global").Get(key)
 	if err != nil {
 		return *obj, fmt.Errorf("Cannot get key: %s", err)
 	}
 
-	err = engine.Decode(encoded, obj)
+	err = engine.GetConn("global").Decode(encoded, obj)
 	if err != nil {
 		return *obj, fmt.Errorf("Cannot decode: %s", err)
 	}
@@ -106,7 +113,7 @@ func PurgeFullPage(method string, url url.URL) (bool, error) {
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
 	keyPattern := strings.Replace(key, match, replace, 1) + "*"
-	affected, err := engine.DelWildcard(keyPattern)
+	affected, err := engine.GetConn("global").DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
 	}
@@ -136,30 +143,30 @@ func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Heade
 func FetchMetadata(method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	return engine.List(key)
+	return engine.GetConn("global").List(key)
 }
 
 // DeleteMetadata - Removes the cache metadata for the requested URL.
 func DeleteMetadata(method string, url url.URL) error {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	return engine.Del(key)
+	return engine.GetConn("global").Del(key)
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
 func StoreMetadata(method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	_ = engine.Del(key) //nolint:golint,errcheck
-	err := engine.Push(key, meta)
+	_ = engine.GetConn("global").Del(key) //nolint:golint,errcheck
+	err := engine.GetConn("global").Push(key, meta)
 	if err != nil {
 		return false, err
 	}
 
-	err = engine.Expire(key, expiration)
+	err = engine.GetConn("global").Expire(key, expiration)
 	if err != nil {
 		// TODO: use transaction
-		_ = engine.Del(key)
+		_ = engine.GetConn("global").Del(key)
 
 		return false, err
 	}

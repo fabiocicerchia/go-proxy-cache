@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 package handler_test
 
 import (
@@ -44,7 +52,7 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 	// TODO: does it make sense?
 	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
 
-	assert.Equal(t, "server1", reqMock.URL.Host)
+	assert.Equal(t, "server1:443", reqMock.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", reqMock.Host)
 }
 
@@ -83,7 +91,7 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 	// TODO: does it make sense?
 	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
 
-	assert.Equal(t, "server1", reqMock.URL.Host)
+	assert.Equal(t, "server1:443", reqMock.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", reqMock.Host)
 
 	// --- SECOND ROUND
@@ -93,6 +101,6 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 	// TODO: does it make sense?
 	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
 
-	assert.Equal(t, "server2", reqMock.URL.Host)
+	assert.Equal(t, "server2:443", reqMock.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", reqMock.Host)
 }

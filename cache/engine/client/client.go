@@ -1,0 +1,188 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
+package client
+
+import (
+	"context"
+	"time"
+
+	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/go-redis/redis/v8"
+)
+
+var ctx = context.Background()
+
+type RedisClient struct {
+	// TODO: ADD INFO FOR CB
+	*redis.Client
+}
+
+// Connect - Connects to DB.
+func Connect(config config.Cache) *RedisClient {
+	rdb := &RedisClient{
+		Client: redis.NewClient(&redis.Options{
+			Addr:     config.Host + ":" + config.Port,
+			Password: config.Password,
+			DB:       config.DB,
+		}),
+	}
+
+	return rdb
+}
+
+// Close - Closes the connection.
+func (rdb *RedisClient) Close() error {
+	return rdb.Client.Close()
+}
+
+// PurgeAll - Purges all the existing keys on a DB.
+func (rdb *RedisClient) PurgeAll() (bool, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.FlushDB(ctx).Err()
+		return nil, err
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Ping - Tests the connection.
+func (rdb *RedisClient) Ping() bool {
+	_, err := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.Ping(ctx).Err()
+		return nil, err
+	})
+
+	return err == nil
+}
+
+// Set - Sets a key, with certain value, with TTL for expiring.
+func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) (bool, error) {
+	_, err := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.Set(ctx, key, value, expiration).Err()
+		return nil, err
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// Get - Gets a key.
+func (rdb *RedisClient) Get(key string) (string, error) {
+	value, err := config.CB().Execute(func() (interface{}, error) {
+		value, err := rdb.Client.Get(ctx, key).Result()
+		return value, err
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return value.(string), nil
+}
+
+// Del - Removes a key.
+func (rdb *RedisClient) Del(key string) error {
+	_, err := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.Del(ctx, key).Err()
+		return nil, err
+	})
+
+	return err
+}
+
+// DelWildcard - Removes the matching keys based on a pattern.
+func (rdb *RedisClient) DelWildcard(key string) (int, error) {
+	k, err := config.CB().Execute(func() (interface{}, error) {
+		keys, err := rdb.Client.Keys(ctx, key).Result()
+		return keys, err
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	keys := k.([]string)
+	l := len(keys)
+
+	if l == 0 {
+		return l, nil
+	}
+
+	_, errDel := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.Del(ctx, keys...).Err()
+		return nil, err
+	})
+
+	return l, errDel
+}
+
+// List - Returns the values in a list.
+func (rdb *RedisClient) List(key string) ([]string, error) {
+	value, err := config.CB().Execute(func() (interface{}, error) {
+		value, err := rdb.Client.LRange(ctx, key, 0, -1).Result()
+		return value, err
+	})
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	return value.([]string), nil
+}
+
+// Push - Append values to a list.
+func (rdb *RedisClient) Push(key string, values []string) error {
+	_, err := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.RPush(ctx, key, values).Err()
+		return nil, err
+	})
+
+	return err
+}
+
+// Expire - Sets a TTL on a key.
+func (rdb *RedisClient) Expire(key string, expiration time.Duration) error {
+	_, err := config.CB().Execute(func() (interface{}, error) {
+		err := rdb.Client.Expire(ctx, key, expiration).Err()
+		return nil, err
+	})
+
+	return err
+}
+
+// Encode - Encodes an object with msgpack.
+func (rdb *RedisClient) Encode(obj interface{}) (string, error) {
+	value, err := utils.MsgpackEncode(obj)
+	if err != nil {
+		return "", err
+	}
+
+	encoded := utils.Base64Encode(value)
+
+	return encoded, nil
+}
+
+// Decode - Decodes an object with msgpack.
+func (rdb *RedisClient) Decode(encoded string, obj interface{}) error {
+	decoded, err := utils.Base64Decode(encoded)
+	if err != nil {
+		return err
+	}
+
+	err = utils.MsgpackDecode(decoded, obj)
+	return err
+}

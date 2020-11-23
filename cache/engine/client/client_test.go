@@ -1,12 +1,20 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 // +build functional
 
-package engine_test
+package client_test
 
 import (
 	"testing"
 	"time"
 
-	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
+	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,27 +37,23 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
 	assert.Equal(t, "closed", config.CB().State().String())
 
-	val := engine.Ping()
+	val := rdb.Ping()
 	assert.True(t, val)
 	assert.Equal(t, "closed", config.CB().State().String())
 
-	_ = engine.Close()
+	_ = rdb.Close()
 
-	val = engine.Ping()
-	assert.False(t, val)
-	assert.Equal(t, "closed", config.CB().State().String())
-
-	val = engine.Ping()
+	val = rdb.Ping()
 	assert.False(t, val)
 	assert.Equal(t, "half-open", config.CB().State().String())
 
-	engine.Connect(config.Config.Cache)
+	rdb = client.Connect(config.Config.Cache)
 
-	val = engine.Ping()
+	val = rdb.Ping()
 	assert.True(t, val)
 	assert.Equal(t, "closed", config.CB().State().String())
 }
@@ -72,13 +76,13 @@ func TestClose(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	assert.True(t, engine.Ping())
+	assert.True(t, rdb.Ping())
 
-	engine.Close()
+	rdb.Close()
 
-	assert.False(t, engine.Ping())
+	assert.False(t, rdb.Ping())
 }
 
 func TestSetGet(t *testing.T) {
@@ -99,13 +103,13 @@ func TestSetGet(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	done, err := engine.Set("test", "sample", 0)
+	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := engine.Get("test")
+	value, err := rdb.Get("test")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 }
@@ -128,15 +132,15 @@ func TestSetGetWithExpiration(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	done, err := engine.Set("test", "sample", 1*time.Millisecond)
+	done, err := rdb.Set("test", "sample", 1*time.Millisecond)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
 	time.Sleep(10 * time.Millisecond)
 
-	value, err := engine.Get("test")
+	value, err := rdb.Get("test")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
 }
@@ -159,20 +163,20 @@ func TestDel(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	done, err := engine.Set("test", "sample", 0)
+	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := engine.Get("test")
+	value, err := rdb.Get("test")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	err = engine.Del("test")
+	err = rdb.Del("test")
 	assert.Nil(t, err)
 
-	value, err = engine.Get("test")
+	value, err = rdb.Get("test")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
 }
@@ -195,18 +199,18 @@ func TestExpire(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	done, err := engine.Set("test", "sample", 0)
+	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	err = engine.Expire("test", 1*time.Second)
+	err = rdb.Expire("test", 1*time.Second)
 	assert.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 
-	value, err := engine.Get("test")
+	value, err := rdb.Get("test")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
 }
@@ -229,12 +233,12 @@ func TestPushList(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	err := engine.Push("test", []string{"a", "b", "c"})
+	err := rdb.Push("test", []string{"a", "b", "c"})
 	assert.Nil(t, err)
 
-	value, err := engine.List("test")
+	value, err := rdb.List("test")
 	assert.Equal(t, []string{"a", "b", "c"}, value)
 	assert.Nil(t, err)
 }
@@ -257,39 +261,39 @@ func TestDelWildcard(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	done, err := engine.Set("test_1", "sample", 0)
+	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = engine.Set("test_2", "sample", 0)
+	done, err = rdb.Set("test_2", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = engine.Set("test_3", "sample", 0)
+	done, err = rdb.Set("test_3", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := engine.Get("test_1")
+	value, err := rdb.Get("test_1")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
-	value, err = engine.Get("test_2")
+	value, err = rdb.Get("test_2")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
-	value, err = engine.Get("test_3")
+	value, err = rdb.Get("test_3")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	len, err := engine.DelWildcard("test_*")
+	len, err := rdb.DelWildcard("test_*")
 	assert.Equal(t, 3, len)
 	assert.Nil(t, err)
 
-	value, err = engine.Get("test_1")
+	value, err = rdb.Get("test_1")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
-	value, err = engine.Get("test_2")
+	value, err = rdb.Get("test_2")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
-	value, err = engine.Get("test_3")
+	value, err = rdb.Get("test_3")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
 }
@@ -312,39 +316,39 @@ func TestPurgeAll(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
-	done, err := engine.Set("test_1", "sample", 0)
+	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = engine.Set("test_2", "sample", 0)
+	done, err = rdb.Set("test_2", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = engine.Set("test_3", "sample", 0)
+	done, err = rdb.Set("test_3", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := engine.Get("test_1")
+	value, err := rdb.Get("test_1")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
-	value, err = engine.Get("test_2")
+	value, err = rdb.Get("test_2")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
-	value, err = engine.Get("test_3")
+	value, err = rdb.Get("test_3")
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	done, err = engine.PurgeAll()
+	done, err = rdb.PurgeAll()
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err = engine.Get("test_1")
+	value, err = rdb.Get("test_1")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
-	value, err = engine.Get("test_2")
+	value, err = rdb.Get("test_2")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
-	value, err = engine.Get("test_3")
+	value, err = rdb.Get("test_3")
 	assert.Equal(t, "", value)
 	assert.Equal(t, "redis: nil", err.Error())
 }
@@ -367,14 +371,14 @@ func TestEncodeDecode(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	rdb := client.Connect(config.Config.Cache)
 
 	str := []byte("test string")
 	var decoded []byte
 
-	encoded, err := engine.Encode(str)
+	encoded, err := rdb.Encode(str)
 	assert.Nil(t, err)
-	err = engine.Decode(encoded, &decoded)
+	err = rdb.Decode(encoded, &decoded)
 	assert.Nil(t, err)
 
 	assert.Equal(t, str, decoded)

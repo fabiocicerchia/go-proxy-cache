@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 // +build functional
 
 package handler_test
@@ -44,7 +52,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	engine.Connect(config.Config.Cache)
+	engine.InitConn("global", config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
@@ -65,11 +73,14 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 
 func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	setCommonConfig()
+	config.Config.Domains = make(config.Domains)
+	conf := config.Config
 	config.Config.Server.Forwarding = config.Forward{
 		Host:      "www.w3.org",
 		Scheme:    "https",
 		Endpoints: []string{"www.w3.org"},
 	}
+	config.Config.Domains["www.w3.org"] = conf
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
@@ -108,9 +119,9 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	engine.Connect(config.Config.Cache)
+	engine.InitConn("global", config.Config.Cache)
 
-	_, err := engine.PurgeAll()
+	_, err := engine.GetConn("global").PurgeAll()
 	assert.Nil(t, err)
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -152,7 +163,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 			Port:            "6379",
 			Password:        "",
 			DB:              0,
-			AllowedStatuses: []string{"200", "301", "302"},
+			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
 		CircuitBreaker: config.CircuitBreaker{
@@ -165,7 +176,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	engine.Connect(config.Config.Cache)
+	engine.InitConn("global", config.Config.Cache)
 
 	// --- MISS
 

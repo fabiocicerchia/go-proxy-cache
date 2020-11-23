@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 // +build unit
 
 package utils_test
@@ -59,26 +67,52 @@ func TestIfEmptyWithoutValue(t *testing.T) {
 	tearDown()
 }
 
-// --- Contains
+// --- ContainsInt
 
-func TestContainsEmpty(t *testing.T) {
-	match := utils.Contains([]string{}, "d")
-
-	assert.False(t, match)
-
-	tearDown()
-}
-
-func TestContainsNoValue(t *testing.T) {
-	match := utils.Contains([]string{"a", "b", "c"}, "d")
+func TestContainsIntEmpty(t *testing.T) {
+	match := utils.ContainsInt([]int{}, 1)
 
 	assert.False(t, match)
 
 	tearDown()
 }
 
-func TestContainsValue(t *testing.T) {
-	match := utils.Contains([]string{"a", "b", "c"}, "c")
+func TestContainsIntNoValue(t *testing.T) {
+	match := utils.ContainsInt([]int{1, 2, 3}, 4)
+
+	assert.False(t, match)
+
+	tearDown()
+}
+
+func TestContainsIntValue(t *testing.T) {
+	match := utils.ContainsInt([]int{1, 2, 3}, 3)
+
+	assert.True(t, match)
+
+	tearDown()
+}
+
+// --- ContainsString
+
+func TestContainsStringEmpty(t *testing.T) {
+	match := utils.ContainsString([]string{}, "d")
+
+	assert.False(t, match)
+
+	tearDown()
+}
+
+func TestContainsStringNoValue(t *testing.T) {
+	match := utils.ContainsString([]string{"a", "b", "c"}, "d")
+
+	assert.False(t, match)
+
+	tearDown()
+}
+
+func TestContainsStringValue(t *testing.T) {
+	match := utils.ContainsString([]string{"a", "b", "c"}, "c")
 
 	assert.True(t, match)
 

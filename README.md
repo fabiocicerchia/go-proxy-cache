@@ -41,6 +41,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 - Support Chunking (by replicating exactly the same original amount)
 - Cache Circuit Breaker, bypassing Redis when not available
 - GZip Compression (optional)
+- Multiple domains
 
 ## Examples
 
@@ -145,32 +146,34 @@ REDIS OK
 
 - `SERVER_HTTP_PORT` = 80
 - `SERVER_HTTPS_PORT` = 443
-- `GZIP_ENABLED` = 0
-- `DEFAULT_TTL` = 0
+- `TLS_AUTO_CERT` = 0
+- `TLS_EMAIL`
+- `TLS_CERT_FILE`
+- `TLS_KEY_FILE`
+- `TIMEOUT_READ` = 5s
+- `TIMEOUT_READ_HEADER` = 2s
+- `TIMEOUT_WRITE` = 5s
+- `TIMEOUT_IDLE` = 20s
+- `TIMEOUT_HANDLER` = 5s
 - `FORWARD_HOST`
 - `FORWARD_SCHEME`
 - `LB_ENDPOINT_LIST`
 - `HTTP2HTTPS` = 0
 - `REDIRECT_STATUS_CODE` = 301
-- `TLS_AUTO_CERT` = 0
-- `TLS_EMAIL`
-- `TLS_CERT_FILE`
-- `TLS_KEY_FILE`
-- `TIMEOUT_READ` = 50000000000
-- `TIMEOUT_READ_HEADER` = 20000000000
-- `TIMEOUT_WRITE` = 50000000000
-- `TIMEOUT_IDLE` = 300000000000
-- `TIMEOUT_HANDLER` = 50000000000
-- `REDIS_DB` = 0
+- `GZIP_ENABLED` = 0
 - `REDIS_HOST`
 - `REDIS_PASSWORD`
 - `REDIS_PORT` = 6379
-- `CACHE_ALLOWED_METHODS` = HEAD,GET
+- `REDIS_DB` = 0
+- `DEFAULT_TTL` = 0
 - `CACHE_ALLOWED_STATUSES` = 200,301,302
+- `CACHE_ALLOWED_METHODS` = HEAD,GET
 
 ### YAML
 
 ```yaml
+### GLOBAL CONFIGURATION
+################################################################################
 server:
   # --- GENERIC
   port:
@@ -189,7 +192,7 @@ server:
     # Email optionally specifies a contact email address.
     # This is used by CAs, such as Let's Encrypt, to notify about problems with
     # issued certificates.
-    email: info@fabiocicerchia.it
+    email: noreply@example.com
     # Pair or files: the certificate and the key.
     # Used by LoadX509KeyPair to read and parse a public/private key pair from a
     # pair of files. The files must contain PEM encoded data. The certificate
@@ -204,25 +207,28 @@ server:
     # Because it does not let Handlers make per-request decisions on each
     # request body's acceptable deadline or upload rate, most users will prefer
     # to use `readheader`. It is valid to use them both.
-    read: 5000000000
+    read: 5s
     # It is the amount of time allowed to read request headers. The connection's
     # read deadline is reset after reading the headers and the Handler can
     # decide what is considered too slow for the body. If it is zero, the value
     # of `read` is used. If both are zero, there is no timeout.
-    readheader: 2000000000
+    readheader: 2s
     # It is the maximum duration before timing out writes of the response. It is
     # reset whenever a new request's header is read. Like `read`, it does not
     # let Handlers make decisions on a per-request basis.
-    write: 5000000000
+    write: 5s
     # It is the maximum amount of time to wait for the next request when
     # keep-alives are enabled. If is zero, the value of `read` is used. If both
     # ara zero, there is no timeout.
-    idle: 20000000000
-    handler: 5000000000
+    idle: 20s
+    # It runs the handler with the given time limit.
+    handler: 5s
   # --- FORWARDING
   forwarding:
     # Hostname to be used for requests forwarding.
-    host: fabiocicerchia.it
+    host: ~
+    # Port to be used for requests forwarding.
+    port: ~
     # Endpoint scheme to be used when forwarding traffic.
     # Default: incoming connection.
     # Values: http, https.
@@ -230,12 +236,15 @@ server:
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
     endpoints:
-    - fabiocicerchia.it
+    - 127.0.0.1
     # Forces redirect from HTTP to HTTPS.
     # Default: false
-    http2https: false
+    http2https: true
+    # Status code to be used when redirecting HTTP to HTTPS.
+    # Default: 301
+    redirectstatuscode: 301
 
-# --- TIMEOUT
+# --- CACHE
 cache:
   # --- REDIS SERVER
   host: localhost
@@ -258,9 +267,9 @@ cache:
   # Allows caching for different response codes.
   # Default: 200, 301, 302
   allowedstatuses:
-  - "200"
-  - "301"
-  - "302"
+  - 200
+  - 301
+  - 302
   # If the client request method is listed in this directive then the response
   # will be cached. "GET" and "HEAD" methods are always added to the list,
   # though it is recommended to specify them explicitly.
@@ -268,6 +277,19 @@ cache:
   allowedmethods:
   - HEAD
   - GET
+
+### PER DOMAIN CONFIGURATION OVERRIDE
+################################################################################
+domains:
+  example_com:
+    server:
+      forwarding:
+        host: example.com
+
+  example_org:
+    server:
+      forwarding:
+        host: example.org
 
 ```
 
@@ -285,22 +307,17 @@ cache:
 - [So you want to expose Go on the Internet](https://blog.cloudflare.com/exposing-go-on-the-internet/)
 - [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
 - [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
+- [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
 
 ## TODO
 
-- Test server timeout with custom handlers 15m
-- [Context timeouts and cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/#context-timeouts-and-cancellation)
-- [Check Timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
-- [GZip Compression](github.com/NYTimes/gziphandler) + Config Flag
 - [SSL Passthrough](https://stackoverflow.com/a/35399699/888162)
-- [Go Language - Web Application Secure Coding Practices](https://github.com/OWASP/Go-SCP/raw/master/dist/go-webapp-scp.pdf)
 - [HTTP/2 Adventure in the Go World](https://posener.github.io/http2/)
 - https://cipherli.st/
 - Check [SSL Labs Score](https://blog.bracelab.com/achieving-perfect-ssl-labs-score-with-go)
 - Use [X-Forwarded-Proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)
 - Configure log verbosity level
 - [tlsfuzzer](https://github.com/tlsfuzzer/tlsfuzzer)
-- [Building Web Servers in Go](https://getgophish.com/blog/post/2018-12-02-building-web-servers-in-go/)
 - [TLS mutual authentication with golang and nginx](https://medium.com/rahasak/tls-mutual-authentication-with-golang-and-nginx-937f0da22a0e)
 - Check file descriptors usage
 - LB Algorithms

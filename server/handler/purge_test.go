@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 // +build functional
 
 package handler_test
@@ -19,9 +27,9 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
-				Host:      "developer.mozilla.org",
+				Host:      "www.w3.org",
 				Scheme:    "https",
-				Endpoints: []string{"developer.mozilla.org"},
+				Endpoints: []string{"www.w3.org"},
 			},
 		},
 		Cache: config.Cache{
@@ -29,7 +37,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 			Port:            "6379",
 			Password:        "",
 			DB:              0,
-			AllowedStatuses: []string{"200", "301", "302"},
+			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
 		CircuitBreaker: config.CircuitBreaker{
@@ -42,17 +50,20 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	engine.InitConn("global", config.Config.Cache)
 
 	// --- PURGE
 
 	req, err := http.NewRequest("PURGE", "/", nil)
+	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
+	req.URL.Host = config.Config.Server.Forwarding.Host
+	req.Host = config.Config.Server.Forwarding.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.PurgeAll()
+	_, err = engine.GetConn("global").PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -70,9 +81,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
-				Host:      "developer.mozilla.org",
+				Host:      "www.w3.org",
 				Scheme:    "https",
-				Endpoints: []string{"developer.mozilla.org"},
+				Endpoints: []string{"www.w3.org"},
 			},
 		},
 		Cache: config.Cache{
@@ -80,7 +91,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 			Port:            "6379",
 			Password:        "",
 			DB:              0,
-			AllowedStatuses: []string{"200", "301", "302"},
+			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
 		CircuitBreaker: config.CircuitBreaker{
@@ -95,11 +106,11 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	config.InitCircuitBreaker(config.Config.CircuitBreaker)
 
-	engine.Connect(config.Config.Cache)
+	engine.InitConn("global", config.Config.Cache)
 
 	// --- MISS
 
-	req, err := http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
 	req.URL.Host = config.Config.Server.Forwarding.Host
 	req.Host = config.Config.Server.Forwarding.Host
@@ -108,7 +119,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.PurgeAll()
+	_, err = engine.GetConn("global").PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -119,13 +130,13 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
 
-	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
-	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
-	assert.Contains(t, body, "</body>\n</html>")
+	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, string(body), "</body>\n</html>\n")
 
 	// --- HIT
 
-	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req, err = http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
 	req.URL.Host = config.Config.Server.Forwarding.Host
 	req.Host = config.Config.Server.Forwarding.Host
@@ -141,13 +152,13 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
-	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
-	assert.Contains(t, body, "</body>\n</html>")
+	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, string(body), "</body>\n</html>\n")
 
-	// // --- PURGE
+	// --- PURGE
 
-	req, err = http.NewRequest("PURGE", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req, err = http.NewRequest("PURGE", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
 	req.URL.Host = config.Config.Server.Forwarding.Host
 	req.Host = config.Config.Server.Forwarding.Host
@@ -166,7 +177,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	// --- MISS
 
-	req, err = http.NewRequest("GET", "/en-US/docs/Web/HTTP/Headers/Cache-Control", nil)
+	req, err = http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
 	req.URL.Host = config.Config.Server.Forwarding.Host
 	req.Host = config.Config.Server.Forwarding.Host
@@ -181,7 +192,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html>\n<html lang=\"en\"")
-	assert.Contains(t, body, `<title>Cache-Control - HTTP | MDN</title>`)
-	assert.Contains(t, body, "</body>\n</html>")
+	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, string(body), "</body>\n</html>\n")
 }

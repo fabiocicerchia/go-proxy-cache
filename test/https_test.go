@@ -1,3 +1,11 @@
+//                                                                         __
+// .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+// |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+// |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+// |_____|            |__|                   |_____|
+//
+// Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Repo: https://github.com/fabiocicerchia/go-proxy-cache
 // +build endtoend
 
 package test
@@ -21,7 +29,9 @@ func TestHTTPSClientCall(t *testing.T) {
 		},
 	}
 
-	res, err := client.Get("https://localhost")
+	req, _ := http.NewRequest("GET", "https://localhost/", nil)
+	req.Host = "www.w3.org"
+	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
 	}

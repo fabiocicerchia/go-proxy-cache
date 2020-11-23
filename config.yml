@@ -1,9 +1,12 @@
+### GLOBAL CONFIGURATION
+################################################################################
 server:
   # --- GENERIC
   port:
     http: "80"
     https: "443"
   # --- GZIP
+  # Automatically enable GZip compression on all requests.
   gzip: false
   # --- TLS
   tls:
@@ -15,7 +18,7 @@ server:
     # Email optionally specifies a contact email address.
     # This is used by CAs, such as Let's Encrypt, to notify about problems with
     # issued certificates.
-    email: info@fabiocicerchia.it
+    email: noreply@example.com
     # Pair or files: the certificate and the key.
     # Used by LoadX509KeyPair to read and parse a public/private key pair from a
     # pair of files. The files must contain PEM encoded data. The certificate
@@ -30,25 +33,30 @@ server:
     # Because it does not let Handlers make per-request decisions on each
     # request body's acceptable deadline or upload rate, most users will prefer
     # to use `readheader`. It is valid to use them both.
-    read: 5000000000
+    read: 5s
     # It is the amount of time allowed to read request headers. The connection's
     # read deadline is reset after reading the headers and the Handler can
     # decide what is considered too slow for the body. If it is zero, the value
     # of `read` is used. If both are zero, there is no timeout.
-    readheader: 2000000000
+    readheader: 2s
     # It is the maximum duration before timing out writes of the response. It is
     # reset whenever a new request's header is read. Like `read`, it does not
     # let Handlers make decisions on a per-request basis.
-    write: 5000000000
+    write: 5s
     # It is the maximum amount of time to wait for the next request when
     # keep-alives are enabled. If is zero, the value of `read` is used. If both
     # ara zero, there is no timeout.
-    idle: 20000000000
-    handler: 5000000000
+    idle: 20s
+    # It runs the handler with the given time limit.
+    handler: 5s
   # --- FORWARDING
   forwarding:
     # Hostname to be used for requests forwarding.
-    host: www.w3.org
+    host: ~
+    # Port to be used for requests forwarding.
+    # Default: incoming connection.
+    # Values: 80, 443.
+    port: 443
     # Endpoint scheme to be used when forwarding traffic.
     # Default: incoming connection.
     # Values: http, https.
@@ -56,15 +64,15 @@ server:
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
     endpoints:
-    - www.w3.org
+    - 127.0.0.1
     # Forces redirect from HTTP to HTTPS.
     # Default: false
-    http2https: false
+    http2https: true
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirectstatuscode: 301
 
-# --- TIMEOUT
+# --- CACHE
 cache:
   # --- REDIS SERVER
   host: localhost
@@ -87,9 +95,9 @@ cache:
   # Allows caching for different response codes.
   # Default: 200, 301, 302
   allowedstatuses:
-  - "200"
-  - "301"
-  - "302"
+  - 200
+  - 301
+  - 302
   # If the client request method is listed in this directive then the response
   # will be cached. "GET" and "HEAD" methods are always added to the list,
   # though it is recommended to specify them explicitly.
@@ -97,3 +105,37 @@ cache:
   allowedmethods:
   - HEAD
   - GET
+
+### PER DOMAIN CONFIGURATION OVERRIDE
+################################################################################
+domains:
+  example_com:
+    server:
+      forwarding:
+        host: example.com
+
+  example_org:
+    server:
+      forwarding:
+        host: example.org
+
+  www_w3_org:
+    server:
+      forwarding:
+        host: www.w3.org
+        endpoints:
+        - www.w3.org
+
+  www_fabiocicerchia_it:
+    server:
+      forwarding:
+        host: www.fabiocicerchia.it
+        endpoints:
+        - www.fabiocicerchia.it
+
+  fabiocicerchia_it:
+    server:
+      forwarding:
+        host: fabiocicerchia.it
+        endpoints:
+        - fabiocicerchia.it
