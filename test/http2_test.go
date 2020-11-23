@@ -43,7 +43,7 @@ func TestHTTP2ClientCall(t *testing.T) {
 	assert.Equal(t, 0, res.ProtoMinor)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Contains(t, string(body), "<!DOCTYPE html>\n<html lang=\"en\"")
-	assert.Contains(t, string(body), `<title>Fabio Cicerchia`)
-	assert.Contains(t, string(body), "</body>\n</html>")
+	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, string(body), "</body>\n</html>\n")
 }

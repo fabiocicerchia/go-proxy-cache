@@ -3,6 +3,8 @@ server:
   port:
     http: "80"
     https: "443"
+  # --- GZIP
+  gzip: false
   # --- TLS
   tls:
     # Automatic Certificate Management Environment
@@ -46,7 +48,7 @@ server:
   # --- FORWARDING
   forwarding:
     # Hostname to be used for requests forwarding.
-    host: fabiocicerchia.it
+    host: www.w3.org
     # Endpoint scheme to be used when forwarding traffic.
     # Default: incoming connection.
     # Values: http, https.
@@ -54,7 +56,7 @@ server:
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
     endpoints:
-    - fabiocicerchia.it
+    - www.w3.org
     # Forces redirect from HTTP to HTTPS.
     # Default: false
     http2https: false

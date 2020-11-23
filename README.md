@@ -40,6 +40,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 - Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
 - Support Chunking (by replicating exactly the same original amount)
 - Cache Circuit Breaker, bypassing Redis when not available
+- GZip Compression (optional)
 
 ## Examples
 
@@ -144,6 +145,7 @@ REDIS OK
 
 - `SERVER_HTTP_PORT` = 80
 - `SERVER_HTTPS_PORT` = 443
+- `GZIP_ENABLED` = 0
 - `DEFAULT_TTL` = 0
 - `FORWARD_HOST`
 - `FORWARD_SCHEME`
@@ -174,6 +176,9 @@ server:
   port:
     http: "80"
     https: "443"
+  # --- GZIP
+  # Automatically enable GZip compression on all requests.
+  gzip: false
   # --- TLS
   tls:
     # Automatic Certificate Management Environment

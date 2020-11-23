@@ -3,6 +3,7 @@ module github.com/fabiocicerchia/go-proxy-cache
 go 1.14
 
 require (
+	github.com/NYTimes/gziphandler v1.1.1
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.3.0

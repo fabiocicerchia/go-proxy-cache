@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,15 +42,7 @@ func removeConnectionHeaders(h http.Header) {
 	}
 }
 
-func copyResponse(dst io.Writer, src io.Reader, chunks [][]byte) error {
-	// bodyBytes, err := ioutil.ReadAll(src)
-	// if err != nil {
-	// 	log.Warnf("ERROR: %s", err)
-	// }
-
-	// _, err = dst.Write(bodyBytes)
-	// return err
-
+func copyResponse(dst io.Writer, chunks [][]byte) error {
 	for _, chunk := range chunks {
 		_, _ = dst.Write(chunk)
 		if fl, ok := dst.(http.Flusher); ok {
@@ -75,13 +68,12 @@ func shouldPanicOnCopyError(ctx context.Context) bool {
 	return false
 }
 
-// ServeResponse - Serve a cached response.
-func ServeResponse(
+// ServeCachedResponse - Serve a cached response.
+func ServeCachedResponse(
 	ctx context.Context,
 	lwr *response.LoggedResponseWriter,
-	res http.Response,
+	uriobj cache.URIObj,
 	url url.URL,
-	chunks [][]byte,
 ) {
 	if cn, ok := lwr.ResponseWriter.(http.CloseNotifier); ok {
 		var cancel context.CancelFunc
@@ -95,6 +87,11 @@ func ServeResponse(
 			case <-ctx.Done():
 			}
 		}()
+	}
+
+	res := http.Response{
+		StatusCode: uriobj.StatusCode,
+		Header:     uriobj.ResponseHeaders,
 	}
 
 	// HTTP Headers
@@ -117,9 +114,8 @@ func ServeResponse(
 
 	lwr.WriteHeader(res.StatusCode)
 
-	err := copyResponse(lwr, res.Body, chunks)
+	err := copyResponse(lwr, uriobj.Content)
 	if err != nil {
-		defer res.Body.Close()
 		// Since we're streaming the response, if we run into an error all we can do
 		// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
 		// on read error while copying body.
@@ -129,7 +125,6 @@ func ServeResponse(
 		}
 		panic(http.ErrAbortHandler)
 	}
-	res.Body.Close() // close now, instead of defer, to populate res.Trailer
 
 	handleTrailer(announcedTrailers, lwr, res)
 }

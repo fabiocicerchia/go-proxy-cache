@@ -40,14 +40,14 @@ func TestCatchStatusCode(t *testing.T) {
 	var rwMock ResponseWriterMock
 
 	lwr := response.NewLoggedResponseWriter(rwMock)
-	lwr.WriteHeader(201)
+	lwr.WriteHeader(http.StatusCreated)
 
 	// checks lwr
-	assert.Equal(t, 201, lwr.StatusCode)
+	assert.Equal(t, http.StatusCreated, lwr.StatusCode)
 	assert.Len(t, lwr.Content, 0)
 
 	// verify calls on rwMock
-	assert.Equal(t, 201, MockStatusCode)
+	assert.Equal(t, http.StatusCreated, MockStatusCode)
 	assert.Len(t, MockContent, 0)
 
 	tearDownResponse()

@@ -16,22 +16,26 @@ import (
 func RetrieveCachedContent(
 	lwr *response.LoggedResponseWriter,
 	req http.Request,
-) (int, http.Header, [][]byte, error) {
+) (cache.URIObj, error) {
 	method := req.Method
 	reqHeaders := req.Header
 
 	url := *req.URL
 
-	code, headers, content, err := cache.RetrieveFullPage(method, url, reqHeaders)
+	uriobj, err := cache.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
 		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
-	if !cache.IsStatusAllowed(code) || utils.LenSliceBytes(content) == 0 {
-		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Not allowed. Status %d - Content length %d", code, len(content))
+	if !cache.IsStatusAllowed(uriobj.StatusCode) || utils.LenSliceBytes(uriobj.Content) == 0 {
+		return uriobj, fmt.Errorf(
+			"Not allowed. Status %d - Content length %d",
+			uriobj.StatusCode,
+			utils.LenSliceBytes(uriobj.Content),
+		)
 	}
 
-	return code, headers, content, nil
+	return uriobj, nil
 }
 
 // StoreGeneratedPage - Stores a response in the cache.

@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -60,7 +58,7 @@ func serveCachedContent(
 	req http.Request,
 	url url.URL,
 ) bool {
-	code, headers, chunks, err := storage.RetrieveCachedContent(lwr, req)
+	uriobj, err := storage.RetrieveCachedContent(lwr, req)
 	if err != nil {
 		lwr.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 
@@ -68,22 +66,9 @@ func serveCachedContent(
 		return false
 	}
 
-	// TODO: Duplication with chunks.
-	var bodyBytes []byte
-	for _, chunk := range chunks {
-		bodyBytes = append(bodyBytes, chunk...)
-	}
-	body := ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
-
-	res := http.Response{
-		StatusCode: code,
-		Header:     headers,
-		Body:       body,
-	}
-	res.Header.Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
-
 	ctx := req.Context()
-	transport.ServeResponse(ctx, lwr, res, url, chunks)
+	transport.ServeCachedResponse(ctx, lwr, uriobj, uriobj.URL)
+	lwr.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 
 	return true
 }

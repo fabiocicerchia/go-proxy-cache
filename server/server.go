@@ -1,9 +1,13 @@
 package server
 
 import (
+	"context"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
+	"github.com/NYTimes/gziphandler"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/acme/autocert"
 
@@ -34,6 +38,11 @@ func CreateServerConfig(
 		"Timed Out\n",
 	)
 
+	if config.Config.Server.GZip {
+		// TODO: COVERAGE
+		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
+	}
+
 	// TODO: TEST timeouts with custom handlers
 	server := &http.Server{
 		Addr:              ":" + port,
@@ -55,6 +64,7 @@ func CreateServerConfig(
 func Start() {
 	// Init configs
 	config.InitConfigFromFileOrEnv("config.yml")
+	config.Print()
 
 	serverConfig := config.Config.Server
 	serverTLSConfig := serverConfig.TLS
@@ -92,5 +102,16 @@ func Start() {
 
 	// start server http & https
 	go func() { log.Fatal(serverHTTPS.ListenAndServeTLS("", "")) }()
-	log.Fatal(serverHTTP.ListenAndServe())
+	go func() { log.Fatal(serverHTTP.ListenAndServe()) }()
+
+	// Wait for an interrupt
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	// Attempt a graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	serverHTTP.Shutdown(ctx)
+	serverHTTPS.Shutdown(ctx)
 }

@@ -30,6 +30,7 @@ type Server struct {
 	TLS        TLS
 	Timeout    Timeout
 	Forwarding Forward
+	GZip       bool
 }
 
 // Port - Defines the listening ports per protocol
@@ -75,6 +76,7 @@ type Cache struct {
 	AllowedMethods  []string
 }
 
+// CircuitBreaker - Settings for redis circuit breaker.
 type CircuitBreaker struct {
 	Threshold   uint32
 	FailureRate float64
@@ -108,8 +110,13 @@ func InitConfigFromFileOrEnv(file string) {
 
 	// --- Server
 
+	gZipVal, err := strconv.Atoi(utils.GetEnv("GZIP_ENABLED", "0"))
+	gZipVal = Coalesce(gZipVal, 0, err != nil).(int)
+	gZip := gZipVal == 1
+
 	Config.Server.Port.HTTP = Coalesce(Config.Server.Port.HTTP, utils.GetEnv("SERVER_HTTP_PORT", "80"), Config.Server.Port.HTTP == "").(string)
 	Config.Server.Port.HTTPS = Coalesce(Config.Server.Port.HTTPS, utils.GetEnv("SERVER_HTTPS_PORT", "443"), Config.Server.Port.HTTPS == "").(string)
+	Config.Server.GZip = Coalesce(Config.Server.GZip, gZip, !Config.Server.GZip).(bool)
 
 	// --- TLS
 
@@ -194,8 +201,10 @@ func InitConfigFromFileOrEnv(file string) {
 		Timeout:     60 * time.Second, // clears state after 60s
 		MaxRequests: 1,
 	}
+}
 
-	// TODO: split in 2 methods
+// Print - Shows the current configuration.
+func Print() {
 	configAsYaml, err := yaml.Marshal(Config)
 	if err == nil {
 		log.Info("Config Settings:\n")

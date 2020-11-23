@@ -69,12 +69,12 @@ func StoreFullPage(
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, http.Header, [][]byte, error) {
+func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIObj, error) {
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot fetch metadata: %s", err)
+		return *obj, fmt.Errorf("Cannot fetch metadata: %s", err)
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
@@ -82,15 +82,15 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (int, 
 
 	encoded, err := engine.Get(key)
 	if err != nil {
-		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot get key: %s", err)
+		return *obj, fmt.Errorf("Cannot get key: %s", err)
 	}
 
 	err = engine.Decode(encoded, obj)
 	if err != nil {
-		return 0, http.Header{}, [][]byte{}, fmt.Errorf("Cannot decode: %s", err)
+		return *obj, fmt.Errorf("Cannot decode: %s", err)
 	}
 
-	return obj.StatusCode, obj.ResponseHeaders, obj.Content, nil
+	return *obj, nil
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
