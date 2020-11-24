@@ -1,3 +1,5 @@
+package handler
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,13 +8,15 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package handler
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
@@ -24,20 +28,36 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func getOverridePort(host string, port string, scheme string) string {
+	// if there's already a port it must have priority
+	if strings.Contains(host, ":") {
+		return ""
+	}
+
+	portOverride := port
+
+	if portOverride == "" && scheme == "http" {
+		portOverride = "80"
+	} else if portOverride == "" && scheme == "https" {
+		portOverride = "443"
+	}
+
+	if portOverride != "" {
+		portOverride = ":" + portOverride
+	}
+
+	return portOverride
+}
+
 // FixRequest - Fixes the Request in order to use the load balanced host.
 func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
 	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
 	host := utils.IfEmpty(forwarding.Host, url.Host)
-	port := forwarding.Port
-	// TODO: what's fallback?
-	// TODO: dups with purge
-	if port == "" && scheme == "http" {
-		port = "80"
-	} else if port == "" && scheme == "https" {
-		port = "443"
-	}
 
-	req.URL.Host = balancer.GetLBRoundRobin(url.Host) + ":" + port
+	balancedHost := balancer.GetLBRoundRobin(url.Host)
+	overridePort := getOverridePort(balancedHost, forwarding.Port, scheme)
+
+	req.URL.Host = balancedHost + overridePort
 	req.URL.Scheme = scheme
 	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 	req.Host = host
@@ -91,9 +111,25 @@ func serveCachedContent(
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	domainConfig := config.DomainConf(req.Host)
-
 	lwr := response.NewLoggedResponseWriter(res)
+
+	ctx := req.Context()
+	localAddrContextKey := ctx.Value(http.LocalAddrContextKey)
+	listeningPort := ""
+	if localAddrContextKey != nil {
+		srvAddr := localAddrContextKey.(*net.TCPAddr)
+		listeningPort = strconv.Itoa(srvAddr.Port)
+	}
+
+	domainConfig := config.DomainConf(req.Host)
+	if domainConfig == nil ||
+		(domainConfig.Server.Port.HTTP != listeningPort &&
+			domainConfig.Server.Port.HTTPS != listeningPort) {
+		lwr.WriteHeader(http.StatusNotImplemented)
+		logger.LogRequest(*req, *lwr, false)
+		log.Errorf("Missing configuration in HandleRequest for %s (listening on :%s).", req.Host, listeningPort)
+		return
+	}
 
 	if req.URL.Scheme == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
 		RedirectToHTTPS(lwr.ResponseWriter, req, domainConfig.Server.Forwarding.RedirectStatusCode)
@@ -115,28 +151,14 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 // HandleRequestAndProxy - Handles the requests and proxies to backend server.
 func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request) {
 	domainConfig := config.DomainConf(req.Host)
-	if domainConfig == nil {
-		// TODO: SERVE A 404?
-		log.Errorf("Missing configuration in HandleRequestAndProxy for %s.", req.Host)
-		return
-	}
 	forwarding := domainConfig.Server.Forwarding
 
 	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
-
-	port := forwarding.Port
-	// TODO: what's fallback?
-	// TODO: dups with purge
-	if port == "" && scheme == "http" {
-		port = "80"
-	} else if port == "" && scheme == "https" {
-		port = "443"
-	}
+	overridePort := getOverridePort(forwarding.Host, forwarding.Port, scheme)
 
 	proxyURL := *req.URL
 	proxyURL.Scheme = scheme
-	// TODO: WHAT IF IT HAS ALREADY PORT?
-	proxyURL.Host = forwarding.Host + ":" + port
+	proxyURL.Host = forwarding.Host + overridePort
 
 	cached := serveCachedContent(lwr, *req, proxyURL)
 	if !cached {

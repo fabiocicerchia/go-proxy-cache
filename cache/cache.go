@@ -1,3 +1,5 @@
+package cache
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,7 +8,6 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package cache
 
 import (
 	"errors"
@@ -52,15 +53,15 @@ func StoreFullPage(
 		return false, nil
 	}
 
-	targetUrl := obj.URL
-	targetUrl.Host = obj.Host
+	targetURL := obj.URL
+	targetURL.Host = obj.Host
 
 	meta, err := GetVary(obj.ResponseHeaders)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = StoreMetadata(obj.Method, targetUrl, meta, expiration)
+	_, err = StoreMetadata(obj.Method, targetURL, meta, expiration)
 	if err != nil {
 		return false, err
 	}
@@ -70,7 +71,7 @@ func StoreFullPage(
 		return false, err
 	}
 
-	key := StorageKey(obj.Method, targetUrl, meta, obj.RequestHeaders)
+	key := StorageKey(obj.Method, targetURL, meta, obj.RequestHeaders)
 
 	return engine.GetConn("global").Set(key, encoded, expiration)
 }
@@ -85,7 +86,7 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIOb
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
-	log.Infof("StorageKey: %s", key)
+	log.Debugf("StorageKey: %s", key)
 
 	encoded, err := engine.GetConn("global").Get(key)
 	if err != nil {

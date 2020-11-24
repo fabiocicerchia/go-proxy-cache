@@ -1,3 +1,5 @@
+package main
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,7 +8,6 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package main
 
 import (
 	"os"
@@ -26,7 +27,7 @@ func main() {
 	// TODO: Configurable
 	log.SetOutput(os.Stdout)
 	// TODO: Configurable
-	log.SetLevel(log.InfoLevel)
+	log.SetLevel(log.DebugLevel)
 
 	// start server
 	server.Start()

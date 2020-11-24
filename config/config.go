@@ -1,3 +1,5 @@
+package config
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,12 +8,10 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package config
 
 import (
 	"crypto/tls"
 	"io/ioutil"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +34,7 @@ type Configuration struct {
 	Domains        Domains
 }
 
+// Domains - Overrides per domain
 type Domains map[string]Configuration
 
 // Server - Defines basic info for the server
@@ -180,11 +181,11 @@ func getEnvConfig() Configuration {
 				KeyFile:  utils.GetEnv("TLS_KEY_FILE", ""),
 			},
 			Timeout: Timeout{
-				Read:       ConvertToDuration(utils.GetEnv("TIMEOUT_READ", "")),
-				ReadHeader: ConvertToDuration(utils.GetEnv("TIMEOUT_READ_HEADER", "")),
-				Write:      ConvertToDuration(utils.GetEnv("TIMEOUT_WRITE", "")),
-				Idle:       ConvertToDuration(utils.GetEnv("TIMEOUT_IDLE", "")),
-				Handler:    ConvertToDuration(utils.GetEnv("TIMEOUT_HANDLER", "")),
+				Read:       utils.ConvertToDuration(utils.GetEnv("TIMEOUT_READ", "")),
+				ReadHeader: utils.ConvertToDuration(utils.GetEnv("TIMEOUT_READ_HEADER", "")),
+				Write:      utils.ConvertToDuration(utils.GetEnv("TIMEOUT_WRITE", "")),
+				Idle:       utils.ConvertToDuration(utils.GetEnv("TIMEOUT_IDLE", "")),
+				Handler:    utils.ConvertToDuration(utils.GetEnv("TIMEOUT_HANDLER", "")),
 			},
 			Forwarding: Forward{
 				Host:               utils.GetEnv("FORWARD_HOST", ""),
@@ -192,7 +193,7 @@ func getEnvConfig() Configuration {
 				Scheme:             utils.GetEnv("FORWARD_SCHEME", ""),
 				Endpoints:          strings.Split(utils.GetEnv("LB_ENDPOINT_LIST", ""), ","),
 				HTTP2HTTPS:         utils.GetEnv("HTTP2HTTPS", "") == "1",
-				RedirectStatusCode: ConvertToInt(utils.GetEnv("REDIRECT_STATUS_CODE", "")),
+				RedirectStatusCode: utils.ConvertToInt(utils.GetEnv("REDIRECT_STATUS_CODE", "")),
 			},
 			GZip: utils.GetEnv("GZIP_ENABLED", "") == "1",
 		},
@@ -200,9 +201,9 @@ func getEnvConfig() Configuration {
 			Host:            utils.GetEnv("REDIS_HOST", ""),
 			Port:            utils.GetEnv("REDIS_PORT", ""),
 			Password:        utils.GetEnv("REDIS_PASSWORD", ""),
-			DB:              ConvertToInt(utils.GetEnv("REDIS_DB", "")),
-			TTL:             ConvertToInt(utils.GetEnv("DEFAULT_TTL", "")),
-			AllowedStatuses: ConvertToIntSlice(strings.Split(utils.GetEnv("CACHE_ALLOWED_STATUSES", ""), ",")),
+			DB:              utils.ConvertToInt(utils.GetEnv("REDIS_DB", "")),
+			TTL:             utils.ConvertToInt(utils.GetEnv("DEFAULT_TTL", "")),
+			AllowedStatuses: utils.ConvertToIntSlice(strings.Split(utils.GetEnv("CACHE_ALLOWED_STATUSES", ""), ",")),
 			AllowedMethods:  strings.Split(utils.GetEnv("CACHE_ALLOWED_METHODS", ""), ","),
 		},
 	}
@@ -256,54 +257,54 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 
 	serverN := newConf.Server
 	serverO := overrides.Server
-	serverN.Port.HTTP = Coalesce(serverO.Port.HTTP, serverN.Port.HTTP, serverO.Port.HTTP == "").(string)
-	serverN.Port.HTTPS = Coalesce(serverO.Port.HTTPS, serverN.Port.HTTPS, serverO.Port.HTTPS == "").(string)
-	serverN.GZip = Coalesce(serverO.GZip, serverN.GZip, !serverO.GZip).(bool)
+	serverN.Port.HTTP = utils.Coalesce(serverO.Port.HTTP, serverN.Port.HTTP, serverO.Port.HTTP == "").(string)
+	serverN.Port.HTTPS = utils.Coalesce(serverO.Port.HTTPS, serverN.Port.HTTPS, serverO.Port.HTTPS == "").(string)
+	serverN.GZip = utils.Coalesce(serverO.GZip, serverN.GZip, !serverO.GZip).(bool)
 	newConf.Server = serverN
 
 	// --- TLS
 
 	tlsN := newConf.Server.TLS
 	tlsO := overrides.Server.TLS
-	tlsN.Auto = Coalesce(tlsO.Auto, tlsN.Auto, !tlsO.Auto).(bool)
-	tlsN.Email = Coalesce(tlsO.Email, tlsN.Email, tlsO.Email == "").(string)
-	tlsN.CertFile = Coalesce(tlsO.CertFile, tlsN.CertFile, tlsO.CertFile == "").(string)
-	tlsN.KeyFile = Coalesce(tlsO.KeyFile, tlsN.KeyFile, tlsO.KeyFile == "").(string)
+	tlsN.Auto = utils.Coalesce(tlsO.Auto, tlsN.Auto, !tlsO.Auto).(bool)
+	tlsN.Email = utils.Coalesce(tlsO.Email, tlsN.Email, tlsO.Email == "").(string)
+	tlsN.CertFile = utils.Coalesce(tlsO.CertFile, tlsN.CertFile, tlsO.CertFile == "").(string)
+	tlsN.KeyFile = utils.Coalesce(tlsO.KeyFile, tlsN.KeyFile, tlsO.KeyFile == "").(string)
 	newConf.Server.TLS = tlsN
 
 	// --- Timeout
 
 	timeoutN := newConf.Server.Timeout
 	timeoutO := overrides.Server.Timeout
-	timeoutN.Read = Coalesce(timeoutO.Read, timeoutN.Read, timeoutO.Read == 0).(time.Duration)
-	timeoutN.ReadHeader = Coalesce(timeoutO.ReadHeader, timeoutN.ReadHeader, timeoutO.ReadHeader == 0).(time.Duration)
-	timeoutN.Write = Coalesce(timeoutO.Write, timeoutN.Write, timeoutO.Write == 0).(time.Duration)
-	timeoutN.Idle = Coalesce(timeoutO.Idle, timeoutN.Idle, timeoutO.Idle == 0).(time.Duration)
-	timeoutN.Handler = Coalesce(timeoutO.Handler, timeoutN.Handler, timeoutO.Handler == 0).(time.Duration)
+	timeoutN.Read = utils.Coalesce(timeoutO.Read, timeoutN.Read, timeoutO.Read == 0).(time.Duration)
+	timeoutN.ReadHeader = utils.Coalesce(timeoutO.ReadHeader, timeoutN.ReadHeader, timeoutO.ReadHeader == 0).(time.Duration)
+	timeoutN.Write = utils.Coalesce(timeoutO.Write, timeoutN.Write, timeoutO.Write == 0).(time.Duration)
+	timeoutN.Idle = utils.Coalesce(timeoutO.Idle, timeoutN.Idle, timeoutO.Idle == 0).(time.Duration)
+	timeoutN.Handler = utils.Coalesce(timeoutO.Handler, timeoutN.Handler, timeoutO.Handler == 0).(time.Duration)
 	newConf.Server.Timeout = timeoutN
 
 	// --- Forwarding
 
 	forwardingN := newConf.Server.Forwarding
 	forwardingO := overrides.Server.Forwarding
-	forwardingN.Host = Coalesce(forwardingO.Host, forwardingN.Host, forwardingO.Host == "").(string)
-	forwardingN.Scheme = Coalesce(forwardingO.Scheme, forwardingN.Scheme, forwardingO.Scheme == "").(string)
-	forwardingN.Endpoints = Coalesce(forwardingO.Endpoints, forwardingN.Endpoints, len(forwardingO.Endpoints) == 0).([]string)
-	forwardingN.HTTP2HTTPS = Coalesce(forwardingO.HTTP2HTTPS, forwardingN.HTTP2HTTPS, !forwardingO.HTTP2HTTPS).(bool)
-	forwardingN.RedirectStatusCode = Coalesce(forwardingO.RedirectStatusCode, forwardingN.RedirectStatusCode, forwardingO.RedirectStatusCode == 0).(int)
+	forwardingN.Host = utils.Coalesce(forwardingO.Host, forwardingN.Host, forwardingO.Host == "").(string)
+	forwardingN.Scheme = utils.Coalesce(forwardingO.Scheme, forwardingN.Scheme, forwardingO.Scheme == "").(string)
+	forwardingN.Endpoints = utils.Coalesce(forwardingO.Endpoints, forwardingN.Endpoints, len(forwardingO.Endpoints) == 0).([]string)
+	forwardingN.HTTP2HTTPS = utils.Coalesce(forwardingO.HTTP2HTTPS, forwardingN.HTTP2HTTPS, !forwardingO.HTTP2HTTPS).(bool)
+	forwardingN.RedirectStatusCode = utils.Coalesce(forwardingO.RedirectStatusCode, forwardingN.RedirectStatusCode, forwardingO.RedirectStatusCode == 0).(int)
 	newConf.Server.Forwarding = forwardingN
 
 	// --- Cache
 
 	cacheN := newConf.Cache
 	cacheO := overrides.Cache
-	cacheN.Host = Coalesce(cacheO.Host, newConf.Cache.Host, cacheO.Host == "").(string)
-	cacheN.Port = Coalesce(cacheO.Port, newConf.Cache.Port, cacheO.Port == "").(string)
-	cacheN.Password = Coalesce(cacheO.Password, newConf.Cache.Password, cacheO.Password == "").(string)
-	cacheN.DB = Coalesce(cacheO.DB, newConf.Cache.DB, cacheO.DB == 0).(int)
-	cacheN.TTL = Coalesce(cacheO.TTL, newConf.Cache.TTL, cacheO.TTL == 0).(int)
-	cacheN.AllowedStatuses = Coalesce(cacheO.AllowedStatuses, newConf.Cache.AllowedStatuses, len(cacheO.AllowedStatuses) == 0).([]int)
-	cacheN.AllowedMethods = Coalesce(cacheO.AllowedMethods, newConf.Cache.AllowedMethods, len(cacheO.AllowedMethods) == 0).([]string)
+	cacheN.Host = utils.Coalesce(cacheO.Host, newConf.Cache.Host, cacheO.Host == "").(string)
+	cacheN.Port = utils.Coalesce(cacheO.Port, newConf.Cache.Port, cacheO.Port == "").(string)
+	cacheN.Password = utils.Coalesce(cacheO.Password, newConf.Cache.Password, cacheO.Password == "").(string)
+	cacheN.DB = utils.Coalesce(cacheO.DB, newConf.Cache.DB, cacheO.DB == 0).(int)
+	cacheN.TTL = utils.Coalesce(cacheO.TTL, newConf.Cache.TTL, cacheO.TTL == 0).(int)
+	cacheN.AllowedStatuses = utils.Coalesce(cacheO.AllowedStatuses, newConf.Cache.AllowedStatuses, len(cacheO.AllowedStatuses) == 0).([]int)
+	cacheN.AllowedMethods = utils.Coalesce(cacheO.AllowedMethods, newConf.Cache.AllowedMethods, len(cacheO.AllowedMethods) == 0).([]string)
 
 	cacheN.AllowedMethods = append(cacheN.AllowedMethods, "HEAD", "GET")
 	cacheN.AllowedMethods = utils.Unique(cacheN.AllowedMethods)
@@ -314,8 +315,8 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 
 // Print - Shows the current configuration.
 func Print() {
-	log.Info("Config Settings:\n")
-	log.Infof("%+v\n", Config)
+	log.Debug("Config Settings:\n")
+	log.Debugf("%+v\n", Config)
 }
 
 func GetDomains() []string {
@@ -362,36 +363,4 @@ func InitCircuitBreaker(config CircuitBreaker) {
 // CB - Returns instance of gobreaker.CircuitBreaker.
 func CB() *gobreaker.CircuitBreaker {
 	return cb
-}
-
-// TODO" MOVE TO UTILS
-
-// Coalesce - Returns the original value if the conditions is not met, fallback value otherwise.
-func Coalesce(value interface{}, fallback interface{}, condition bool) interface{} {
-	if condition {
-		value = fallback
-	}
-
-	return value
-}
-
-func ConvertToDuration(value string) time.Duration {
-	duration, err := time.ParseDuration(value)
-	if err != nil {
-		return time.Duration(0)
-	}
-	return duration
-}
-
-func ConvertToInt(value string) int {
-	val, _ := strconv.Atoi(value)
-	return val
-}
-
-func ConvertToIntSlice(value []string) []int {
-	var values []int
-	for _, v := range value {
-		values = append(values, ConvertToInt(v))
-	}
-	return values
 }

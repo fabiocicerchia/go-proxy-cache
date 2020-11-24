@@ -1,3 +1,5 @@
+package handler_test
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,7 +8,6 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package handler_test
 
 import (
 	"net/http"

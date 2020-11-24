@@ -1,3 +1,5 @@
+package server
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,7 +8,6 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package server
 
 import (
 	"context"
@@ -37,7 +38,6 @@ func CreateServerConfig(
 	timeout := config.Config.Server.Timeout
 	gzip := config.Config.Server.GZip
 
-	// TODO: CHECK THAT PORT IS LINKED WITH DOMAIN
 	mux := http.NewServeMux()
 
 	// handlers
@@ -119,26 +119,19 @@ func Start() {
 			},
 		)
 
+		// start server http & https
 		if _, ok := serversHTTP[domainConfig.Server.Port.HTTP]; !ok {
 			serversHTTP[domainConfig.Server.Port.HTTP] = srvHTTP
+			go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
 		}
 		if _, ok := serversHTTPS[domainConfig.Server.Port.HTTPS]; !ok {
 			serversHTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
+			go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
 		}
 
 		// lb
 		// TODO: HOW TO HANDLE THIS?
 		balancer.InitRoundRobin(domainConfig.Server.Forwarding.Endpoints)
-	}
-
-	// start server http & https
-	// TODO: NEED TO HANDLE CLASH ON PORTS
-	for _, v := range serversHTTP {
-		go func() { log.Fatal(v.ListenAndServe()) }()
-	}
-
-	for _, v := range serversHTTPS {
-		go func() { log.Fatal(v.ListenAndServeTLS("", "")) }()
 	}
 
 	// Wait for an interrupt

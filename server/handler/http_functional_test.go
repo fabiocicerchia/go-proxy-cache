@@ -1,3 +1,7 @@
+// +build functional
+
+package handler_test
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,9 +10,6 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-// +build functional
-
-package handler_test
 
 import (
 	"net/http"
@@ -102,9 +103,9 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
 
 	tearDownHTTPFunctional()
 }
@@ -141,9 +142,9 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
 
 	tearDownHTTPFunctional()
 }
@@ -197,9 +198,9 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
 
 	time.Sleep(1 * time.Second)
 
@@ -220,9 +221,9 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
 
 	tearDownHTTPFunctional()
 }

@@ -140,6 +140,7 @@ REDIS OK
 ## Configuration
 
 > ![Timeouts](https://blog.cloudflare.com/content/images/2016/06/Timeouts-001.png)
+>
 > - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
 
 ### Environment Variables
@@ -299,6 +300,9 @@ domains:
   Let's Encrypt cannot be used locally, as described in [this thread](https://community.letsencrypt.org/t/can-i-test-lets-encrypt-client-on-localhost/15627)
 - `acme/autocert: missing certificate`  
   Let's Encrypt cannot be used locally, as described in [this thread](https://community.letsencrypt.org/t/can-i-test-lets-encrypt-client-on-localhost/15627)
+- `501 Not Implemented`  
+  If there's no domain defined in the main configuration nor in the domain overrides, and a client will request an
+  unknown domain the status `501` is returned.
 
 ## References
 

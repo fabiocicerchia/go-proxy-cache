@@ -1,3 +1,5 @@
+package utils
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,12 +8,13 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package utils
 
 import (
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // StringSeparatorOne - Main text separator, used for joins.
@@ -93,4 +96,41 @@ func LenSliceBytes(data [][]byte) int {
 	}
 
 	return l
+}
+
+// Coalesce - Returns the original value if the conditions is not met, fallback value otherwise.
+func Coalesce(value interface{}, fallback interface{}, condition bool) interface{} {
+	// TODO: COVERAGE
+	if condition {
+		value = fallback
+	}
+
+	return value
+}
+
+// ConvertToDuration - Converts a string to time.Duration
+func ConvertToDuration(value string) time.Duration {
+	// TODO: COVERAGE
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return time.Duration(0)
+	}
+	return duration
+}
+
+// ConvertToInt - Converts a string to int
+func ConvertToInt(value string) int {
+	// TODO: COVERAGE
+	val, _ := strconv.Atoi(value)
+	return val
+}
+
+// ConvertToIntSlice - Converts a slice of strings to a slice of ints
+func ConvertToIntSlice(value []string) []int {
+	// TODO: COVERAGE
+	var values []int
+	for _, v := range value {
+		values = append(values, ConvertToInt(v))
+	}
+	return values
 }

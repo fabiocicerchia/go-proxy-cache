@@ -1,3 +1,5 @@
+package handler
+
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
 // |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
@@ -6,7 +8,6 @@
 //
 // Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
-package handler
 
 import (
 	"net/http"
@@ -21,11 +22,6 @@ import (
 // HandlePurge - Purges the cache for the requested URI.
 func HandlePurge(lwr *response.LoggedResponseWriter, req *http.Request) {
 	domainConfig := config.DomainConf(req.Host)
-	if domainConfig == nil {
-		// TODO: SERVE A 404?
-		log.Errorf("Missing configuration in HandlePurge for %s.", req.Host)
-		return
-	}
 	forwarding := domainConfig.Server.Forwarding
 
 	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
