@@ -36,27 +36,27 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
-	assert.Equal(t, "closed", config.CB().State().String())
+	assert.Equal(t, "closed", config.CB("testing").State().String())
 
 	val := rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", config.CB().State().String())
+	assert.Equal(t, "closed", config.CB("testing").State().String())
 
 	_ = rdb.Close()
 
 	val = rdb.Ping()
 	assert.False(t, val)
-	assert.Equal(t, "half-open", config.CB().State().String())
+	assert.Equal(t, "half-open", config.CB("testing").State().String())
 
-	rdb = client.Connect(config.Config.Cache)
+	rdb = client.Connect("testing", config.Config.Cache)
 
 	val = rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", config.CB().State().String())
+	assert.Equal(t, "closed", config.CB("testing").State().String())
 }
 
 func TestClose(t *testing.T) {
@@ -75,9 +75,9 @@ func TestClose(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	assert.True(t, rdb.Ping())
 
@@ -102,9 +102,9 @@ func TestSetGet(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -131,9 +131,9 @@ func TestSetGetWithExpiration(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	done, err := rdb.Set("test", "sample", 1*time.Millisecond)
 	assert.True(t, done)
@@ -162,9 +162,9 @@ func TestDel(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -198,9 +198,9 @@ func TestExpire(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -232,9 +232,9 @@ func TestPushList(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	err := rdb.Push("test", []string{"a", "b", "c"})
 	assert.Nil(t, err)
@@ -260,9 +260,9 @@ func TestDelWildcard(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -315,9 +315,9 @@ func TestPurgeAll(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -370,9 +370,9 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
-	rdb := client.Connect(config.Config.Cache)
+	rdb := client.Connect("testing", config.Config.Cache)
 
 	str := []byte("test string")
 	var decoded []byte

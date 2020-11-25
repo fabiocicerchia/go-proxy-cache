@@ -201,6 +201,39 @@ server:
     # to form a certificate chain.
     certfile: server.pem
     keyfile: server.key
+    # WARNING: INTERNAL SERVER BEHAVIOUR
+    override:
+      # CipherSuites is a list of supported cipher suites for TLS versions up to
+      # TLS 1.2. If CipherSuites is nil, a default list of secure cipher suites
+      # is used, with a preference order based on hardware performance. The
+      # default cipher suites might change over Go versions. Note that TLS 1.3
+      # ciphersuites are not configurable.
+      ciphersuites:
+      - 49196 # TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - 49200 # TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - 52393 # TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+      - 52392 # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+      - 49195 # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - 49199 # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      # PreferServerCipherSuites controls whether the server selects the
+      # client's most preferred ciphersuite, or the server's most preferred
+      # ciphersuite. If true then the server's preference, as expressed in
+      # the order of elements in CipherSuites, is used.
+      preferserverciphersuites: true
+      # MinVersion contains the minimum TLS version that is acceptable.
+      # If zero, TLS 1.0 is currently taken as the minimum.
+      minversion: 771 # VersionTLS12
+      # MaxVersion contains the maximum TLS version that is acceptable.
+      # If zero, the maximum version supported by this package is used,
+      # which is currently TLS 1.3.
+      maxversion: 772 # VersionTLS13
+      # CurvePreferences contains the elliptic curves that will be used in
+      # an ECDHE handshake, in preference order. If empty, the default will
+      # be used. The client will use the first preference as the type for
+      # its key share in TLS 1.3. This may change in the future.
+      curvepreferences:
+      - 23 # CurveP256
+      - 29 # X25519
   # --- TIMEOUT
   timeout:
     # It is the maximum duration for reading the entire request, including the
@@ -278,6 +311,31 @@ cache:
   allowedmethods:
   - HEAD
   - GET
+
+# --- CIRCUIT BREAKER
+# WARNING: INTERNAL SERVER BEHAVIOUR
+circuitbreaker:
+    # Will start evaluating the failures after n requests as defined by the
+    # threshold.
+    threshold: 0
+    # It'll open the circuit after `threshold` requests which are greater or
+    # equal to the failure rate defined
+    # (total failures / total requests).
+    failurerate: 0
+    # Interval is the cyclic period of the closed state
+    # for the CircuitBreaker to clear the internal Counts.
+    # If Interval is 0, the CircuitBreaker doesn't clear internal Counts during
+    # the closed state.
+    interval: 0s
+    # Timeout is the period of the open state,
+    # after which the state of the CircuitBreaker becomes half-open.
+    # If Timeout is 0, the timeout value of the CircuitBreaker is set to 60
+    # seconds.
+    timeout: 0s
+    # MaxRequests is the maximum number of requests allowed to pass through
+    # when the CircuitBreaker is half-open.
+    # If MaxRequests is 0, the CircuitBreaker allows only 1 request.
+    maxrequests: 0
 
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################

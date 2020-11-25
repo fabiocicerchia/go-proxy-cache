@@ -10,11 +10,7 @@ package utils
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/http"
 	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // StringSeparatorOne - Main text separator, used for joins.
@@ -41,63 +37,6 @@ func IfEmpty(val string, fallback string) string {
 	return val
 }
 
-// ContainsInt - Checks if an int value is contained in a slice.
-func ContainsInt(items []int, value int) bool {
-	for _, v := range items {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
-// ContainsString - Checks if a string value is contained in a slice.
-func ContainsString(items []string, value string) bool {
-	for _, v := range items {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
-// GetByKeyCaseInsensitive - Retrieves value by key matched case-insensitively.
-func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
-	keyLower := strings.ToLower(key)
-	for k, v := range items {
-		if strings.ToLower(k) == keyLower {
-			return v
-		}
-	}
-
-	return nil
-}
-
-// Unique - Returns a slice with unique values
-func Unique(slice []string) []string {
-	keys := make(map[string]bool)
-	list := []string{}
-
-	for _, entry := range slice {
-		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			list = append(list, entry)
-		}
-	}
-
-	return list
-}
-
-// LenSliceBytes - Returns total length of a slice of bytes
-func LenSliceBytes(data [][]byte) int {
-	l := 0
-	for _, v := range data {
-		l += len(v)
-	}
-
-	return l
-}
-
 // Coalesce - Returns the original value if the conditions is not met, fallback value otherwise.
 func Coalesce(value interface{}, fallback interface{}, condition bool) interface{} {
 	if condition {
@@ -105,28 +44,4 @@ func Coalesce(value interface{}, fallback interface{}, condition bool) interface
 	}
 
 	return value
-}
-
-// ConvertToDuration - Converts a string to time.Duration
-func ConvertToDuration(value string) time.Duration {
-	duration, err := time.ParseDuration(value)
-	if err != nil {
-		return time.Duration(0)
-	}
-	return duration
-}
-
-// ConvertToInt - Converts a string to int
-func ConvertToInt(value string) int {
-	val, _ := strconv.Atoi(value)
-	return val
-}
-
-// ConvertToIntSlice - Converts a slice of strings to a slice of ints
-func ConvertToIntSlice(value []string) []int {
-	values := []int{}
-	for _, v := range value {
-		values = append(values, ConvertToInt(v))
-	}
-	return values
 }

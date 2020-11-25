@@ -24,7 +24,8 @@ import (
 
 // Config - Holds the server configuration
 var Config Configuration
-var cb *gobreaker.CircuitBreaker
+var cb map[string]*gobreaker.CircuitBreaker
+var allowedSchemes = map[string]string{"HTTP": "http", "HTTPS": "https"}
 
 // Configuration - Defines the server configuration
 type Configuration struct {
@@ -58,7 +59,7 @@ type TLS struct {
 	Email    string
 	CertFile string
 	KeyFile  string
-	Override tls.Config
+	Override *tls.Config
 }
 
 // Forward - Defines the forwarding settings
@@ -112,7 +113,7 @@ func getDefaultConfig() Configuration {
 				Email:    "",
 				CertFile: "",
 				KeyFile:  "",
-				Override: tls.Config{
+				Override: &tls.Config{
 					// Causes servers to use Go's default ciphersuite preferences,
 					// which are tuned to avoid attacks. Does nothing on clients.
 					PreferServerCipherSuites: true,
@@ -167,6 +168,15 @@ func getDefaultConfig() Configuration {
 	}
 }
 
+func normalizeScheme(scheme string) string {
+	schemeUpper := strings.ToUpper(scheme)
+	if val, ok := allowedSchemes[schemeUpper]; ok {
+		return val
+	}
+
+	return ""
+}
+
 func getEnvConfig() Configuration {
 	return Configuration{
 		Server: Server{
@@ -190,7 +200,7 @@ func getEnvConfig() Configuration {
 			Forwarding: Forward{
 				Host:               utils.GetEnv("FORWARD_HOST", ""),
 				Port:               utils.GetEnv("FORWARD_PORT", ""),
-				Scheme:             utils.GetEnv("FORWARD_SCHEME", ""),
+				Scheme:             normalizeScheme(utils.GetEnv("FORWARD_SCHEME", "")),
 				Endpoints:          strings.Split(utils.GetEnv("LB_ENDPOINT_LIST", ""), ","),
 				HTTP2HTTPS:         utils.GetEnv("HTTP2HTTPS", "") == "1",
 				RedirectStatusCode: utils.ConvertToInt(utils.GetEnv("REDIRECT_STATUS_CODE", "")),
@@ -220,6 +230,8 @@ func getYamlConfig(file string) Configuration {
 	if err != nil {
 		log.Warnf("Cannot unmarshal yaml: %s\n", err)
 	}
+
+	YamlConfig.Server.Forwarding.Scheme = normalizeScheme(YamlConfig.Server.Forwarding.Scheme)
 
 	return YamlConfig
 }
@@ -270,6 +282,7 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	tlsN.Email = utils.Coalesce(tlsO.Email, tlsN.Email, tlsO.Email == "").(string)
 	tlsN.CertFile = utils.Coalesce(tlsO.CertFile, tlsN.CertFile, tlsO.CertFile == "").(string)
 	tlsN.KeyFile = utils.Coalesce(tlsO.KeyFile, tlsN.KeyFile, tlsO.KeyFile == "").(string)
+	tlsN.Override = utils.Coalesce(tlsO.Override, tlsN.Override, tlsO.Override == nil).(*tls.Config)
 	newConf.Server.TLS = tlsN
 
 	// --- Timeout
@@ -344,23 +357,33 @@ func DomainConf(domain string) *Configuration {
 }
 
 // InitCircuitBreaker - Initialise the Circuit Breaker.
-func InitCircuitBreaker(config CircuitBreaker) {
-	var st gobreaker.Settings
-	st.ReadyToTrip = func(counts gobreaker.Counts) bool {
-		failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-		return counts.Requests >= config.Threshold && failureRatio >= config.FailureRate
+func InitCircuitBreaker(name string, config CircuitBreaker) {
+	st := gobreaker.Settings{
+		Name:        name,
+		MaxRequests: config.MaxRequests,
+		Interval:    config.Interval,
+		Timeout:     config.Timeout,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+			return counts.Requests >= config.Threshold && failureRatio >= config.FailureRate
+		},
+		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
+			log.Warnf("Circuit Breaker - Changed from %s to %s", from.String(), to.String())
+		},
 	}
-	st.OnStateChange = func(name string, from gobreaker.State, to gobreaker.State) {
-		log.Warnf("Circuit Breaker - Changed from %s to %s", from.String(), to.String())
-	}
-	st.Interval = config.Interval
-	st.Timeout = config.Timeout
-	st.MaxRequests = config.MaxRequests
 
-	cb = gobreaker.NewCircuitBreaker(st)
+	if cb == nil {
+		cb = make(map[string]*gobreaker.CircuitBreaker)
+	}
+
+	cb[name] = gobreaker.NewCircuitBreaker(st)
 }
 
 // CB - Returns instance of gobreaker.CircuitBreaker.
-func CB() *gobreaker.CircuitBreaker {
-	return cb
+func CB(name string) *gobreaker.CircuitBreaker {
+	if val, ok := cb[name]; ok {
+		return val
+	}
+
+	return nil
 }

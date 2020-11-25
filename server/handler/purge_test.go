@@ -49,9 +49,9 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 
-	engine.InitConn("global", config.Config.Cache)
+	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	// --- PURGE
 
@@ -64,7 +64,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn("global").PurgeAll()
+	_, err = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -105,9 +105,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
 
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 
-	engine.InitConn("global", config.Config.Cache)
+	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	// --- MISS
 
@@ -120,7 +120,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn("global").PurgeAll()
+	_, err = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)

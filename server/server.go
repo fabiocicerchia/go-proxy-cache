@@ -28,12 +28,7 @@ import (
 )
 
 // CreateServerConfig - Generates the http.Server configuration.
-func CreateServerConfig(
-	domain string,
-	port string,
-	httpsPort string,
-	certPair *srvtls.CertificatePair,
-) *http.Server {
+func CreateServerConfig(domain string, port string) *http.Server {
 	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE. ACCEPTS AS LIMITATION (CREATE AN ISSUE)
 	timeout := config.Config.Server.Timeout
 	gzip := config.Config.Server.GZip
@@ -65,14 +60,54 @@ func CreateServerConfig(
 		Handler:           muxWithMiddlewares,
 	}
 
-	if port == httpsPort { // TODO: NEEDS TO HANDLE DOMAINS
-		srvtls.ServerOverrides(domain, server, certPair)
-	}
-
 	return server
 }
 
-// TODO: SPLIT THE HELL FROM THIS MESS.
+func GetServerConfigs(domain string, domainConfig *config.Configuration) (*http.Server, *http.Server) {
+	srvHTTP := CreateServerConfig(domain, domainConfig.Server.Port.HTTP)
+
+	srvHTTPS := CreateServerConfig(domain, domainConfig.Server.Port.HTTPS)
+	srvtls.ServerOverrides(domain, srvHTTPS, &srvtls.CertificatePair{
+		Cert: domainConfig.Server.TLS.CertFile,
+		Key:  domainConfig.Server.TLS.KeyFile,
+	})
+
+	return srvHTTP, srvHTTPS
+}
+
+func StartDomainServer(domain string, servers map[string]*http.Server) {
+	domainConfig := config.DomainConf(domain)
+	if domainConfig == nil {
+		log.Errorf("Missing configuration for %s.", domain)
+		return
+	}
+
+	// redis connect
+	config.InitCircuitBreaker(domain, domainConfig.CircuitBreaker)
+	engine.InitConn(domain, domainConfig.Cache)
+
+	// Log setup values
+	logger.LogSetup(domainConfig.Server)
+
+	// config server http & https
+	srvHTTP, srvHTTPS := GetServerConfigs(domain, domainConfig)
+
+	// start server http & https
+	if _, ok := servers[domainConfig.Server.Port.HTTP]; !ok {
+		servers[domainConfig.Server.Port.HTTP] = srvHTTP
+
+		go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
+	}
+	if _, ok := servers[domainConfig.Server.Port.HTTPS]; !ok {
+		servers[domainConfig.Server.Port.HTTPS] = srvHTTPS
+
+		go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
+	}
+
+	// lb
+	// TODO: HOW TO HANDLE THIS?
+	balancer.InitRoundRobin(domainConfig.Server.Forwarding.Endpoints)
+}
 
 // Start the GoProxyCache server.
 func Start() {
@@ -80,58 +115,9 @@ func Start() {
 	config.InitConfigFromFileOrEnv("config.yml")
 	config.Print()
 
-	// redis connect
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	// TODO: ALLOW CUSTOM REDIS PER DOMAIN + DEDICATED CB PER REDIS SERVER WITH PREFIX
-	engine.InitConn("global", config.Config.Cache)
-
-	domains := config.GetDomains()
-
-	serversHTTP := make(map[string]*http.Server)
-	serversHTTPS := make(map[string]*http.Server)
-
-	// TODO: use go routine.
-	for _, domain := range domains {
-		domainConfig := config.DomainConf(domain)
-		if domainConfig == nil {
-			log.Errorf("Missing configuration for %s.", domain)
-			continue
-		}
-
-		// Log setup values
-		logger.LogSetup(domainConfig.Server)
-
-		// config server http & https
-		srvHTTP := CreateServerConfig(
-			domain,
-			domainConfig.Server.Port.HTTP,
-			domainConfig.Server.Port.HTTPS,
-			nil,
-		)
-
-		srvHTTPS := CreateServerConfig(
-			domain,
-			domainConfig.Server.Port.HTTPS,
-			domainConfig.Server.Port.HTTPS,
-			&srvtls.CertificatePair{
-				Cert: domainConfig.Server.TLS.CertFile,
-				Key:  domainConfig.Server.TLS.KeyFile,
-			},
-		)
-
-		// start server http & https
-		if _, ok := serversHTTP[domainConfig.Server.Port.HTTP]; !ok {
-			serversHTTP[domainConfig.Server.Port.HTTP] = srvHTTP
-			go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
-		}
-		if _, ok := serversHTTPS[domainConfig.Server.Port.HTTPS]; !ok {
-			serversHTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
-			go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
-		}
-
-		// lb
-		// TODO: HOW TO HANDLE THIS?
-		balancer.InitRoundRobin(domainConfig.Server.Forwarding.Endpoints)
+	servers := make(map[string]*http.Server)
+	for _, domain := range config.GetDomains() {
+		StartDomainServer(domain, servers)
 	}
 
 	// Wait for an interrupt
@@ -143,11 +129,7 @@ func Start() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for _, v := range serversHTTP {
-		v.Shutdown(ctx)
-	}
-
-	for _, v := range serversHTTPS {
+	for _, v := range servers {
 		v.Shutdown(ctx)
 	}
 }

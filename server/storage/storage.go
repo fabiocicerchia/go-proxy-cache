@@ -30,6 +30,7 @@ func RetrieveCachedContent(
 	reqHeaders := req.Header
 
 	url := *req.URL
+	url.Host = req.Host
 
 	uriobj, err := cache.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {

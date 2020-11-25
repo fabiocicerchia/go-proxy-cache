@@ -66,14 +66,14 @@ func StoreFullPage(
 		return false, err
 	}
 
-	encoded, err := engine.GetConn("global").Encode(obj)
+	encoded, err := engine.GetConn(targetURL.Host).Encode(obj)
 	if err != nil {
 		return false, err
 	}
 
 	key := StorageKey(obj.Method, targetURL, meta, obj.RequestHeaders)
 
-	return engine.GetConn("global").Set(key, encoded, expiration)
+	return engine.GetConn(targetURL.Host).Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
@@ -88,12 +88,12 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIOb
 	key := StorageKey(method, url, meta, reqHeaders)
 	log.Debugf("StorageKey: %s", key)
 
-	encoded, err := engine.GetConn("global").Get(key)
+	encoded, err := engine.GetConn(url.Host).Get(key)
 	if err != nil {
 		return *obj, fmt.Errorf("Cannot get key: %s", err)
 	}
 
-	err = engine.GetConn("global").Decode(encoded, obj)
+	err = engine.GetConn(url.Host).Decode(encoded, obj)
 	if err != nil {
 		return *obj, fmt.Errorf("Cannot decode: %s", err)
 	}
@@ -114,7 +114,7 @@ func PurgeFullPage(method string, url url.URL) (bool, error) {
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
 	keyPattern := strings.Replace(key, match, replace, 1) + "*"
-	affected, err := engine.GetConn("global").DelWildcard(keyPattern)
+	affected, err := engine.GetConn(url.Host).DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
 	}
@@ -144,30 +144,30 @@ func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Heade
 func FetchMetadata(method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	return engine.GetConn("global").List(key)
+	return engine.GetConn(url.Host).List(key)
 }
 
 // DeleteMetadata - Removes the cache metadata for the requested URL.
 func DeleteMetadata(method string, url url.URL) error {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	return engine.GetConn("global").Del(key)
+	return engine.GetConn(url.Host).Del(key)
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
 func StoreMetadata(method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	_ = engine.GetConn("global").Del(key) //nolint:golint,errcheck
-	err := engine.GetConn("global").Push(key, meta)
+	_ = engine.GetConn(url.Host).Del(key) //nolint:golint,errcheck
+	err := engine.GetConn(url.Host).Push(key, meta)
 	if err != nil {
 		return false, err
 	}
 
-	err = engine.GetConn("global").Expire(key, expiration)
+	err = engine.GetConn(url.Host).Expire(key, expiration)
 	if err != nil {
 		// TODO: use transaction
-		_ = engine.GetConn("global").Del(key)
+		_ = engine.GetConn(url.Host).Del(key)
 
 		return false, err
 	}

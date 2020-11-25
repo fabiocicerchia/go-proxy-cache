@@ -52,8 +52,8 @@ func setCommonConfig() {
 func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	engine.InitConn("global", config.Config.Cache)
+	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
@@ -84,7 +84,10 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
+	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
+
+	engine.GetConn(config.Config.Server.Forwarding.Host).Close()
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
@@ -119,10 +122,10 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	engine.InitConn("global", config.Config.Cache)
+	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
-	_, err := engine.GetConn("global").PurgeAll()
+	_, err := engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
 	assert.Nil(t, err)
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -176,8 +179,10 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.CircuitBreaker)
-	engine.InitConn("global", config.Config.Cache)
+	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
+
+	_, _ = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
 
 	// --- MISS
 

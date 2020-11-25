@@ -10,6 +10,7 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -109,17 +110,22 @@ func serveCachedContent(
 	return true
 }
 
-// HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
-func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	lwr := response.NewLoggedResponseWriter(res)
-
-	ctx := req.Context()
+func getListeningPort(ctx context.Context) string {
 	localAddrContextKey := ctx.Value(http.LocalAddrContextKey)
 	listeningPort := ""
 	if localAddrContextKey != nil {
 		srvAddr := localAddrContextKey.(*net.TCPAddr)
 		listeningPort = strconv.Itoa(srvAddr.Port)
 	}
+
+	return listeningPort
+}
+
+// HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
+func HandleRequest(res http.ResponseWriter, req *http.Request) {
+	lwr := response.NewLoggedResponseWriter(res)
+
+	listeningPort := getListeningPort(req.Context())
 
 	domainConfig := config.DomainConf(req.Host)
 	if domainConfig == nil ||

@@ -21,7 +21,7 @@ func GetConn(connName string) *client.RedisClient {
 		return conn
 	}
 
-	return rdb[connName]
+	return nil
 }
 
 func InitConn(connName string, config config.Cache) {
@@ -29,5 +29,5 @@ func InitConn(connName string, config config.Cache) {
 		rdb = make(map[string]*client.RedisClient)
 	}
 
-	rdb[connName] = client.Connect(config)
+	rdb[connName] = client.Connect(connName, config)
 }
