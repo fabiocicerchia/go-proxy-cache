@@ -50,9 +50,17 @@ func getOverridePort(host string, port string, scheme string) string {
 	return portOverride
 }
 
+// Ref: https://github.com/golang/go/issues/28940
+func getSchemeFromRquest(req http.Request) string {
+	if req.TLS != nil {
+		return "https"
+	}
+	return "http"
+}
+
 // FixRequest - Fixes the Request in order to use the load balanced host.
 func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
-	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
+	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRquest(*req))
 	host := utils.IfEmpty(forwarding.Host, url.Host)
 
 	balancedHost := balancer.GetLBRoundRobin(forwarding.Host, url.Host)
@@ -159,7 +167,7 @@ func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request
 	domainConfig := config.DomainConf(req.Host)
 	forwarding := domainConfig.Server.Forwarding
 
-	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
+	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRquest(*req))
 	overridePort := getOverridePort(forwarding.Host, forwarding.Port, scheme)
 
 	proxyURL := *req.URL

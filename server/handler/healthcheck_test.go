@@ -1,4 +1,4 @@
-// +build functional
+// +build all functional
 
 package handler_test
 
@@ -17,20 +17,24 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 func TestHealthcheckWithoutRedis(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
@@ -62,12 +66,14 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 }
 
 func TestHealthcheckWithRedis(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.

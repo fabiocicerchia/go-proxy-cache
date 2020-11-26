@@ -20,6 +20,7 @@ import (
 
 var ctx = context.Background()
 
+// RedisClient - Redis Client structure
 type RedisClient struct {
 	*redis.Client
 	Name string
@@ -113,14 +114,10 @@ func (rdb *RedisClient) DelWildcard(key string) (int, error) {
 		return keys, err
 	})
 
-	if err != nil {
-		return 0, err
-	}
-
 	keys := k.([]string)
 	l := len(keys)
 
-	if l == 0 {
+	if err != nil || l == 0 {
 		return l, nil
 	}
 

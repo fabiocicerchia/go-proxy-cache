@@ -71,7 +71,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 // LogSetup - Logs the env variables required for a reverse proxy.
 func LogSetup(server config.Server) {
 	forwardHost := server.Forwarding.Host
-	forwardProto := server.Forwarding.Scheme
+	forwardProto := utils.IfEmpty(server.Forwarding.Scheme, "*")
 	lbEndpointList := server.Forwarding.Endpoints
 
 	log.Infof("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)

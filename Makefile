@@ -46,7 +46,7 @@ build: ## build
 ##@ SCA
 ################################################################################
 
-sca: lint sec fmt staticcheck ## sca checks
+sca: lint sec fmt staticcheck tlsfuzzer ## sca checks
 
 lint: ## lint
 	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.27.0 golangci-lint run -v ./...
@@ -61,6 +61,17 @@ fmt: ## format code
 staticcheck: ## staticcheck
 	which staticcheck || go get honnef.co/go/tools/cmd/staticcheck
 	staticcheck ./...
+
+tlsfuzzer: ## tlsfuzzer
+	pip3 install --pre tlslite-ng\n
+	git clone https://github.com/tlsfuzzer/tlsfuzzer.git\n
+	cd tlsfuzzer
+	git clone https://github.com/warner/python-ecdsa .python-ecdsa
+	ln -s .python-ecdsa/src/ecdsa/ ecdsa\n
+	git clone https://github.com/tlsfuzzer/tlslite-ng .tlslite-ng\n
+	ln -s .tlslite-ng/tlslite/ tlslite\n
+	echo "127.0.0.1 www.w3.org" >> /etc/hosts
+	PYTHONPATH=. python scripts/test-bleichenbacher-workaround.py -h www.w3.org -p 443
 
 ################################################################################
 ##@ TEST
@@ -78,7 +89,7 @@ test-endtoend: ## test endtoend
 	go test -race -count=1 --tags=endtoend ./...
 
 cover: ## coverage
-	go test -race -count=1 --tags=unit,functional,endtoend -coverprofile cover.out ./...
+	go test -race -count=1 --tags=all -coverprofile cover.out ./...
 	go tool cover -func=cover.out
 	go tool cover -html=cover.out
 

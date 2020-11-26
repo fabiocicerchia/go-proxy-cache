@@ -1,4 +1,4 @@
-// +build unit
+// +build all unit
 
 package logger_test
 

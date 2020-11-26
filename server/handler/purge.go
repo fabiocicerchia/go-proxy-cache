@@ -24,7 +24,7 @@ func HandlePurge(lwr *response.LoggedResponseWriter, req *http.Request) {
 	domainConfig := config.DomainConf(req.Host)
 	forwarding := domainConfig.Server.Forwarding
 
-	scheme := utils.IfEmpty(forwarding.Scheme, req.URL.Scheme)
+	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRquest(*req))
 
 	proxyURL := *req.URL
 	proxyURL.Scheme = scheme

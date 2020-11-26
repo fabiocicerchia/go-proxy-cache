@@ -1,4 +1,4 @@
-// +build unit
+// +build all unit
 
 package roundrobin_test
 
@@ -15,11 +15,16 @@ import (
 	"fmt"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer/roundrobin"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPickEmpty(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	b := roundrobin.New([]string{})
 
 	value, err := b.Pick()
@@ -32,6 +37,9 @@ func TestPickEmpty(t *testing.T) {
 }
 
 func TestPickWithData(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	b := roundrobin.New([]string{
 		"item1",
 		"item2",
@@ -48,6 +56,9 @@ func TestPickWithData(t *testing.T) {
 }
 
 func TestPickCorrectness(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	b := roundrobin.New([]string{
 		"item1",
 		"item2",

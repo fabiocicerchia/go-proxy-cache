@@ -7,8 +7,11 @@
 # Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-# Created by https://www.toptal.com/developers/gitignore/api/go
-# Edit at https://www.toptal.com/developers/gitignore?templates=go
+# Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,go,dotenv
+# Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,go,dotenv
+
+### dotenv ###
+.env
 
 ### Go ###
 # Binaries for programs and plugins
@@ -31,6 +34,15 @@
 /vendor/
 /Godeps/
 
-# End of https://www.toptal.com/developers/gitignore/api/go
+### VisualStudioCode ###
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+*.code-workspace
 
+### VisualStudioCode Patch ###
+# Ignore all local history of files
 .history
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,go,dotenv

@@ -1,4 +1,4 @@
-// +build unit
+// +build all unit
 
 package balancer_test
 
@@ -14,6 +14,7 @@ package balancer_test
 import (
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -45,6 +46,9 @@ func TestGetLBRoundRobinDefined(t *testing.T) {
 }
 
 func setUp() {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{}
 }
 

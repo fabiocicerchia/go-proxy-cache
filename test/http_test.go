@@ -1,4 +1,4 @@
-// +build endtoend
+// +build all endtoend
 
 package test
 
@@ -23,7 +23,8 @@ import (
 func TestHTTPClientCall(t *testing.T) {
 	client := &http.Client{}
 
-	req, _ := http.NewRequest("GET", "http://localhost/", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/", nil)
+	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
 	if err != nil {
@@ -52,7 +53,8 @@ func TestHTTPClientCall(t *testing.T) {
 func TestHTTPClientCallToMissingDomain(t *testing.T) {
 	client := &http.Client{}
 
-	req, _ := http.NewRequest("GET", "http://localhost/", nil)
+	req, err := http.NewRequest("GET", "http://localhost:8080/", nil)
+	assert.Nil(t, err)
 	req.Host = "www.google.com"
 	res, err := client.Do(req)
 	if err != nil {

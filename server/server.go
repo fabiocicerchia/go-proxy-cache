@@ -63,6 +63,7 @@ func CreateServerConfig(domain string, port string) *http.Server {
 	return server
 }
 
+// GetServerConfigs - Returns a http.Server configuration for HTTP and HTTPS.
 func GetServerConfigs(domain string, domainConfig *config.Configuration) (*http.Server, *http.Server) {
 	srvHTTP := CreateServerConfig(domain, domainConfig.Server.Port.HTTP)
 
@@ -75,6 +76,7 @@ func GetServerConfigs(domain string, domainConfig *config.Configuration) (*http.
 	return srvHTTP, srvHTTPS
 }
 
+// StartDomainServer - Configures and start listinening for a particular domain.
 func StartDomainServer(domain string, servers map[string]*http.Server) {
 	domainConfig := config.DomainConf(domain)
 	if domainConfig == nil {
@@ -109,9 +111,9 @@ func StartDomainServer(domain string, servers map[string]*http.Server) {
 }
 
 // Start the GoProxyCache server.
-func Start() {
+func Start(configFile string) {
 	// Init configs
-	config.InitConfigFromFileOrEnv("config.yml")
+	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
 
 	servers := make(map[string]*http.Server)

@@ -1,4 +1,4 @@
-// +build functional
+// +build all functional
 
 package client_test
 
@@ -15,18 +15,23 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCircuitBreakerWithPingTimeout(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -60,12 +65,14 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -87,12 +94,14 @@ func TestClose(t *testing.T) {
 }
 
 func TestSetGet(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -116,12 +125,14 @@ func TestSetGet(t *testing.T) {
 }
 
 func TestSetGetWithExpiration(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -147,12 +158,14 @@ func TestSetGetWithExpiration(t *testing.T) {
 }
 
 func TestDel(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -183,12 +196,14 @@ func TestDel(t *testing.T) {
 }
 
 func TestExpire(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -209,7 +224,7 @@ func TestExpire(t *testing.T) {
 	err = rdb.Expire("test", 1*time.Second)
 	assert.Nil(t, err)
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(1500 * time.Millisecond)
 
 	value, err := rdb.Get("test")
 	assert.Equal(t, "", value)
@@ -217,12 +232,14 @@ func TestExpire(t *testing.T) {
 }
 
 func TestPushList(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -245,12 +262,14 @@ func TestPushList(t *testing.T) {
 }
 
 func TestDelWildcard(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -300,12 +319,14 @@ func TestDelWildcard(t *testing.T) {
 }
 
 func TestPurgeAll(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -355,12 +376,14 @@ func TestPurgeAll(t *testing.T) {
 }
 
 func TestEncodeDecode(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.

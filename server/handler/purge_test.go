@@ -1,4 +1,4 @@
-// +build functional
+// +build all functional
 
 package handler_test
 
@@ -17,14 +17,20 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestEndToEndCallPurgeDoNothing(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -34,9 +40,8 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            "localhost",
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
 			Port:            "6379",
-			Password:        "",
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -79,6 +84,9 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 }
 
 func TestEndToEndCallPurge(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -88,9 +96,8 @@ func TestEndToEndCallPurge(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            "localhost",
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
 			Port:            "6379",
-			Password:        "",
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},

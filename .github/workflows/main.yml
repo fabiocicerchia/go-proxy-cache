@@ -18,12 +18,23 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Build
-        continue-on-error: true
         run: make build
 
       - name: Test
-        continue-on-error: true
-        run: make test
+        run: |
+          sudo apt-get install -y redis-server
+          redis-server &
+          ./bin/gen-selfsigned-cert.sh
+          ./go-proxy-cache -debug -config=config.test.yml &
+          make test
+
+      - name: Codecov
+        run: |
+          redis-server &
+          ./bin/gen-selfsigned-cert.sh
+          ./go-proxy-cache -debug -config=config.test.yml &
+          make cover
+          make codecov
 
   sca:
     runs-on: ubuntu-20.04
@@ -33,13 +44,3 @@ jobs:
       - name: SCA
         continue-on-error: true
         run: make sca
-
-
-  codecov:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Codecov
-        continue-on-error: true
-        run: make codecov

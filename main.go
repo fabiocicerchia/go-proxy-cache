@@ -10,6 +10,9 @@ package main
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"bufio"
+	"flag"
+	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -17,18 +20,60 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server"
 )
 
-func main() {
+var logLevel log.Level
+var configFile string
+var logFile string
+
+// AppVersion - The go-proxy-cache's version
+const AppVersion = "0.1.0"
+
+func initFlags() {
+	debug := flag.Bool("debug", false, "enable debug")
+	version := flag.Bool("version", false, "display version")
+	flag.StringVar(&configFile, "config", "config.yml", "config file")
+	flag.StringVar(&logFile, "log", "", "log file (default stdout)")
+	flag.Parse()
+
+	if *version {
+		fmt.Println(AppVersion)
+		os.Exit(0)
+	}
+
+	logLevel = log.InfoLevel
+	if *debug {
+		logLevel = log.DebugLevel
+	}
+}
+
+func getLogFileWriter(logFile string) *bufio.Writer {
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return bufio.NewWriter(f)
+}
+
+func initLogs() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:   false,
 		FullTimestamp:   true,
 		TimestampFormat: "2006/01/02 15:04:05",
 	})
-	log.SetReportCaller(false)
-	// TODO: Configurable
+
+	log.SetReportCaller(logLevel == log.DebugLevel)
+	log.SetLevel(logLevel)
+
 	log.SetOutput(os.Stdout)
-	// TODO: Configurable
-	log.SetLevel(log.DebugLevel)
+	if logFile != "" {
+		log.SetOutput(getLogFileWriter(logFile))
+	}
+}
+
+func main() {
+	initFlags()
+	initLogs()
 
 	// start server
-	server.Start()
+	server.Start(configFile)
 }

@@ -1,4 +1,4 @@
-// +build unit
+// +build all unit
 
 package response_test
 
@@ -14,6 +14,8 @@ package response_test
 import (
 	"net/http"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/stretchr/testify/assert"
@@ -35,6 +37,9 @@ func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
 }
 
 func TestNewWriter(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	var rwMock ResponseWriterMock
 
 	lwr := response.NewLoggedResponseWriter(rwMock)
@@ -46,6 +51,9 @@ func TestNewWriter(t *testing.T) {
 }
 
 func TestCatchStatusCode(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	var rwMock ResponseWriterMock
 
 	lwr := response.NewLoggedResponseWriter(rwMock)
@@ -63,6 +71,9 @@ func TestCatchStatusCode(t *testing.T) {
 }
 
 func TestCatchContent(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	var rwMock ResponseWriterMock
 
 	lwr := response.NewLoggedResponseWriter(rwMock)

@@ -1,4 +1,4 @@
-// +build functional
+// +build all functional
 
 package handler_test
 
@@ -17,15 +17,20 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 func setCommonConfig() {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Forwarding: config.Forward{
@@ -35,10 +40,9 @@ func setCommonConfig() {
 			},
 		},
 		Cache: config.Cache{
-			Host:     "localhost",
-			Port:     "6379",
-			Password: "",
-			DB:       0,
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
 		},
 		CircuitBreaker: config.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -167,9 +171,8 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            "localhost",
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
 			Port:            "6379",
-			Password:        "",
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -187,6 +190,8 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	_, _ = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
+
+	time.Sleep(1 * time.Second)
 
 	// --- MISS
 
@@ -210,8 +215,6 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, body, "</body>\n</html>\n")
-
-	time.Sleep(1 * time.Second)
 
 	// --- HIT
 
@@ -419,9 +422,8 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            "localhost",
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
 			Port:            "6379",
-			Password:        "",
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},

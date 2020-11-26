@@ -115,24 +115,25 @@ func getDefaultConfig() Configuration {
 				CertFile: "",
 				KeyFile:  "",
 				Override: &tls.Config{
+					// TODO: handle this
+					// Use modern tls mode https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
+					// NextProtos: []string{"h2", "http/1.1"},
 					// Only use curves which have assembly implementations
+					// https://github.com/golang/go/tree/master/src/crypto/elliptic
 					CurvePreferences: []tls.CurveID{
 						tls.CurveP256,
-						tls.X25519, // Go 1.8 only
 					},
 					MinVersion: tls.VersionTLS12,
 					MaxVersion: tls.VersionTLS13,
 					CipherSuites: []uint16{
-						tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 						tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-						tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305, // Go 1.8 only
-						tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,   // Go 1.8 only
-						tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+						tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+						tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+						tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+						// needed by HTTP/2
+						tls.TLS_AES_128_GCM_SHA256,
 						tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-						// Best disabled, as they don't provide Forward Secrecy,
-						// but might be necessary for some clients
-						// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-						// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+						tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 					},
 				},
 			},
@@ -247,7 +248,6 @@ func InitConfigFromFileOrEnv(file string) {
 	Config.Domains = YamlConfig.Domains
 
 	// DOMAINS
-
 	if Config.Domains != nil {
 		domains := Config.Domains
 		for k, v := range domains {
@@ -260,6 +260,7 @@ func InitConfigFromFileOrEnv(file string) {
 	}
 }
 
+// CopyOverWith - Copies the Configuration over another (preserving not defined settings).
 func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	newConf := base
 
@@ -326,10 +327,17 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 
 // Print - Shows the current configuration.
 func Print() {
+	ObfuscatedConfig := Config
+	ObfuscatedConfig.Cache.Password = ""
+	for k, v := range ObfuscatedConfig.Domains {
+		v.Cache.Password = ""
+		ObfuscatedConfig.Domains[k] = v
+	}
 	log.Debug("Config Settings:\n")
-	log.Debugf("%+v\n", Config)
+	log.Debugf("%+v\n", ObfuscatedConfig)
 }
 
+// GetDomains - Returns a list of domains.
 func GetDomains() []string {
 	domains := make([]string, 0, len(Config.Domains))
 	for _, v := range Config.Domains {

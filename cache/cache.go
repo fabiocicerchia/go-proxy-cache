@@ -45,10 +45,7 @@ func IsMethodAllowed(method string) bool {
 }
 
 // StoreFullPage - Stores the whole page response in cache.
-func StoreFullPage(
-	obj URIObj,
-	expiration time.Duration,
-) (bool, error) {
+func StoreFullPage(obj URIObj, expiration time.Duration) (bool, error) {
 	if !IsStatusAllowed(obj.StatusCode) || !IsMethodAllowed(obj.Method) || expiration < 1 {
 		return false, nil
 	}

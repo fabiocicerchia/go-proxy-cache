@@ -1,3 +1,39 @@
+# Configuration
+
+> ![Timeouts](https://blog.cloudflare.com/content/images/2016/06/Timeouts-001.png)
+>
+> - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+
+## Environment Variables
+
+- `SERVER_HTTP_PORT` = 80
+- `SERVER_HTTPS_PORT` = 443
+- `TLS_AUTO_CERT` = 0
+- `TLS_EMAIL`
+- `TLS_CERT_FILE`
+- `TLS_KEY_FILE`
+- `TIMEOUT_READ` = 5s
+- `TIMEOUT_READ_HEADER` = 2s
+- `TIMEOUT_WRITE` = 5s
+- `TIMEOUT_IDLE` = 20s
+- `TIMEOUT_HANDLER` = 5s
+- `FORWARD_HOST`
+- `FORWARD_SCHEME`
+- `LB_ENDPOINT_LIST`
+- `HTTP2HTTPS` = 0
+- `REDIRECT_STATUS_CODE` = 301
+- `GZIP_ENABLED` = 0
+- `REDIS_HOST`
+- `REDIS_PASSWORD`
+- `REDIS_PORT` = 6379
+- `REDIS_DB` = 0
+- `DEFAULT_TTL` = 0
+- `CACHE_ALLOWED_STATUSES` = 200,301,302
+- `CACHE_ALLOWED_METHODS` = HEAD,GET
+
+## YAML
+
+```yaml
 ### GLOBAL CONFIGURATION
 ################################################################################
 server:
@@ -233,3 +269,4 @@ domains:
     server:
       forwarding:
         host: example.org
+```

@@ -1,0 +1,55 @@
+# Changelog
+
+## (unreleased)
+
+- Fix codecov in ci, fixing tests, added script flags, added tlsfuzzer,
+  docs. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Added changelog. [Fabio Cicerchia]
+- Refactoring + CII Best Practices. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Coverage. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Multi-domains. [Fabio Cicerchia]
+- Added graceful shutdown, small refactoring, gzip. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Circuit breaker. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Fixed image logo. [Fabio Cicerchia]
+- Restored code. [Fabio Cicerchia]
+- Wip chunks. [Fabio Cicerchia]
+- Changed misleading description. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Update FUNDING.yml. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Added end-to-end tests, refactoring, minor fixes, improved logging,
+  added docs, http2https. [Fabio Cicerchia]
+- Small fixes. [Fabio Cicerchia]
+- Refactoring + tests. [Fabio Cicerchia]
+- Https, http2, readme, coverage. [Fabio Cicerchia]
+- Added export methods comments. [Fabio Cicerchia]
+- Refactoring + tests. [Fabio Cicerchia]
+- Added healthcheck + purge method. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Added support for expires header. [Fabio Cicerchia]
+- Added yaml config. [Fabio Cicerchia]
+- Added allowed statuses and methods. [Fabio Cicerchia]
+- Added functional tests. [Fabio Cicerchia]
+- Refactoring. [Fabio Cicerchia]
+- Switch from gob to msgpack. [Fabio Cicerchia]
+- Added tests. [Fabio Cicerchia]
+- Bump golang from 1.15.4-alpine3.12 to 1.15.5-alpine3.12.
+  [dependabot[bot]]
+- Small refactoring. [Fabio Cicerchia]
+- Wip for vary header. [Fabio Cicerchia]
+- Refactoring, added tests, saving data into redis with gob, added load
+  balancing (roundrobin), improved CI, added tests in dockerfile,
+  linted, added check for race conditions, added config struct. [Fabio
+  Cicerchia]
+- Fixed dockerfile build. [Fabio Cicerchia]
+- Linting. [Fabio Cicerchia]
+- Changed readme badges. [Fabio Cicerchia]
+- Refactoring tests. [Fabio Cicerchia]
+- Adding tests. [Fabio Cicerchia]
+- Added TTL based on s-maxage or max-age. [Fabio Cicerchia]
+- Initial commit. [Fabio Cicerchia]
