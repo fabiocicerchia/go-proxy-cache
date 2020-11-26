@@ -12,6 +12,7 @@ package config
 import (
 	"crypto/tls"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -114,9 +115,6 @@ func getDefaultConfig() Configuration {
 				CertFile: "",
 				KeyFile:  "",
 				Override: &tls.Config{
-					// Causes servers to use Go's default ciphersuite preferences,
-					// which are tuned to avoid attacks. Does nothing on clients.
-					PreferServerCipherSuites: true,
 					// Only use curves which have assembly implementations
 					CurvePreferences: []tls.CurveID{
 						tls.CurveP256,
@@ -222,7 +220,7 @@ func getEnvConfig() Configuration {
 func getYamlConfig(file string) Configuration {
 	YamlConfig := Configuration{}
 
-	data, err := ioutil.ReadFile(file)
+	data, err := ioutil.ReadFile(filepath.Clean(file))
 	if err != nil {
 		log.Warnf("Cannot read file %s: %s\n", file, err)
 	}

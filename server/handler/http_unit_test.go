@@ -47,10 +47,9 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
 	handler.FixRequest(u, config.Config.Server.Forwarding, reqMock)
 
-	// TODO: does it make sense?
 	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
 
 	assert.Equal(t, "server1:443", reqMock.URL.Host)
@@ -83,13 +82,12 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
 
 	// --- FIRST ROUND
 
 	handler.FixRequest(u, config.Config.Server.Forwarding, reqMock)
 
-	// TODO: does it make sense?
 	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
 
 	assert.Equal(t, "server1:443", reqMock.URL.Host)
@@ -99,7 +97,6 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 
 	handler.FixRequest(u, config.Config.Server.Forwarding, reqMock)
 
-	// TODO: does it make sense?
 	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
 
 	assert.Equal(t, "server2:443", reqMock.URL.Host)

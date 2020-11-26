@@ -55,7 +55,7 @@ func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
 	scheme := utils.IfEmpty(forwarding.Scheme, url.Scheme)
 	host := utils.IfEmpty(forwarding.Host, url.Host)
 
-	balancedHost := balancer.GetLBRoundRobin(url.Host)
+	balancedHost := balancer.GetLBRoundRobin(forwarding.Host, url.Host)
 	overridePort := getOverridePort(balancedHost, forwarding.Port, scheme)
 
 	req.URL.Host = balancedHost + overridePort

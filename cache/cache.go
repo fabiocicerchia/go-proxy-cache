@@ -82,7 +82,7 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIOb
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return *obj, fmt.Errorf("Cannot fetch metadata: %s", err)
+		return *obj, fmt.Errorf("cannot fetch metadata: %s", err)
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
@@ -90,12 +90,12 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIOb
 
 	encoded, err := engine.GetConn(url.Host).Get(key)
 	if err != nil {
-		return *obj, fmt.Errorf("Cannot get key: %s", err)
+		return *obj, fmt.Errorf("cannot get key: %s", err)
 	}
 
 	err = engine.GetConn(url.Host).Decode(encoded, obj)
 	if err != nil {
-		return *obj, fmt.Errorf("Cannot decode: %s", err)
+		return *obj, fmt.Errorf("cannot decode: %s", err)
 	}
 
 	return *obj, nil
@@ -181,7 +181,7 @@ func GetVary(headers http.Header) ([]string, error) {
 	vary := headers.Get("Vary")
 
 	if vary == "*" {
-		return varyList, errors.New("Vary: *")
+		return varyList, errors.New("vary: *")
 	}
 
 	varyList = strings.Split(vary, ",")

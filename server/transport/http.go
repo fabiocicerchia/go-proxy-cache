@@ -67,14 +67,9 @@ func copyResponse(dst io.Writer, chunks [][]byte) error {
 // weren't expecting panics. Only panic in our own tests, or when
 // running under the HTTP server.
 func shouldPanicOnCopyError(ctx context.Context) bool {
-	if ctx.Value(http.ServerContextKey) != nil {
-		// We seem to be running under an HTTP server, so
-		// it'll recover the panic.
-		return true
-	}
-	// Otherwise act like Go 1.10 and earlier to not break
-	// existing tests.
-	return false
+	// If true: We seem to be running under an HTTP server, so it'll recover the panic.
+	// Otherwise act like Go 1.10 and earlier to not break existing tests.
+	return ctx.Value(http.ServerContextKey) != nil
 }
 
 // ServeCachedResponse - Serve a cached response.
@@ -84,19 +79,17 @@ func ServeCachedResponse(
 	uriobj cache.URIObj,
 	url url.URL,
 ) {
-	if cn, ok := lwr.ResponseWriter.(http.CloseNotifier); ok {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithCancel(ctx)
-		defer cancel()
-		notifyChan := cn.CloseNotify()
-		go func() {
-			select {
-			case <-notifyChan:
-				cancel()
-			case <-ctx.Done():
-			}
-		}()
-	}
+	var ctxWC context.Context
+	var cancel context.CancelFunc
+	ctxWC, cancel = context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		select {
+		case <-ctx.Done():
+			cancel()
+		case <-ctxWC.Done():
+		}
+	}()
 
 	res := http.Response{
 		StatusCode: uriobj.StatusCode,

@@ -7,6 +7,8 @@
 # Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
+PREVIOUS_TAG=$(shell git ls-remote --tags 2>&1 | awk '{print $$2}' | sort -r | head -n 1 | cut -d "/" -f3)
+
 .PHONY: test
 .SILENT: help
 default: help
@@ -42,11 +44,24 @@ build: ## build
 	go build -race -o go-proxy-cache main.go
 
 ################################################################################
-##@ LINT
+##@ SCA
 ################################################################################
+
+sca: lint sec fmt staticcheck ## sca checks
 
 lint: ## lint
 	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.27.0 golangci-lint run -v ./...
+
+sec: ## security scan
+	which gosec || curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
+	gosec ./...
+
+fmt: ## format code
+	gofmt -w -s .
+
+staticcheck: ## staticcheck
+	which staticcheck || go get honnef.co/go/tools/cmd/staticcheck
+	staticcheck ./...
 
 ################################################################################
 ##@ TEST
@@ -65,6 +80,7 @@ test-endtoend: ## test endtoend
 
 cover: ## coverage
 	go test -race -count=1 --tags=unit,functional,endtoend -coverprofile cover.out ./...
+	go tool cover -func=cover.out
 	go tool cover -html=cover.out
 
 codecov: ## codecov

@@ -34,7 +34,7 @@ func ServerOverrides(
 ) {
 	domainConfig := config.DomainConf(domain)
 
-	tlsConfig, err := Config(*&certPair.Cert, *&certPair.Key)
+	tlsConfig, err := Config(certPair.Cert, certPair.Key)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -56,8 +56,9 @@ func Config(certFile string, keyFile string) (*crypto_tls.Config, error) {
 	}
 
 	tlsConfig := &crypto_tls.Config{
-		// TODO: SINCE IT IS NOT OVERRIDABLE IT IS FINE...
-		PreferServerCipherSuites: config.Config.Server.TLS.Override.PreferServerCipherSuites,
+		// Causes servers to use Go's default ciphersuite preferences,
+		// which are tuned to avoid attacks. Does nothing on clients.
+		PreferServerCipherSuites: true,
 		CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
 		MinVersion:               config.Config.Server.TLS.Override.MinVersion,
 		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,

@@ -47,7 +47,7 @@ func CreateServerConfig(domain string, port string) *http.Server {
 
 	if gzip {
 		// TODO: COVERAGE
-		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares) // TODO: NEEDS TO HANDLE DOMAINS
+		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
 	}
 
 	// TODO: TEST timeouts with custom handlers
@@ -105,8 +105,7 @@ func StartDomainServer(domain string, servers map[string]*http.Server) {
 	}
 
 	// lb
-	// TODO: HOW TO HANDLE THIS?
-	balancer.InitRoundRobin(domainConfig.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(domain, domainConfig.Server.Forwarding.Endpoints)
 }
 
 // Start the GoProxyCache server.
@@ -129,7 +128,10 @@ func Start() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for _, v := range servers {
-		v.Shutdown(ctx)
+	for k, v := range servers {
+		err := v.Shutdown(ctx)
+		if err != nil {
+			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+		}
 	}
 }

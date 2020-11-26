@@ -1,0 +1,31 @@
+# TODO
+
+- https://www.mokkapps.de/blog/how-to-automatically-generate-a-helpful-changelog-from-your-git-commit-messages/
+- `make release`
+- `make changelog`
+- Secured delivery against man-in-the-middle (MITM) attacks
+- Test server timeout with custom handlers
+- Test method `CONNECT` 400
+- Configure error handler (stdout or file)
+- Handle properly `304`
+- [SSL Passthrough](https://stackoverflow.com/a/35399699/888162)
+- [HTTP/2 Adventure in the Go World](https://posener.github.io/http2/)
+- https://cipherli.st/
+- Check [SSL Labs Score](https://blog.bracelab.com/achieving-perfect-ssl-labs-score-with-go)
+- Use [X-Forwarded-Proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)
+- Configure log verbosity level
+- [tlsfuzzer](https://github.com/tlsfuzzer/tlsfuzzer)
+- [TLS mutual authentication with golang and nginx](https://medium.com/rahasak/tls-mutual-authentication-with-golang-and-nginx-937f0da22a0e)
+- Check file descriptors usage
+- LB Algorithms (es: https://github.com/jangie/goloadbalancers, https://github.com/lafikl/liblb)
+- AB Benchmarks
+- WebSockets
+- SOCKS4/SOCKS5
+- Serve STALE cache
+- Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
+- Tags
+- Define eviction: LRU, LFU, ...
+- Byte-Range Cache
+- Dashboard
+- CLI Monitor
+- HTTP/3

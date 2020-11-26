@@ -61,7 +61,6 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 
 // CopyHeaders - Adds the headers to the response.
 func CopyHeaders(dst http.Header, src http.Header) {
-	// TODO: COVERAGE: need to find a different domain in config.yml (at it will fix itself)
 	for k, vv := range src {
 		for _, v := range vv {
 			dst.Add(k, v)

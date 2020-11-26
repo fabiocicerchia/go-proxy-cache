@@ -14,6 +14,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 ![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache.svg "Docker pulls")
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache.svg "Docker stars")
 
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4469/badge)](https://bestpractices.coreinfrastructure.org/projects/4469)
 [![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
 [![Maintainability](https://api.codeclimate.com/v1/badges/6cf8c9ea02b75fccf8b5/maintainability)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
@@ -215,11 +216,6 @@ server:
       - 52392 # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
       - 49195 # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
       - 49199 # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-      # PreferServerCipherSuites controls whether the server selects the
-      # client's most preferred ciphersuite, or the server's most preferred
-      # ciphersuite. If true then the server's preference, as expressed in
-      # the order of elements in CipherSuites, is used.
-      preferserverciphersuites: true
       # MinVersion contains the minimum TLS version that is acceptable.
       # If zero, TLS 1.0 is currently taken as the minimum.
       minversion: 771 # VersionTLS12
@@ -370,30 +366,6 @@ domains:
 - [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
 - [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
 - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
-
-## TODO
-
-- [SSL Passthrough](https://stackoverflow.com/a/35399699/888162)
-- [HTTP/2 Adventure in the Go World](https://posener.github.io/http2/)
-- https://cipherli.st/
-- Check [SSL Labs Score](https://blog.bracelab.com/achieving-perfect-ssl-labs-score-with-go)
-- Use [X-Forwarded-Proto](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Forwarded-Proto)
-- Configure log verbosity level
-- [tlsfuzzer](https://github.com/tlsfuzzer/tlsfuzzer)
-- [TLS mutual authentication with golang and nginx](https://medium.com/rahasak/tls-mutual-authentication-with-golang-and-nginx-937f0da22a0e)
-- Check file descriptors usage
-- LB Algorithms
-- AB Benchmarks
-- WebSockets
-- SOCKS4/SOCKS5
-- Serve STALE cache
-- Cache Backends: Redis, [BigCache](https://github.com/allegro/bigcache), [FreeCache](https://github.com/coocood/freecache)
-- Tags
-- Define eviction: LRU, LFU, ...
-- Byte-Range Cache
-- Dashboard
-- CLI Monitor
-- HTTP/3
 
 ## License
 

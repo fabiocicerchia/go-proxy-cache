@@ -103,7 +103,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
 
 	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 

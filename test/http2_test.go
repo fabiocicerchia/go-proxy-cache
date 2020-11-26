@@ -58,3 +58,28 @@ func TestHTTP2ClientCall(t *testing.T) {
 	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, string(body), "</body>\n</html>\n")
 }
+
+func TestHTTP2ClientCallToMissingDomain(t *testing.T) {
+	client := &http.Client{
+		Transport: &http2.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			DisableCompression: true,
+			AllowHTTP:          false,
+		},
+	}
+
+	req, _ := http.NewRequest("GET", "https://localhost/", nil)
+	req.Host = "www.google.com"
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	assert.Equal(t, "HTTP/2.0", res.Proto)
+	assert.Equal(t, 2, res.ProtoMajor)
+	assert.Equal(t, 0, res.ProtoMinor)
+
+	assert.Equal(t, http.StatusNotImplemented, res.StatusCode)
+}

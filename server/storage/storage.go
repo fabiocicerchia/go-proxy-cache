@@ -39,7 +39,7 @@ func RetrieveCachedContent(
 
 	if !cache.IsStatusAllowed(uriobj.StatusCode) || utils.LenSliceBytes(uriobj.Content) == 0 {
 		return uriobj, fmt.Errorf(
-			"Not allowed. Status %d - Content length %d",
+			"not allowed. status %d - content length %d",
 			uriobj.StatusCode,
 			utils.LenSliceBytes(uriobj.Content),
 		)

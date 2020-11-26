@@ -40,11 +40,6 @@ server:
       - 52392 # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
       - 49195 # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
       - 49199 # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-      # PreferServerCipherSuites controls whether the server selects the
-      # client's most preferred ciphersuite, or the server's most preferred
-      # ciphersuite. If true then the server's preference, as expressed in
-      # the order of elements in CipherSuites, is used.
-      preferserverciphersuites: true
       # MinVersion contains the minimum TLS version that is acceptable.
       # If zero, TLS 1.0 is currently taken as the minimum.
       minversion: 771 # VersionTLS12
