@@ -7,9 +7,8 @@
 # Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-PREVIOUS_TAG=$(shell git ls-remote --tags 2>&1 | awk '{print $$2}' | sort -r | head -n 1 | cut -d "/" -f3)
 
-.PHONY: test
+.PHONY: test changelog
 .SILENT: help
 default: help
 
@@ -31,7 +30,7 @@ help: ## prints this help
 		FS = ":.*##"; \
 		printf "Use: make \033[36m<target>\033[0m\n"; \
 	} /^\$$?\(?[a-zA-Z_-]+\)?:.*?##/ { \
-		printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2 \
+		printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 \
 	} /^##@/ { \
 		printf "\n\033[1m%s\033[0m\n", substr($$0, 5) \
 	}' $(MAKEFILE_LIST)
@@ -85,3 +84,11 @@ cover: ## coverage
 
 codecov: ## codecov
 	curl -s https://codecov.io/bash | bash
+
+################################################################################
+##@ UTILITY
+################################################################################
+
+changelog: ## generate a changelog
+	which gitchangelog || curl -sSL https://raw.githubusercontent.com/vaab/gitchangelog/master/src/gitchangelog/gitchangelog.py > /usr/local/bin/gitchangelog && chmod +x /usr/local/bin/gitchangelog
+	gitchangelog > CHANGELOG.md

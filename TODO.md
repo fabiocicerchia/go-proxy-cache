@@ -1,8 +1,6 @@
 # TODO
 
-- https://www.mokkapps.de/blog/how-to-automatically-generate-a-helpful-changelog-from-your-git-commit-messages/
 - `make release`
-- `make changelog`
 - Secured delivery against man-in-the-middle (MITM) attacks
 - Test server timeout with custom handlers
 - Test method `CONNECT` 400
