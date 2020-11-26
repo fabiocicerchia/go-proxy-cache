@@ -29,7 +29,7 @@ import (
 
 // CreateServerConfig - Generates the http.Server configuration.
 func CreateServerConfig(domain string, port string) *http.Server {
-	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE. ACCEPTS AS LIMITATION (CREATE AN ISSUE)
+	// TODO: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE. ACCEPTS AS LIMITATION (CREATE AN ISSUE)
 	timeout := config.Config.Server.Timeout
 	gzip := config.Config.Server.GZip
 

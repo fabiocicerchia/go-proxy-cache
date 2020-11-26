@@ -23,7 +23,7 @@ func HandleHealthcheck(res http.ResponseWriter, req *http.Request) {
 	lwr.WriteHeader(http.StatusOK)
 	_ = response.WriteBody(lwr, "HTTP OK\n")
 
-	if engine.GetConn(req.Host).Ping() {
+	if conn := engine.GetConn(req.Host); conn != nil && conn.Ping() {
 		_ = response.WriteBody(lwr, "REDIS OK\n")
 	} else {
 		_ = response.WriteBody(lwr, "REDIS KO\n")

@@ -21,6 +21,7 @@ func GetConn(connName string) *client.RedisClient {
 		return conn
 	}
 
+	// TODO: LOG
 	return nil
 }
 

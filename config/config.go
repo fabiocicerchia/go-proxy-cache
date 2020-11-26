@@ -383,5 +383,6 @@ func CB(name string) *gobreaker.CircuitBreaker {
 		return val
 	}
 
+	// TODO: LOG
 	return nil
 }
