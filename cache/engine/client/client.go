@@ -87,6 +87,10 @@ func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) 
 func (rdb *RedisClient) Get(key string) (string, error) {
 	value, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
 		value, err := rdb.Client.Get(ctx, key).Result()
+		if value == "" && err != nil && err.Error() == "redis: nil" {
+			return "", nil
+		}
+
 		return value, err
 	})
 
