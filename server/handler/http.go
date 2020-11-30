@@ -11,6 +11,7 @@ package handler
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -78,11 +79,13 @@ func serveReverseProxy(
 	lwr *response.LoggedResponseWriter,
 	req *http.Request,
 ) {
+	domainConfig := config.DomainConf(req.Host)
+
 	FixRequest(target, forwarding, req)
 
 	proxyURL := &url.URL{
-		Scheme: target.Scheme,
-		Host:   target.Host,
+		Scheme: req.URL.Scheme,
+		Host:   req.URL.Host,
 	}
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
@@ -90,6 +93,11 @@ func serveReverseProxy(
 	log.Debugf("Req Host: %s", req.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	proxy.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: domainConfig.Server.Forwarding.InsecureBridge,
+		},
+	}
 	proxy.ServeHTTP(lwr, req)
 
 	stored, err := storage.StoreGeneratedPage(*req, *lwr)
@@ -145,7 +153,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if req.URL.Scheme == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
+	if getSchemeFromRquest(*req) == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
 		RedirectToHTTPS(lwr.ResponseWriter, req, domainConfig.Server.Forwarding.RedirectStatusCode)
 		return
 	}

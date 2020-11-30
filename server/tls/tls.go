@@ -26,6 +26,10 @@ type CertificatePair struct {
 	Key  string
 }
 
+var httpsDomains []string
+var certificates map[string]*crypto_tls.Certificate
+var tlsConfig *crypto_tls.Config
+
 // ServerOverrides - Overrides the http.Server configuration for TLS.
 func ServerOverrides(
 	domain string,
@@ -34,7 +38,7 @@ func ServerOverrides(
 ) {
 	domainConfig := config.DomainConf(domain)
 
-	tlsConfig, err := Config(certPair.Cert, certPair.Key)
+	tlsConfig, err := Config(domain, certPair.Cert, certPair.Key)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -50,7 +54,7 @@ func ServerOverrides(
 }
 
 // Config - Returns a TLS configuration.
-func Config(certFile string, keyFile string) (*crypto_tls.Config, error) {
+func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config, error) {
 	cert, err := crypto_tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err
@@ -64,10 +68,20 @@ func Config(certFile string, keyFile string) (*crypto_tls.Config, error) {
 		MinVersion:               config.Config.Server.TLS.Override.MinVersion,
 		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
 		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
-		Certificates:             []crypto_tls.Certificate{cert},
+		GetCertificate:           returnCert,
+
 	}
 
+	if len(certificates) == 0 {
+		certificates = make(map[string]*crypto_tls.Certificate)
+	}
+	certificates[domain] = &cert
+
 	return tlsConfig, nil
+}
+
+func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate, error) {
+	return certificates[helloInfo.ServerName], nil
 }
 
 // InitCertManager - Initialise the Certification Manager for auto generation.
@@ -78,12 +92,15 @@ func InitCertManager(host string, email string) *autocert.Manager {
 		return nil
 	}
 
+	httpsDomains = append(httpsDomains, host)
+
 	certManager := &autocert.Manager{
 		Cache:      autocert.DirCache(cacheDir),
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(host),
+		HostPolicy: autocert.HostWhitelist(httpsDomains...),
 		Email:      email,
 	}
 
 	return certManager
 }
+

@@ -24,8 +24,8 @@ server:
     # pair of files. The files must contain PEM encoded data. The certificate
     # file may contain intermediate certificates following the leaf certificate
     # to form a certificate chain.
-    certfile: server.pem
-    keyfile: server.key
+    certfile: ~
+    keyfile: ~
     # WARNING: INTERNAL SERVER BEHAVIOUR
     override:
       # CipherSuites is a list of supported cipher suites for TLS versions up to
@@ -158,6 +158,11 @@ server:
     # Forces redirect from HTTP to HTTPS.
     # Default: false
     http2https: true
+    # This allows to have communication between the proxy and the upstream in
+    # case of invalid TLS certificate.
+    # Can be disabled in the global config.
+    # Default: false
+    insecure_bridge: false
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirectstatuscode: 301

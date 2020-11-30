@@ -41,7 +41,7 @@ func CreateServerConfig(domain string, port string) *http.Server {
 
 	muxWithMiddlewares := http.TimeoutHandler(
 		mux,
-		time.Duration(timeout.Handler)*time.Second,
+		timeout.Handler,
 		"Timed Out\n",
 	)
 
@@ -77,7 +77,7 @@ func GetServerConfigs(domain string, domainConfig *config.Configuration) (*http.
 }
 
 // StartDomainServer - Configures and start listinening for a particular domain.
-func StartDomainServer(domain string, servers map[string]*http.Server) {
+func StartDomainServer(domain string, serversHTTP map[string]*http.Server, serversHTTPS map[string]*http.Server) {
 	domainConfig := config.DomainConf(domain)
 	if domainConfig == nil {
 		log.Errorf("Missing configuration for %s.", domain)
@@ -94,20 +94,11 @@ func StartDomainServer(domain string, servers map[string]*http.Server) {
 	// config server http & https
 	srvHTTP, srvHTTPS := GetServerConfigs(domain, domainConfig)
 
-	// start server http & https
-	if _, ok := servers[domainConfig.Server.Port.HTTP]; !ok {
-		servers[domainConfig.Server.Port.HTTP] = srvHTTP
-
-		go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
-	}
-	if _, ok := servers[domainConfig.Server.Port.HTTPS]; !ok {
-		servers[domainConfig.Server.Port.HTTPS] = srvHTTPS
-
-		go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
-	}
-
 	// lb
 	balancer.InitRoundRobin(domain, domainConfig.Server.Forwarding.Endpoints)
+
+	serversHTTP[domainConfig.Server.Port.HTTP] = srvHTTP
+	serversHTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
 }
 
 // Start the GoProxyCache server.
@@ -116,9 +107,18 @@ func Start(configFile string) {
 	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
 
-	servers := make(map[string]*http.Server)
+	serversHTTP := make(map[string]*http.Server)
+	serversHTTPS := make(map[string]*http.Server)
 	for _, domain := range config.GetDomains() {
-		StartDomainServer(domain, servers)
+		StartDomainServer(domain, serversHTTP, serversHTTPS)
+	}
+
+	// start server http & https
+	for _, srvHTTP := range serversHTTP {
+		go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
+	}
+	for _, srvHTTPS := range serversHTTPS {
+		go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
 	}
 
 	// Wait for an interrupt
@@ -130,7 +130,13 @@ func Start(configFile string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for k, v := range servers {
+	for k, v := range serversHTTP {
+		err := v.Shutdown(ctx)
+		if err != nil {
+			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+		}
+	}
+	for k, v := range serversHTTPS {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)

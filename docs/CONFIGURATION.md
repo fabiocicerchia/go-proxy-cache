@@ -194,6 +194,11 @@ server:
     # Forces redirect from HTTP to HTTPS.
     # Default: false
     http2https: true
+    # This allows to have communication between the proxy and the upstream in
+    # case of invalid TLS certificate.
+    # Can be disabled in the global config.
+    # Default: false
+    insecure_bridge: false
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirectstatuscode: 301
