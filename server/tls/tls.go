@@ -11,6 +11,7 @@ package tls
 
 import (
 	crypto_tls "crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -69,7 +70,6 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
 		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
 		GetCertificate:           returnCert,
-
 	}
 
 	if len(certificates) == 0 {
@@ -77,11 +77,26 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 	}
 	certificates[domain] = &cert
 
+	// GetCertificate returns a Certificate based on the given
+	// ClientHelloInfo. It will only be called if the client supplies SNI
+	// information or if Certificates is empty.
+	//
+	// If GetCertificate is nil or returns nil, then the certificate is
+	// retrieved from NameToCertificate. If NameToCertificate is nil, the
+	// best element of Certificates will be used.
+	for _, c := range certificates {
+		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
+	}
+
 	return tlsConfig, nil
 }
 
 func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate, error) {
-	return certificates[helloInfo.ServerName], nil
+	log.Debugf("HelloInfo: %v\n", helloInfo)
+	if val, ok := certificates[helloInfo.ServerName]; ok {
+		return val, nil
+	}
+	return nil, fmt.Errorf("missing certificate for %s", helloInfo.ServerName)
 }
 
 // InitCertManager - Initialise the Certification Manager for auto generation.
@@ -103,4 +118,3 @@ func InitCertManager(host string, email string) *autocert.Manager {
 
 	return certManager
 }
-

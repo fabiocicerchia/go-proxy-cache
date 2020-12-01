@@ -154,7 +154,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 
 	value, err := rdb.Get("test")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 }
 
 func TestDel(t *testing.T) {
@@ -192,7 +192,7 @@ func TestDel(t *testing.T) {
 
 	value, err = rdb.Get("test")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 }
 
 func TestExpire(t *testing.T) {
@@ -228,7 +228,7 @@ func TestExpire(t *testing.T) {
 
 	value, err := rdb.Get("test")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 }
 
 func TestPushList(t *testing.T) {
@@ -309,13 +309,13 @@ func TestDelWildcard(t *testing.T) {
 
 	value, err = rdb.Get("test_1")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 	value, err = rdb.Get("test_2")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 	value, err = rdb.Get("test_3")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 }
 
 func TestPurgeAll(t *testing.T) {
@@ -366,13 +366,13 @@ func TestPurgeAll(t *testing.T) {
 
 	value, err = rdb.Get("test_1")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 	value, err = rdb.Get("test_2")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 	value, err = rdb.Get("test_3")
 	assert.Equal(t, "", value)
-	assert.Equal(t, "redis: nil", err.Error())
+	assert.Nil(t, err)
 }
 
 func TestEncodeDecode(t *testing.T) {

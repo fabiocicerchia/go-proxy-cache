@@ -23,12 +23,14 @@ import (
 var logLevel log.Level
 var configFile string
 var logFile string
+var verboseFlag *bool
 
 // AppVersion - The go-proxy-cache's version
 const AppVersion = "0.1.0"
 
 func initFlags() {
 	debug := flag.Bool("debug", false, "enable debug")
+	verboseFlag = flag.Bool("verbose", false, "enable verbose")
 	version := flag.Bool("version", false, "display version")
 	flag.StringVar(&configFile, "config", "config.yml", "config file")
 	flag.StringVar(&logFile, "log", "", "log file (default stdout)")
@@ -61,7 +63,7 @@ func initLogs() {
 		TimestampFormat: "2006/01/02 15:04:05",
 	})
 
-	log.SetReportCaller(logLevel == log.DebugLevel)
+	log.SetReportCaller(*verboseFlag)
 	log.SetLevel(logLevel)
 
 	log.SetOutput(os.Stdout)

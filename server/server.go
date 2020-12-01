@@ -29,7 +29,7 @@ import (
 
 // CreateServerConfig - Generates the http.Server configuration.
 func CreateServerConfig(domain string, port string) *http.Server {
-	// TODO: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE. ACCEPTS AS LIMITATION (CREATE AN ISSUE)
+	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	timeout := config.Config.Server.Timeout
 	gzip := config.Config.Server.GZip
 
@@ -46,11 +46,9 @@ func CreateServerConfig(domain string, port string) *http.Server {
 	)
 
 	if gzip {
-		// TODO: COVERAGE
 		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
 	}
 
-	// TODO: TEST timeouts with custom handlers
 	server := &http.Server{
 		Addr:              ":" + port,
 		ReadTimeout:       time.Duration(timeout.Read) * time.Second,

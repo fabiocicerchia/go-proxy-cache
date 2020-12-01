@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
 )
 
@@ -361,7 +361,8 @@ func DomainConf(domain string) *Configuration {
 		}
 	}
 
-	if Config.Server.Forwarding.Host == cleanedDomain {
+	// TODO: NOT SO SURE ABOUT cleanedDomain == "localhost"
+	if Config.Server.Forwarding.Host == cleanedDomain || cleanedDomain == "localhost" {
 		return &Config
 	}
 
@@ -397,6 +398,6 @@ func CB(name string) *gobreaker.CircuitBreaker {
 		return val
 	}
 
-	// TODO: LOG
+	log.Warnf("Missing circuit breaker for %s", name)
 	return nil
 }

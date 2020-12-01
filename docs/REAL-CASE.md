@@ -1,37 +1,47 @@
-# Configuration
+# Real World Case
 
-> ![Timeouts](https://blog.cloudflare.com/content/images/2016/06/Timeouts-001.png)
->
-> - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+## Configuration
 
-## Environment Variables
+### docker-compose
 
-- `SERVER_HTTP_PORT` = 80
-- `SERVER_HTTPS_PORT` = 443
-- `TLS_AUTO_CERT` = 0
-- `TLS_EMAIL`
-- `TLS_CERT_FILE`
-- `TLS_KEY_FILE`
-- `TIMEOUT_READ` = 5s
-- `TIMEOUT_READ_HEADER` = 2s
-- `TIMEOUT_WRITE` = 5s
-- `TIMEOUT_IDLE` = 20s
-- `TIMEOUT_HANDLER` = 5s
-- `FORWARD_HOST`
-- `FORWARD_SCHEME`
-- `LB_ENDPOINT_LIST`
-- `HTTP2HTTPS` = 0
-- `REDIRECT_STATUS_CODE` = 301
-- `GZIP_ENABLED` = 0
-- `REDIS_HOST`
-- `REDIS_PASSWORD`
-- `REDIS_PORT` = 6379
-- `REDIS_DB` = 0
-- `DEFAULT_TTL` = 0
-- `CACHE_ALLOWED_STATUSES` = 200,301,302
-- `CACHE_ALLOWED_METHODS` = HEAD,GET
+```yaml
+version: '3.7'
 
-## YAML
+services:
+  goproxycache:
+    image: fabiocicerchia/go-proxy-cache:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config.yml:/app/config.yml
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
+  nginx:
+    image: nginx:1.19.5-alpine
+    restart: always
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - [...]
+
+  phpfpm:
+    image: php:7.4-fpm-alpine
+    restart: always
+    ports:
+      - "9000:9000"
+    volumes:
+      - [...]
+```
+
+### go-proxy-cache
 
 ```yaml
 ### GLOBAL CONFIGURATION
@@ -116,9 +126,9 @@ server:
         - 52393 # TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
         - 52392 # TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
         # needed by HTTP/2
-        - 4865 # TLS_AES_128_GCM_SHA256
         - 49199 # TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
         - 49195 # TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - 4865 # TLS_AES_128_GCM_SHA256
       # MinVersion contains the minimum TLS version that is acceptable.
       # If zero, TLS 1.0 is currently taken as the minimum.
       #   769 = VersionTLS10
@@ -174,7 +184,7 @@ server:
     # ara zero, there is no timeout.
     idle: 20s
     # It runs the handler with the given time limit.
-    handler: 5s
+    handler: 15s
   # --- FORWARDING
   forwarding:
     # Hostname to be used for requests forwarding.
@@ -182,17 +192,15 @@ server:
     # Port to be used for requests forwarding.
     # Default: incoming connection.
     # Values: 80, 443.
-    port: 443
+    port: 8443
     # Endpoint scheme to be used when forwarding traffic.
     # Default: incoming connection.
     # Values: http, https.
     scheme: https
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
-    # Allowed formats: IPv4, IPv4:port
     endpoints:
       - 127.0.0.1
-      - 127.0.1.2:443
     # Forces redirect from HTTP to HTTPS.
     # Default: false
     http2https: true
@@ -208,7 +216,7 @@ server:
 # --- CACHE
 cache:
   # --- REDIS SERVER
-  host: localhost
+  host: 127.0.0.1
   port: "6379"
   password: ~
   db: 0
@@ -231,7 +239,6 @@ cache:
     - 200
     - 301
     - 302
-  # Allows caching for different HTTP methods.
   # If the client request method is listed in this directive then the response
   # will be cached. "GET" and "HEAD" methods are always added to the list,
   # though it is recommended to specify them explicitly.
@@ -245,38 +252,143 @@ cache:
 circuitbreaker:
   # Will start evaluating the failures after n requests as defined by the
   # threshold.
-  threshold: 0
+  threshold: 1
   # It'll open the circuit after `threshold` requests which are greater or
   # equal to the failure rate defined
   # (total failures / total requests).
-  failurerate: 0
+  failurerate: 2
   # Interval is the cyclic period of the closed state
   # for the CircuitBreaker to clear the internal Counts.
   # If Interval is 0, the CircuitBreaker doesn't clear internal Counts during
   # the closed state.
-  interval: 0s
+  interval: 1ms
   # Timeout is the period of the open state,
   # after which the state of the CircuitBreaker becomes half-open.
   # If Timeout is 0, the timeout value of the CircuitBreaker is set to 60
   # seconds.
-  timeout: 0s
+  timeout: 1ms
   # MaxRequests is the maximum number of requests allowed to pass through
   # when the CircuitBreaker is half-open.
   # If MaxRequests is 0, the CircuitBreaker allows only 1 request.
-  maxrequests: 0
+  maxrequests: 1
 
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################
 domains:
-  example_com:
+  fabiocicerchia:
     server:
       forwarding:
-        host: example.com
+        host: fabiocicerchia.it
+      tls:
+        certfile: /etc/letsencrypt/live/fabiocicerchia.it/fullchain.pem
+        keyfile: /etc/letsencrypt/live/fabiocicerchia.it/privkey.pem
 
-  example_org:
+  www_fabiocicerchia:
     server:
       forwarding:
-        host: example.org
+        host: www.fabiocicerchia.it
+      tls:
+        certfile: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/fullchain.pem
+        keyfile: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/privkey.pem
 ```
 
-In order to generate manually (or renew) the certificates check the documentation in [docs/TLS.md](docs/TLS.md).
+## SSL Report
+
+![Qualys SSL Labs Report](ssl_report.png)
+
+### Protocols
+
+| Protocols | Supported | 
+|-----------|-----------|
+| TLS 1.3 | Yes | 
+| TLS 1.2 | Yes | 
+| TLS 1.1 | No | 
+| TLS 1.0 | No | 
+| SSL 3 | No | 
+| SSL 2 | No | 
+
+### Cipher Suites
+
+| TLS 1.3 (suites in server-preferred order) | | 
+|-|-|
+| TLS_AES_128_GCM_SHA256 (0x1301)    (eq. 3072 bits RSA)  |128 | 
+| TLS_CHACHA20_POLY1305_SHA256 (0x1303)    (eq. 3072 bits RSA)  |256 | 
+| TLS_AES_256_GCM_SHA384 (0x1302)    (eq. 3072 bits RSA)  |256 | 
+
+| TLS 1.2 (suites in server-preferred order) | | 
+|-|-|
+| TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 (0xc030)    (eq. 3072 bits RSA)  |256 | 
+| TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 (0xcca8)    (eq. 3072 bits RSA)  |256 | 
+| TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xc02f)    (eq. 3072 bits RSA)  |128 | 
+
+### Handshake Simulation
+
+| | | | |
+|-|-|-|-|
+| Android 4.4.2 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Android 5.0.0 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 |
+| Android 6.0 | RSA 2048 (SHA256) | TLS 1.2 > http/1.1 |  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 |
+| Android 7.0 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Android 8.0 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Android 8.1 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Android 9.0 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| BingPreview Jan 2015 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Chrome 49 / XP SP3 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 |
+| Chrome 69 / Win 7 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Chrome 70 / Win 10 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Chrome 80 / Win 10 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Firefox 31.3.0 ESR / Win 7 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 |
+| Firefox 47 / Win 7 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 |
+| Firefox 49 / XP SP3 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Firefox 62 / Win 7 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Firefox 73 / Win 10 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Googlebot Feb 2018 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| IE 11 / Win 7 Server sent fatal alert: handshake_failure | 
+| IE 11 / Win 8.1 Server sent fatal alert: handshake_failure | 
+| IE 11 / Win Phone 8.1 Server sent fatal alert: handshake_failure | 
+| IE 11 / Win Phone 8.1 Update Server sent fatal alert: handshake_failure | 
+| IE 11 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Edge 15 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Edge 16 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Edge 18 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Edge 13 / Win Phone 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Java 8u161 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Java 11.0.3 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Java 12.0.1 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| OpenSSL 1.0.1l | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| OpenSSL 1.0.2s | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| OpenSSL 1.1.0k | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| OpenSSL 1.1.1c | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Safari 6 / iOS 6.0.1 | Server sent fatal alert: handshake_failure | 
+| Safari 7 / iOS 7.1 | Server sent fatal alert: handshake_failure | 
+| Safari 7 / OS X 10.9 | Server sent fatal alert: handshake_failure | 
+| Safari 8 / iOS 8.4 | Server sent fatal alert: handshake_failure | 
+| Safari 8 / OS X 10.10 | Server sent fatal alert: handshake_failure | 
+| Safari 9 / iOS 9 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Safari 9 / OS X 10.11 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Safari 10 / iOS 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Safari 10 / OS X 10.12 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Safari 12.1.2 / MacOS 10.14.6 Beta | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Safari 12.1.1 / iOS 12.3.1 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
+| Apple ATS 9 / iOS 9 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| Yahoo Slurp Jan 2015 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+| YandexBot Jan 2015 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
+
+#### Not simulated clients (Protocol mismatch)
+
+- Android 2.3.7
+- Android 4.0.4
+- Android 4.1.1
+- Android 4.2.2
+- Android 4.3
+- Baidu Jan 2015
+- IE 6 / XP
+- IE 7 / Vista
+- IE 8 / XP
+- IE 8-10 / Win 7
+- IE 10 / Win Phone 8.0
+- Java 6u45
+- Java 7u25
+- OpenSSL 0.9.8y
+- Safari 5.1.9 / OS X 10.6.8
+- Safari 6.0.4 / OS X 10.8.4 

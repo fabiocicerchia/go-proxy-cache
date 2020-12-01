@@ -153,8 +153,10 @@ server:
     scheme: https
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
+    # Allowed formats: IPv4, IPv4:port
     endpoints:
       - 127.0.0.1
+      - 127.0.1.2:443
     # Forces redirect from HTTP to HTTPS.
     # Default: false
     http2https: true
@@ -193,6 +195,7 @@ cache:
     - 200
     - 301
     - 302
+  # Allows caching for different HTTP methods.
   # If the client request method is listed in this directive then the response
   # will be cached. "GET" and "HEAD" methods are always added to the list,
   # though it is recommended to specify them explicitly.
