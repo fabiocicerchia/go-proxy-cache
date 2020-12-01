@@ -33,6 +33,7 @@ import (
 func getOverridePort(host string, port string, scheme string) string {
 	// if there's already a port it must have priority
 	if strings.Contains(host, ":") {
+		// TODO: COVERAGE
 		return ""
 	}
 
@@ -57,6 +58,7 @@ func getOverridePort(host string, port string, scheme string) string {
 // Ref: https://github.com/golang/go/issues/28940
 func getSchemeFromRequest(req http.Request) string {
 	if req.TLS != nil {
+		// TODO: COVERAGE
 		return "https"
 	}
 	return "http"
