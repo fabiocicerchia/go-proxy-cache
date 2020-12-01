@@ -146,7 +146,7 @@ func getDefaultConfig() Configuration {
 				Handler:    5 * time.Second,
 			},
 			Forwarding: Forward{
-				HTTP2HTTPS:         true,
+				HTTP2HTTPS:         false,
 				InsecureBridge:     false,
 				RedirectStatusCode: 301,
 			},
