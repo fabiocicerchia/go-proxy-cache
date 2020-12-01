@@ -27,6 +27,11 @@ import (
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 )
 
+type Servers struct {
+	HTTP  map[string]*http.Server
+	HTTPS map[string]*http.Server
+}
+
 // CreateServerConfig - Generates the http.Server configuration.
 func CreateServerConfig(domain string, port string) *http.Server {
 	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
@@ -62,7 +67,7 @@ func CreateServerConfig(domain string, port string) *http.Server {
 }
 
 // GetServerConfigs - Returns a http.Server configuration for HTTP and HTTPS.
-func GetServerConfigs(domain string, domainConfig *config.Configuration) (*http.Server, *http.Server) {
+func (s *Servers) AddServerConfigs(domain string, domainConfig *config.Configuration) {
 	srvHTTP := CreateServerConfig(domain, domainConfig.Server.Port.HTTP)
 
 	srvHTTPS := CreateServerConfig(domain, domainConfig.Server.Port.HTTPS)
@@ -71,11 +76,12 @@ func GetServerConfigs(domain string, domainConfig *config.Configuration) (*http.
 		Key:  domainConfig.Server.TLS.KeyFile,
 	})
 
-	return srvHTTP, srvHTTPS
+	s.HTTP[domainConfig.Server.Port.HTTP] = srvHTTP
+	s.HTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
 }
 
 // StartDomainServer - Configures and start listinening for a particular domain.
-func StartDomainServer(domain string, serversHTTP map[string]*http.Server, serversHTTPS map[string]*http.Server) {
+func (s *Servers) StartDomainServer(domain string) {
 	domainConfig := config.DomainConf(domain)
 	if domainConfig == nil {
 		log.Errorf("Missing configuration for %s.", domain)
@@ -90,13 +96,10 @@ func StartDomainServer(domain string, serversHTTP map[string]*http.Server, serve
 	logger.LogSetup(domainConfig.Server)
 
 	// config server http & https
-	srvHTTP, srvHTTPS := GetServerConfigs(domain, domainConfig)
+	s.AddServerConfigs(domain, domainConfig)
 
 	// lb
 	balancer.InitRoundRobin(domain, domainConfig.Server.Forwarding.Endpoints)
-
-	serversHTTP[domainConfig.Server.Port.HTTP] = srvHTTP
-	serversHTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
 }
 
 // Start the GoProxyCache server.
@@ -105,17 +108,19 @@ func Start(configFile string) {
 	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
 
-	serversHTTP := make(map[string]*http.Server)
-	serversHTTPS := make(map[string]*http.Server)
+	servers := &Servers{
+		HTTP:  make(map[string]*http.Server),
+		HTTPS: make(map[string]*http.Server),
+	}
 	for _, domain := range config.GetDomains() {
-		StartDomainServer(domain, serversHTTP, serversHTTPS)
+		servers.StartDomainServer(domain)
 	}
 
 	// start server http & https
-	for _, srvHTTP := range serversHTTP {
+	for _, srvHTTP := range servers.HTTP {
 		go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
 	}
-	for _, srvHTTPS := range serversHTTPS {
+	for _, srvHTTPS := range servers.HTTPS {
 		go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
 	}
 
@@ -128,13 +133,13 @@ func Start(configFile string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	for k, v := range serversHTTP {
+	for k, v := range servers.HTTP {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
-	for k, v := range serversHTTPS {
+	for k, v := range servers.HTTPS {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)

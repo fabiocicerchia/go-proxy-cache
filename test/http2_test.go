@@ -33,7 +33,7 @@ func TestHTTP2ClientCall(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "https://localhost:8443/", nil)
+	req, err := http.NewRequest("GET", "https://127.0.0.1:8443/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
@@ -71,7 +71,7 @@ func TestHTTP2ClientCallToMissingDomain(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest("GET", "https://localhost:8443/", nil)
+	req, err := http.NewRequest("GET", "https://127.0.0.1:8443/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.google.com"
 	res, err := client.Do(req)

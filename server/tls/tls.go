@@ -77,13 +77,10 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 	}
 	certificates[domain] = &cert
 
-	// GetCertificate returns a Certificate based on the given
-	// ClientHelloInfo. It will only be called if the client supplies SNI
-	// information or if Certificates is empty.
-	//
 	// If GetCertificate is nil or returns nil, then the certificate is
 	// retrieved from NameToCertificate. If NameToCertificate is nil, the
 	// best element of Certificates will be used.
+	// Ref: https://golang.org/pkg/crypto/tls/#Config.GetCertificate
 	for _, c := range certificates {
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
 	}

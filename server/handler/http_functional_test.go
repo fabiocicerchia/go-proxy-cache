@@ -310,6 +310,9 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
+	// This is because there's no client sending their certificate, so the handshake will be broken with a
+	// `remote error: tls: bad certificate`.
+	// More details on: https://www.prakharsrivastav.com/posts/from-http-to-https-using-go/
 	config.Config.Server.Forwarding.InsecureBridge = true
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
