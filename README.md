@@ -48,13 +48,12 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 - **HTTP/2 Support**
 - **SSL/TLS Certificates via ACME**, provides automatic generation of SSL/TLS certificates from [Let's Encrypt](https://letsencrypt.org/) and any other ACME-based CA.
-- **HTTP to HTTPS Redirects**
 - **Using your own SSL/TLS Certificates**, optional.
 
 ### Reliability
 
-- **Healthcheck Endpoint (`/healthcheck`)**
-- **Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`**
+- **Healthcheck Endpoint**, exposes the route `/healthcheck`.
+- **Respecting HTTP Cache Headers**, `Vary`, `Cache-Control` and `Expires`.
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
 - **Cache Circuit Breaker**, bypassing Redis when not available.
 
@@ -64,7 +63,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 ### Customisations
 
-- **HTTP 2 HTTPS Redirects**, optional, status code to be used when redirecting HTTP to HTTPS.
+- **HTTP to HTTPS Redirects**, optional, status code to be used when redirecting HTTP to HTTPS.
 - **GZip Compression**, optional.
 - **Server Timeouts**, it is possible to configure in details the server overall timeouts (read, write, headers, handler, idle).
 - **Fine tuning circuit-breaker and TLS settings**, it is possible to adjust the settings about thresholds, timeouts and failure rate.
