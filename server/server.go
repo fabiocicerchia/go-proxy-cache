@@ -118,10 +118,10 @@ func Start(configFile string) {
 
 	// start server http & https
 	for _, srvHTTP := range servers.HTTP {
-		go func() { log.Fatal(srvHTTP.ListenAndServe()) }()
+		go func(srv *http.Server) { log.Fatal(srv.ListenAndServe()) }(srvHTTP)
 	}
 	for _, srvHTTPS := range servers.HTTPS {
-		go func() { log.Fatal(srvHTTPS.ListenAndServeTLS("", "")) }()
+		go func(srv *http.Server) { log.Fatal(srv.ListenAndServeTLS("", "")) }(srvHTTPS)
 	}
 
 	// Wait for an interrupt

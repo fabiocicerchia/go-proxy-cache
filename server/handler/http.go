@@ -103,11 +103,13 @@ func serveReverseProxy(
 	log.Debugf("Req Host: %s", req.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
+	// It can be ignored as it is customisable, but the default is false.
 	proxy.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: domainConfig.Server.Forwarding.InsecureBridge,
 		},
-	}
+	} // #nosec
 	proxy.ServeHTTP(lwr, req)
 
 	stored, err := storage.StoreGeneratedPage(*req, *lwr)

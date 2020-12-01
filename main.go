@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	log "github.com/sirupsen/logrus"
 
@@ -48,7 +49,7 @@ func initFlags() {
 }
 
 func getLogFileWriter(logFile string) *bufio.Writer {
-	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}

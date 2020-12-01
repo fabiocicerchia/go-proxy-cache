@@ -37,15 +37,16 @@ func ServerOverrides(
 	server *http.Server,
 	certPair *CertificatePair,
 ) {
+	var err error
 	domainConfig := config.DomainConf(domain)
 
-	tlsConfig, err := Config(domain, certPair.Cert, certPair.Key)
+	tlsConfig, err = Config(domain, certPair.Cert, certPair.Key)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
 	server.TLSConfig = tlsConfig
-	// server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 
 	if domainConfig.Server.TLS.Auto {
 		certManager := InitCertManager(domainConfig.Server.Forwarding.Host, domainConfig.Server.TLS.Email)
@@ -61,6 +62,8 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 		return nil, err
 	}
 
+	// G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
+	// It can be ignored as it is customisable, but the default is TLSv1.2.
 	tlsConfig := &crypto_tls.Config{
 		// Causes servers to use Go's default ciphersuite preferences,
 		// which are tuned to avoid attacks. Does nothing on clients.
@@ -70,7 +73,7 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
 		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
 		GetCertificate:           returnCert,
-	}
+	} // #nosec
 
 	if len(certificates) == 0 {
 		certificates = make(map[string]*crypto_tls.Certificate)
