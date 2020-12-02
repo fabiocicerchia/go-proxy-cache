@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
 )
 
@@ -69,6 +69,7 @@ type Forward struct {
 	Port               string
 	Scheme             string
 	Endpoints          []string
+	InsecureBridge     bool
 	HTTP2HTTPS         bool
 	RedirectStatusCode int
 }
@@ -145,7 +146,8 @@ func getDefaultConfig() Configuration {
 				Handler:    5 * time.Second,
 			},
 			Forwarding: Forward{
-				HTTP2HTTPS:         true,
+				HTTP2HTTPS:         false,
+				InsecureBridge:     false,
 				RedirectStatusCode: 301,
 			},
 			GZip: false,
@@ -300,6 +302,7 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	forwardingN := newConf.Server.Forwarding
 	forwardingO := overrides.Server.Forwarding
 	forwardingN.Host = utils.Coalesce(forwardingO.Host, forwardingN.Host, forwardingO.Host == "").(string)
+	forwardingN.Port = utils.Coalesce(forwardingO.Port, forwardingN.Port, forwardingO.Port == "").(string)
 	forwardingN.Scheme = utils.Coalesce(forwardingO.Scheme, forwardingN.Scheme, forwardingO.Scheme == "").(string)
 	forwardingN.Endpoints = utils.Coalesce(forwardingO.Endpoints, forwardingN.Endpoints, len(forwardingO.Endpoints) == 0).([]string)
 	forwardingN.HTTP2HTTPS = utils.Coalesce(forwardingO.HTTP2HTTPS, forwardingN.HTTP2HTTPS, !forwardingO.HTTP2HTTPS).(bool)
@@ -349,13 +352,16 @@ func GetDomains() []string {
 
 // DomainConf - Returns the configuration for the requested domain.
 func DomainConf(domain string) *Configuration {
+	domainParts := strings.Split(domain, ":")
+	cleanedDomain := domainParts[0]
+
 	for _, v := range Config.Domains {
-		if v.Server.Forwarding.Host == domain {
+		if v.Server.Forwarding.Host == cleanedDomain {
 			return &v
 		}
 	}
 
-	if Config.Server.Forwarding.Host == domain {
+	if Config.Server.Forwarding.Host == cleanedDomain {
 		return &Config
 	}
 
@@ -391,6 +397,6 @@ func CB(name string) *gobreaker.CircuitBreaker {
 		return val
 	}
 
-	// TODO: LOG
+	log.Warnf("Missing circuit breaker for %s", name)
 	return nil
 }

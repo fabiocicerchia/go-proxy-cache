@@ -56,6 +56,7 @@ func TestLogRequest(t *testing.T) {
 
 	reqMock := http.Request{
 		RemoteAddr: "127.0.0.1",
+		Host:       "example.org",
 		URL:        &url.URL{Path: "/path/to/file"},
 	}
 	reqMock.Header = make(http.Header)
@@ -75,7 +76,7 @@ func TestLogRequest(t *testing.T) {
 
 	logger.LogRequest(reqMock, lwrMock, true)
 
-	expectedOut := `time=" " level=info msg="127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true"` + "\n"
+	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true"` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 

@@ -74,7 +74,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
-	assert.Contains(t, rr.Body.String(), `<title>301 Moved Permanently</title>`)
+	assert.Contains(t, rr.Body.String(), `<a href="https://www.fabiocicerchia.it/">Moved Permanently</a>`)
 
 	tearDownHTTPFunctional()
 }
@@ -310,6 +310,11 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
+	// This is because there's no client sending their certificate, so the handshake will be broken with a
+	// `remote error: tls: bad certificate`.
+	// More details on: https://www.prakharsrivastav.com/posts/from-http-to-https-using-go/
+	config.Config.Server.Forwarding.InsecureBridge = true
+
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
 	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
@@ -326,6 +331,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
+	assert.Equal(t, "https://fabiocicerchia.it/", rr.HeaderMap["Location"][0])
 	assert.Contains(t, rr.Body.String(), `<title>301 Moved Permanently</title>`)
 
 	tearDownHTTPFunctional()

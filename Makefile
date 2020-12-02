@@ -52,25 +52,27 @@ lint: ## lint
 	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.27.0 golangci-lint run -v ./...
 
 sec: ## security scan
-	which gosec || curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s -- -b $(go env GOPATH)/bin latest
-	gosec ./...
+	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s latest
+	./bin/gosec ./...
 
 fmt: ## format code
 	gofmt -w -s .
 
 staticcheck: ## staticcheck
-	which staticcheck || go get honnef.co/go/tools/cmd/staticcheck
-	staticcheck ./...
+	wget https://github.com/dominikh/go-tools/releases/download/2020.1.6/staticcheck_linux_amd64.tar.gz
+	tar xvzf staticcheck_linux_amd64.tar.gz
+	./staticcheck/staticcheck ./...
 
 tlsfuzzer: ## tlsfuzzer
-	pip3 install --pre tlslite-ng\n
-	git clone https://github.com/tlsfuzzer/tlsfuzzer.git\n
-	cd tlsfuzzer
-	git clone https://github.com/warner/python-ecdsa .python-ecdsa
-	ln -s .python-ecdsa/src/ecdsa/ ecdsa\n
-	git clone https://github.com/tlsfuzzer/tlslite-ng .tlslite-ng\n
-	ln -s .tlslite-ng/tlslite/ tlslite\n
-	echo "127.0.0.1 www.w3.org" >> /etc/hosts
+	go run main.go &
+	echo "127.0.0.1 www.w3.org" | sudo tee -a /etc/hosts
+	pip3 install --pre tlslite-ng
+	git clone https://github.com/tlsfuzzer/tlsfuzzer
+	cd tlsfuzzer; \
+	git clone https://github.com/warner/python-ecdsa .python-ecdsa; \
+	ln -s .python-ecdsa/src/ecdsa/ ecdsa; \
+	git clone https://github.com/tlsfuzzer/tlslite-ng .tlslite-ng; \
+	ln -s .tlslite-ng/tlslite/ tlslite; \
 	PYTHONPATH=. python scripts/test-bleichenbacher-workaround.py -h www.w3.org -p 443
 
 ################################################################################

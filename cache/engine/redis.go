@@ -10,6 +10,8 @@ package engine
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	log "github.com/sirupsen/logrus"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 )
@@ -22,7 +24,7 @@ func GetConn(connName string) *client.RedisClient {
 		return conn
 	}
 
-	// TODO: LOG
+	log.Warnf("Missing connection for %s", connName)
 	return nil
 }
 

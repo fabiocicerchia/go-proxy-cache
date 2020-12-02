@@ -25,32 +25,108 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 ## Features
 
-- Full Page Caching (via Redis)
-- Load Balancing (only Round-Robin)
-- `PURGE` Method to invalidate
-- HTTP & HTTPS Forward Traffic
-- HTTP/2 Support
-- SSL/TLS Certificates via ACME
-- HTTP to HTTPS Redirects
-- Using your own SSL/TLS Certificates (optional)
-- Small, Pragmatic and Easy to Use
-- Easily Configurable (via YAML or Environment Variables)
-- Healthcheck Endpoint (`/healthcheck`)
-- Cache respecting HTTP Headers `Vary`, `Cache-Control` and `Expires`
-- Self-Contained, does not require Go, Git or any other software installed. Just run the binary or the container.
-- Tested (Unit, Functional & Linted & 0 Race Conditions Detected)
-- Support Chunking (by replicating exactly the same original amount)
-- Cache Circuit Breaker, bypassing Redis when not available
-- GZip Compression (optional)
-- Multiple domains
-- Configure log verbosity level
-- Configure error handler (stdout or file)
+### Small, Pragmatic and Easy to Use
+
+- **Dockerized**
+- **Compiled**
+- **Easily Configurable**, via YAML or Environment Variables.
+- **Self-Contained**, does not require Go, Git or any other software installed. Just run the binary or the container.
+
+### Caching
+
+- **Full Page Caching**, via Redis.
+- **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI.
+- **Support Chunking**, by replicating exactly the same original amount.
+- **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
+
+### Load Balancing
+
+- **HTTP & HTTPS Forward Traffic**
+- **Load Balancing**, uses a list of IPs/Hostnames as load balanced backend servers (supported only Round-Robin).
+
+### Security
+
+- **HTTP/2 Support**
+- **SSL/TLS Certificates via ACME**, provides automatic generation of SSL/TLS certificates from [Let's Encrypt](https://letsencrypt.org/) and any other ACME-based CA.
+- **Using your own SSL/TLS Certificates**, optional.
+
+### Reliability
+
+- **Healthcheck Endpoint**, exposes the route `/healthcheck`.
+- **Respecting HTTP Cache Headers**, `Vary`, `Cache-Control` and `Expires`.
+- **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
+- **Cache Circuit Breaker**, bypassing Redis when not available.
+
+### Scaling
+
+- **Multiple domains**, override and fine-tune the global settings per domain.
+
+### Customisations
+
+- **HTTP to HTTPS Redirects**, optional, status code to be used when redirecting HTTP to HTTPS.
+- **GZip Compression**, optional.
+- **Server Timeouts**, it is possible to configure in details the server overall timeouts (read, write, headers, handler, idle).
+- **Fine tuning circuit-breaker and TLS settings**, it is possible to adjust the settings about thresholds, timeouts and failure rate.
+- **Configure error handler**, stdout or file.
+- **Debug/Verbose mode**, it is possible to have additional levels of details by settings the flags `-verbose` or `-debug`.
 
 ## Configuration
+## YAML
 
-For more details about the server configuration check the relative documentation in [docs/CONFIGURATION.md](https://github.com/fabiocicerchia/go-proxy-cache/blob/main/docs/CONFIGURATION.md)
+This is a simple (and not comprehensive) configuration:
+```yaml
+server:
+  port:
+    http: "80"
+    https: "443"
+  tls:
+    certfile: server.pem
+    keyfile: server.key
+  forwarding:
+    host: ~
+    port: 443
+    scheme: https
+    endpoints:
+      - 127.0.0.1
+    http2https: true
+    redirectstatuscode: 301
+
+cache:
+  host: localhost
+
+domains:
+  example_com:
+    server:
+      forwarding:
+        host: example.com
+
+  example_org:
+    server:
+      forwarding:
+        host: example.org
+```
+
+For more details about the full server configuration check the relative documentation in [docs/CONFIGURATION.md](https://github.com/fabiocicerchia/go-proxy-cache/blob/main/docs/CONFIGURATION.md)
 
 ## Examples
+
+## CLI
+
+```console
+$ go-proxy-cache -h
+Usage of go-proxy-cache:
+  -config string
+        config file (default "config.yml")
+  -debug
+        enable debug
+  -log string
+        log file (default stdout)
+  -verbose
+        enable verbose
+  -version
+        display version
+[...]
+```
 
 For examples check the relative documentation in [docs/EXAMPLES.md](https://github.com/fabiocicerchia/go-proxy-cache/blob/main/docs/EXAMPLES.md)
 
@@ -72,6 +148,8 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
 - [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
 - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
+- [What Happens in a TLS Handshake? | SSL Handshake](https://www.cloudflare.com/en-gb/learning/ssl/what-happens-in-a-tls-handshake/)
+- [A step by step guide to mTLS in Go](https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go)
 
 ## License
 

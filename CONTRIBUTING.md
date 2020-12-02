@@ -25,10 +25,10 @@ Good bug reports are extremely helpful - thank you!
 Guidelines for bug reports:
 
 1. **Use the GitHub issue search** &mdash; check if the issue has already been
-  reported.
+   reported.
 
 2. **Check if the issue has been fixed** &mdash; try to reproduce it using the
-  latest `main` or development branch in the repository.
+   latest `main` or development branch in the repository.
 
 3. **Isolate the problem** &mdash; ideally create a [reduced test
    case](http://css-tricks.com/6263-reduced-test-cases/).
@@ -82,60 +82,60 @@ Adhering to the following this process is the best way to get your work
 included in the project:
 
 1. [Fork](http://help.github.com/fork-a-repo/) the project, clone your fork,
-  and configure the remotes:
+   and configure the remotes:
 
-  ```bash
-  # Clone your fork of the repo into the current directory
-  git clone https://github.com/<your-username>/go-proxy-cache
-  # Navigate to the newly cloned directory
-  cd go-proxy-cache
-  # Assign the original repo to a remote called "upstream"
-  git remote add upstream https://github.com/fabiocicerchia/go-proxy-cache
-  ```
+```bash
+# Clone your fork of the repo into the current directory
+git clone https://github.com/<your-username>/go-proxy-cache
+# Navigate to the newly cloned directory
+cd go-proxy-cache
+# Assign the original repo to a remote called "upstream"
+git remote add upstream https://github.com/fabiocicerchia/go-proxy-cache
+```
 
 2. If you cloned a while ago, get the latest changes from upstream:
 
-  ```bash
-  git checkout main
-  git pull upstream main
-  ```
+```bash
+git checkout main
+git pull upstream main
+```
 
 3. Create a new topic branch (off the main project development branch) to
-  contain your feature, change, or fix:
+   contain your feature, change, or fix:
 
-  ```bash
-  git checkout -b <topic-branch-name>
-  ```
+```bash
+git checkout -b <topic-branch-name>
+```
 
 4. Make sure to update, or add to the tests when appropriate. Patches and
-  features will not be accepted without tests. Run `npm test` to check that
-  all tests pass after you've made changes.
+   features will not be accepted without tests. Run `npm test` to check that
+   all tests pass after you've made changes.
 
 5. Commit your changes in logical chunks. Please adhere to these [git commit
-  message guidelines](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
-  or your code is unlikely be merged into the main project. Use Git's
-  [interactive rebase](https://help.github.com/articles/interactive-rebase)
-  feature to tidy up your commits before making them public.
+   message guidelines](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)
+   or your code is unlikely be merged into the main project. Use Git's
+   [interactive rebase](https://help.github.com/articles/interactive-rebase)
+   feature to tidy up your commits before making them public.
 
 6. Locally merge (or rebase) the upstream development branch into your topic branch:
 
-  ```bash
-  git pull [--rebase] upstream main
-  ```
+```bash
+git pull [--rebase] upstream main
+```
 
 7. Push your topic branch up to your fork:
 
-  ```bash
-  git push origin <topic-branch-name>
-  ```
+```bash
+git push origin <topic-branch-name>
+```
 
 8. [Open a Pull Request](https://help.github.com/articles/using-pull-requests/)
-  with a clear title and description.
+   with a clear title and description.
 
 9. If you are asked to amend your changes before they can be merged in, please
-  use `git commit --amend` (or rebasing for multi-commit Pull Requests) and
-  force push to your remote feature branch. You may also be asked to squash
-  commits.
+   use `git commit --amend` (or rebasing for multi-commit Pull Requests) and
+   force push to your remote feature branch. You may also be asked to squash
+   commits.
 
 **IMPORTANT**: By submitting a patch, you agree to license your work under the
 same license as that used by the project.

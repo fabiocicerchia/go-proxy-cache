@@ -24,8 +24,8 @@ server:
     # pair of files. The files must contain PEM encoded data. The certificate
     # file may contain intermediate certificates following the leaf certificate
     # to form a certificate chain.
-    certfile: server.pem
-    keyfile: server.key
+    certfile: ~
+    keyfile: ~
     # WARNING: INTERNAL SERVER BEHAVIOUR
     override:
       # CipherSuites is a list of supported cipher suites for TLS versions up to
@@ -153,11 +153,18 @@ server:
     scheme: https
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
+    # Allowed formats: IPv4, IPv4:port
     endpoints:
       - 127.0.0.1
+      - 127.0.1.2:443
     # Forces redirect from HTTP to HTTPS.
     # Default: false
     http2https: true
+    # This allows to have communication between the proxy and the upstream in
+    # case of invalid TLS certificate.
+    # Can be disabled in the global config.
+    # Default: false
+    insecure_bridge: false
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirectstatuscode: 301
@@ -188,6 +195,7 @@ cache:
     - 200
     - 301
     - 302
+  # Allows caching for different HTTP methods.
   # If the client request method is listed in this directive then the response
   # will be cached. "GET" and "HEAD" methods are always added to the list,
   # though it is recommended to specify them explicitly.

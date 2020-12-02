@@ -11,8 +11,6 @@ package response
 
 import (
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // CacheStatusHeader - HTTP Header for showing cache status
@@ -73,13 +71,5 @@ func WriteBody(rw http.ResponseWriter, page string) bool {
 	pageByte := []byte(page)
 	sent, err := rw.Write(pageByte)
 
-	// try again
-	if sent == 0 && err != nil {
-		log.Warnf("Failed to Write: %s (Trying again)\n", err)
-
-		sent, err = rw.Write(pageByte)
-		return sent > 0 && err == nil
-	}
-
-	return true
+	return sent > 0 && err == nil
 }

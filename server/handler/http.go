@@ -11,6 +11,7 @@ package handler
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -32,6 +33,7 @@ import (
 func getOverridePort(host string, port string, scheme string) string {
 	// if there's already a port it must have priority
 	if strings.Contains(host, ":") {
+		// TODO: COVERAGE
 		return ""
 	}
 
@@ -50,9 +52,13 @@ func getOverridePort(host string, port string, scheme string) string {
 	return portOverride
 }
 
+// For server requests the URL is parsed from the URI supplied on the
+// Request-Line as stored in RequestURI. For most requests, fields other than
+// Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
-func getSchemeFromRquest(req http.Request) string {
+func getSchemeFromRequest(req http.Request) string {
 	if req.TLS != nil {
+		// TODO: COVERAGE
 		return "https"
 	}
 	return "http"
@@ -60,15 +66,20 @@ func getSchemeFromRquest(req http.Request) string {
 
 // FixRequest - Fixes the Request in order to use the load balanced host.
 func FixRequest(url url.URL, forwarding config.Forward, req *http.Request) {
-	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRquest(*req))
+	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRequest(*req))
 	host := utils.IfEmpty(forwarding.Host, url.Host)
 
 	balancedHost := balancer.GetLBRoundRobin(forwarding.Host, url.Host)
 	overridePort := getOverridePort(balancedHost, forwarding.Port, scheme)
 
+	// The value of r.URL.Host and r.Host are almost always different. On a
+	// proxy server, r.URL.Host is the host of the target server and r.Host is
+	// the host of the proxy server itself.
+	// Ref: https://stackoverflow.com/a/42926149/888162
+	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
+
 	req.URL.Host = balancedHost + overridePort
 	req.URL.Scheme = scheme
-	req.Header.Set("X-Forwarded-Host", req.Header.Get("Host"))
 	req.Host = host
 }
 
@@ -78,11 +89,13 @@ func serveReverseProxy(
 	lwr *response.LoggedResponseWriter,
 	req *http.Request,
 ) {
+	domainConfig := config.DomainConf(req.Host)
+
 	FixRequest(target, forwarding, req)
 
 	proxyURL := &url.URL{
-		Scheme: target.Scheme,
-		Host:   target.Host,
+		Scheme: req.URL.Scheme,
+		Host:   req.URL.Host,
 	}
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
@@ -90,6 +103,13 @@ func serveReverseProxy(
 	log.Debugf("Req Host: %s", req.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
+	// It can be ignored as it is customisable, but the default is false.
+	proxy.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: domainConfig.Server.Forwarding.InsecureBridge,
+		},
+	} // #nosec
 	proxy.ServeHTTP(lwr, req)
 
 	stored, err := storage.StoreGeneratedPage(*req, *lwr)
@@ -145,7 +165,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if req.URL.Scheme == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
+	if getSchemeFromRequest(*req) == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
 		RedirectToHTTPS(lwr.ResponseWriter, req, domainConfig.Server.Forwarding.RedirectStatusCode)
 		return
 	}
@@ -167,7 +187,7 @@ func HandleRequestAndProxy(lwr *response.LoggedResponseWriter, req *http.Request
 	domainConfig := config.DomainConf(req.Host)
 	forwarding := domainConfig.Server.Forwarding
 
-	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRquest(*req))
+	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRequest(*req))
 	overridePort := getOverridePort(forwarding.Host, forwarding.Port, scheme)
 
 	proxyURL := *req.URL
