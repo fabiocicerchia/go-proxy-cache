@@ -361,8 +361,7 @@ func DomainConf(domain string) *Configuration {
 		}
 	}
 
-	// TODO: NOT SO SURE ABOUT cleanedDomain == "localhost"
-	if Config.Server.Forwarding.Host == cleanedDomain || cleanedDomain == "localhost" {
+	if Config.Server.Forwarding.Host == cleanedDomain {
 		return &Config
 	}
 
