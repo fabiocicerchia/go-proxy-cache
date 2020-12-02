@@ -4,7 +4,8 @@
 
 ![Logo](https://github.com/fabiocicerchia/go-proxy-cache/raw/main/logo_small.png)
 
-Simple Reverse Proxy with Caching, written in Go, using Redis.
+Simple Reverse Proxy with Caching, written in Go, using Redis.  
+    >>> **(semi) production-ready** <<<
 
 [![MIT License](https://img.shields.io/badge/License-MIT-lightgrey.svg?longCache=true)](LICENSE)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)

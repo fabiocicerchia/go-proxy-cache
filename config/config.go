@@ -306,6 +306,7 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	forwardingN.Scheme = utils.Coalesce(forwardingO.Scheme, forwardingN.Scheme, forwardingO.Scheme == "").(string)
 	forwardingN.Endpoints = utils.Coalesce(forwardingO.Endpoints, forwardingN.Endpoints, len(forwardingO.Endpoints) == 0).([]string)
 	forwardingN.HTTP2HTTPS = utils.Coalesce(forwardingO.HTTP2HTTPS, forwardingN.HTTP2HTTPS, !forwardingO.HTTP2HTTPS).(bool)
+	forwardingN.InsecureBridge = utils.Coalesce(forwardingO.InsecureBridge, forwardingN.InsecureBridge, !forwardingO.InsecureBridge).(bool)
 	forwardingN.RedirectStatusCode = utils.Coalesce(forwardingO.RedirectStatusCode, forwardingN.RedirectStatusCode, forwardingO.RedirectStatusCode == 0).(int)
 	newConf.Server.Forwarding = forwardingN
 

@@ -164,7 +164,7 @@ server:
     # case of invalid TLS certificate.
     # Can be disabled in the global config.
     # Default: false
-    insecure_bridge: false
+    insecurebridge: false
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirectstatuscode: 301

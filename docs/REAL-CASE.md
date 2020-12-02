@@ -11,9 +11,7 @@ services:
   goproxycache:
     image: fabiocicerchia/go-proxy-cache:latest
     restart: always
-    ports:
-      - "80:80"
-      - "443:443"
+    network_mode: host
     volumes:
       - ./config.yml:/app/config.yml
 
@@ -208,7 +206,7 @@ server:
     # case of invalid TLS certificate.
     # Can be disabled in the global config.
     # Default: false
-    insecure_bridge: false
+    insecurebridge: true
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirectstatuscode: 301

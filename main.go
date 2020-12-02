@@ -59,6 +59,7 @@ func getLogFileWriter(logFile string) *bufio.Writer {
 
 func initLogs() {
 	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
 		DisableColors:   false,
 		FullTimestamp:   true,
 		TimestampFormat: "2006/01/02 15:04:05",
