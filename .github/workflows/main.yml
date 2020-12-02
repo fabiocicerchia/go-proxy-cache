@@ -25,14 +25,14 @@ jobs:
           sudo apt-get install -y redis-server
           redis-server &
           ./bin/gen-selfsigned-cert.sh
-          ./go-proxy-cache -debug -config=config.test.yml &
+          ./go-proxy-cache -debug -config=config.sample.yml &
           make test
 
       - name: Codecov
         run: |
           redis-server &
           ./bin/gen-selfsigned-cert.sh
-          ./go-proxy-cache -debug -config=config.test.yml &
+          ./go-proxy-cache -debug -config=config.sample.yml &
           make cover
           make codecov
 

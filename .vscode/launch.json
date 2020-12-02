@@ -11,7 +11,7 @@
           "id": "config",
           "type": "promptString",
           "description": "Configuration File",
-          "default": "config.test.yml"
+          "default": "config.sample.yml"
       }
     ],
     "configurations": [
