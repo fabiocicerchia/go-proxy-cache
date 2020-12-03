@@ -157,7 +157,7 @@ func getDefaultConfig() Configuration {
 				InsecureBridge:     false,
 				RedirectStatusCode: 301,
 			},
-			GZip: false,
+			GZip:        false,
 			Healthcheck: true,
 		},
 		Cache: Cache{
@@ -176,8 +176,8 @@ func getDefaultConfig() Configuration {
 		},
 		Log: Log{
 			TimeFormat: "2006/01/02 15:04:05",
-			Format: `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
-		}
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+		},
 	}
 }
 
@@ -232,21 +232,27 @@ func getEnvConfig() Configuration {
 	}
 }
 
-func getYamlConfig(file string) Configuration {
+func getYamlConfig(file string, strict bool) (Configuration, error) {
 	YamlConfig := Configuration{}
 
 	data, err := ioutil.ReadFile(filepath.Clean(file))
 	if err != nil {
-		log.Warnf("Cannot read file %s: %s\n", file, err)
+		return YamlConfig, err
 	}
-	err = yaml.Unmarshal([]byte(data), &YamlConfig)
+
+	if strict {
+		err = yaml.UnmarshalStrict([]byte(data), &YamlConfig)
+	} else {
+		err = yaml.Unmarshal([]byte(data), &YamlConfig)
+	}
+
 	if err != nil {
-		log.Warnf("Cannot unmarshal yaml: %s\n", err)
+		return YamlConfig, err
 	}
 
 	YamlConfig.Server.Forwarding.Scheme = normalizeScheme(YamlConfig.Server.Forwarding.Scheme)
 
-	return YamlConfig
+	return YamlConfig, err
 }
 
 // InitConfigFromFileOrEnv - Init the configuration in sequence: from a YAML file, from environment variables,
@@ -255,8 +261,12 @@ func InitConfigFromFileOrEnv(file string) {
 	Config = Configuration{}
 	Config = CopyOverWith(Config, getDefaultConfig())
 	Config = CopyOverWith(Config, getEnvConfig())
-	YamlConfig := getYamlConfig(file)
-	Config = CopyOverWith(Config, YamlConfig)
+	YamlConfig, err := getYamlConfig(file, false)
+	if err == nil {
+		Config = CopyOverWith(Config, YamlConfig)
+	} else {
+		log.Warnf("Cannot unmarshal YAML: %s\n", err)
+	}
 
 	// allow only the config file to specify overrides per domain
 	Config.Domains = YamlConfig.Domains
@@ -272,6 +282,12 @@ func InitConfigFromFileOrEnv(file string) {
 		}
 		Config.Domains = domains
 	}
+}
+
+// Validate - Validate a YAML config file is syntactically valid.
+func Validate(file string) (bool, error) {
+	_, err := getYamlConfig(file, true)
+	return err != nil, err
 }
 
 // CopyOverWith - Copies the Configuration over another (preserving not defined settings).

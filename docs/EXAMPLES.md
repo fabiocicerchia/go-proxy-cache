@@ -11,6 +11,8 @@ Usage of go-proxy-cache:
         enable debug
   -log string
         log file (default stdout)
+  -test
+        test configuration
   -verbose
         enable verbose
   -version

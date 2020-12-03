@@ -18,32 +18,48 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server"
 )
 
 var logLevel log.Level
 var configFile string
 var logFile string
-var verboseFlag *bool
+var verboseFlag bool
+var testFlag bool
 
 // AppVersion - The go-proxy-cache's version
 const AppVersion = "0.1.0"
 
 func initFlags() {
-	debug := flag.Bool("debug", false, "enable debug")
-	verboseFlag = flag.Bool("verbose", false, "enable verbose")
-	version := flag.Bool("version", false, "display version")
+	var debug, version bool
+
+	flag.BoolVar(&debug, "debug", false, "enable debug")
+	flag.BoolVar(&testFlag, "test", false, "test configuration")
+	flag.BoolVar(&verboseFlag, "verbose", false, "enable verbose")
+	flag.BoolVar(&version, "version", false, "display version")
 	flag.StringVar(&configFile, "config", "config.yml", "config file")
 	flag.StringVar(&logFile, "log", "", "log file (default stdout)")
+
 	flag.Parse()
 
-	if *version {
+	if version {
 		fmt.Println(AppVersion)
 		os.Exit(0)
 	}
 
+	if testFlag {
+		if _, err := config.Validate(configFile); err != nil {
+			fmt.Println("Configuration file not valid.")
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		fmt.Println("Configuration file valid.")
+		os.Exit(0)
+	}
+
 	logLevel = log.InfoLevel
-	if *debug {
+	if debug {
 		logLevel = log.DebugLevel
 	}
 }
@@ -65,7 +81,7 @@ func initLogs() {
 		TimestampFormat: "2006/01/02 15:04:05",
 	})
 
-	log.SetReportCaller(*verboseFlag)
+	log.SetReportCaller(verboseFlag)
 	log.SetLevel(logLevel)
 
 	log.SetOutput(os.Stdout)
