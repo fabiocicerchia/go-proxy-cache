@@ -23,11 +23,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-const logFormat = `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`
-
-// https://golang.org/src/time/format.go
-const dateFormat = "2006/01/02 15:04:05"
-
 // Log - Logs against a requested URL.
 func Log(req http.Request, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
@@ -37,7 +32,7 @@ func Log(req http.Request, message string) {
 
 // LogRequest - Logs the requested URL.
 func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool) {
-	logLine := logFormat
+	logLine := config.Config.Log.Format
 
 	protocol := strings.Trim(req.Proto, " ")
 	if protocol == "" {
@@ -53,7 +48,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 		`$host`, req.Host,
 		`$remote_addr`, req.RemoteAddr,
 		`$remote_user`, "-",
-		`$time_local`, time.Now().Local().Format(dateFormat),
+		`$time_local`, time.Now().Local().Format(config.Config.Log.TimeFormat),
 		`$protocol`, protocol,
 		`$request_method`, method,
 		`$request`, req.URL.String(),

@@ -34,6 +34,7 @@ type Configuration struct {
 	Cache          Cache
 	CircuitBreaker CircuitBreaker
 	Domains        Domains
+	Log            Log
 }
 
 // Domains - Overrides per domain
@@ -103,6 +104,11 @@ type CircuitBreaker struct {
 	MaxRequests uint32
 }
 
+type Log struct {
+	TimeFormat string
+	Format     string
+}
+
 func getDefaultConfig() Configuration {
 	return Configuration{
 		Server: Server{
@@ -166,6 +172,10 @@ func getDefaultConfig() Configuration {
 			Timeout:     60 * time.Second, // clears state after 60s
 			MaxRequests: 1,
 		},
+		Log: Log{
+			TimeFormat: "2006/01/02 15:04:05",
+			Format: `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+		}
 	}
 }
 

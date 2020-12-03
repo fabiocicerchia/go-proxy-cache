@@ -44,6 +44,7 @@ func CreateServerConfig(domain string, port string) *http.Server {
 	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
 	mux.HandleFunc("/", handler.HandleRequest)
 
+	// TODO: make it optional?
 	muxWithMiddlewares := http.TimeoutHandler(
 		mux,
 		timeout.Handler,
