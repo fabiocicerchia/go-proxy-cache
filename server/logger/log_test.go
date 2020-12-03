@@ -42,6 +42,13 @@ func TestLogMessage(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
+	config.Config = config.Configuration{
+		Log: config.Log{
+			TimeFormat: "2006/01/02 15:04:05",
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+		},
+	}
+
 	logger.Log(reqMock, "message")
 
 	expectedOut := `time=" " level=info msg="HTTPS POST /path/to/file - message"` + "\n"
@@ -74,6 +81,13 @@ func TestLogRequest(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
+	config.Config = config.Configuration{
+		Log: config.Log{
+			TimeFormat: "2006/01/02 15:04:05",
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+		},
+	}
+
 	logger.LogRequest(reqMock, lwrMock, true)
 
 	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true"` + "\n"
@@ -103,6 +117,10 @@ func TestLogSetup(t *testing.T) {
 				Scheme:    "https",
 				Endpoints: []string{"1.2.3.4", "8.8.8.8"},
 			},
+		},
+		Log: config.Log{
+			TimeFormat: "2006/01/02 15:04:05",
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
 		},
 	}
 
