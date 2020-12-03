@@ -44,6 +44,10 @@ server:
   # --- GZIP
   # Automatically enable GZip compression on all requests.
   gzip: false
+  # --- HEALTH-CHECK
+  # Enables the health-check endpoint.
+  # Default: true
+  healthcheck: true
   # --- TLS
   tls:
     # Automatic Certificate Management Environment

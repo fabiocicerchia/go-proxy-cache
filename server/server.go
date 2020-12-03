@@ -41,7 +41,9 @@ func CreateServerConfig(domain string, port string) *http.Server {
 	mux := http.NewServeMux()
 
 	// handlers
-	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
+	if config.Config.Server.Healthcheck {
+		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
+	}
 	mux.HandleFunc("/", handler.HandleRequest)
 
 	// TODO: make it optional?

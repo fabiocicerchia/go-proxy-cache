@@ -42,11 +42,12 @@ type Domains map[string]Configuration
 
 // Server - Defines basic info for the server
 type Server struct {
-	Port       Port
-	TLS        TLS
-	Timeout    Timeout
-	Forwarding Forward
-	GZip       bool
+	Port        Port
+	TLS         TLS
+	Timeout     Timeout
+	Forwarding  Forward
+	GZip        bool
+	Healthcheck bool
 }
 
 // Port - Defines the listening ports per protocol
@@ -157,6 +158,7 @@ func getDefaultConfig() Configuration {
 				RedirectStatusCode: 301,
 			},
 			GZip: false,
+			Healthcheck: true,
 		},
 		Cache: Cache{
 			Port:            "6379",

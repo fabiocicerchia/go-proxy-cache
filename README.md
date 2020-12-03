@@ -53,7 +53,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 ### Reliability
 
-- **Healthcheck Endpoint**, exposes the route `/healthcheck`.
+- **Healthcheck Endpoint**, exposes the route `/healthcheck` (optional).
 - **Respecting HTTP Cache Headers**, `Vary`, `Cache-Control` and `Expires`.
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
 - **Cache Circuit Breaker**, bypassing Redis when not available.
