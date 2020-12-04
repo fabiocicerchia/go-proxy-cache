@@ -21,38 +21,30 @@ import (
 	"golang.org/x/crypto/acme/autocert"
 )
 
-// CertificatePair - Pair of certificate and key.
-type CertificatePair struct {
-	Cert string
-	Key  string
-}
-
 var httpsDomains []string
 var certificates map[string]*crypto_tls.Certificate
 var tlsConfig *crypto_tls.Config
 
 // ServerOverrides - Overrides the http.Server configuration for TLS.
-func ServerOverrides(
-	domain string,
-	server *http.Server,
-	certPair *CertificatePair,
-) {
+func ServerOverrides(domain string, server http.Server, domainConfig config.Server) http.Server {
+	newServer := server
 	var err error
-	domainConfig := config.DomainConf(domain)
 
-	tlsConfig, err = Config(domain, certPair.Cert, certPair.Key)
+	tlsConfig, err = Config(domain, domainConfig.TLS.CertFile, domainConfig.TLS.KeyFile)
 	if err != nil {
 		log.Fatal(err)
-		return
+		return newServer
 	}
-	server.TLSConfig = tlsConfig
+	newServer.TLSConfig = tlsConfig
 	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 
-	if domainConfig.Server.TLS.Auto {
-		certManager := InitCertManager(domainConfig.Server.Forwarding.Host, domainConfig.Server.TLS.Email)
+	if domainConfig.TLS.Auto {
+		certManager := InitCertManager(domainConfig.Forwarding.Host, domainConfig.TLS.Email)
 
-		server.TLSConfig = certManager.TLSConfig()
+		newServer.TLSConfig = certManager.TLSConfig()
 	}
+
+	return newServer
 }
 
 // Config - Returns a TLS configuration.

@@ -25,6 +25,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
 func setCommonConfig() {
@@ -44,7 +45,7 @@ func setCommonConfig() {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    time.Duration(1), // clears counts immediately
@@ -59,7 +60,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
 	config.Config.Server.Forwarding.Scheme = "http"
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -92,7 +93,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	engine.GetConn(config.Config.Server.Forwarding.Host).Close()
@@ -130,7 +131,7 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	_, err := engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
@@ -177,7 +178,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    time.Duration(1), // clears counts immediately
@@ -186,7 +187,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	_, _ = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
@@ -285,7 +286,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	engine.GetConn(config.Config.Server.Forwarding.Host).Close()
@@ -316,7 +317,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	config.Config.Server.Forwarding.InsecureBridge = true
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -349,7 +350,7 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	engine.GetConn(config.Config.Server.Forwarding.Host).Close()
@@ -387,7 +388,7 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	_, err := engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
@@ -434,7 +435,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    time.Duration(1), // clears counts immediately
@@ -443,7 +444,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	_, _ = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
@@ -509,7 +510,7 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 
 	engine.GetConn(config.Config.Server.Forwarding.Host).Close()

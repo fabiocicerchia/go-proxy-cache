@@ -1,4 +1,6 @@
-package handler
+// +build all unit
+
+package msgpack_test
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -10,20 +12,21 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/http"
+	"testing"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
+	"github.com/stretchr/testify/assert"
 )
 
-// RedirectToHTTPS - Redirects from HTTP to HTTPS.
-func (rc RequestCall) RedirectToHTTPS(redirectStatusCode int) {
-	targetURL := rc.Request.URL
-	targetURL.Scheme = "https"
-	targetURL.Host = rc.Request.Host
+func TestEncodeDecode(t *testing.T) {
+	str := []byte("test string")
 
-	target := targetURL.String()
+	encoded, err := msgpack.Encode(str)
+	assert.Nil(t, err)
 
-	log.Infof("Redirect to: %s", target)
+	var decoded []byte
+	err = msgpack.Decode(encoded, &decoded)
+	assert.Nil(t, err)
 
-	http.Redirect(rc.Response, rc.Request, target, redirectStatusCode)
+	assert.Equal(t, str, decoded)
 }

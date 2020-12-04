@@ -21,11 +21,11 @@ func HandleHealthcheck(res http.ResponseWriter, req *http.Request) {
 	lwr := response.NewLoggedResponseWriter(res)
 
 	lwr.WriteHeader(http.StatusOK)
-	_ = response.WriteBody(lwr, "HTTP OK\n")
+	_ = lwr.WriteBody("HTTP OK\n")
 
 	if conn := engine.GetConn(req.Host); conn != nil && conn.Ping() {
-		_ = response.WriteBody(lwr, "REDIS OK\n")
+		_ = lwr.WriteBody("REDIS OK\n")
 	} else {
-		_ = response.WriteBody(lwr, "REDIS KO\n")
+		_ = lwr.WriteBody("REDIS KO\n")
 	}
 }

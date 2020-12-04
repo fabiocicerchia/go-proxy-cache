@@ -14,7 +14,9 @@ import (
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
+	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -47,7 +49,7 @@ func (rdb *RedisClient) Close() error {
 
 // PurgeAll - Purges all the existing keys on a DB.
 func (rdb *RedisClient) PurgeAll() (bool, error) {
-	_, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.FlushDB(ctx).Err()
 		return nil, err
 	})
@@ -61,7 +63,7 @@ func (rdb *RedisClient) PurgeAll() (bool, error) {
 
 // Ping - Tests the connection.
 func (rdb *RedisClient) Ping() bool {
-	_, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.Ping(ctx).Err()
 		return nil, err
 	})
@@ -71,7 +73,7 @@ func (rdb *RedisClient) Ping() bool {
 
 // Set - Sets a key, with certain value, with TTL for expiring.
 func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) (bool, error) {
-	_, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.Set(ctx, key, value, expiration).Err()
 		return nil, err
 	})
@@ -85,7 +87,7 @@ func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) 
 
 // Get - Gets a key.
 func (rdb *RedisClient) Get(key string) (string, error) {
-	value, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	value, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		value, err := rdb.Client.Get(ctx, key).Result()
 		if value == "" && err != nil && err.Error() == "redis: nil" {
 			return "", nil
@@ -103,7 +105,7 @@ func (rdb *RedisClient) Get(key string) (string, error) {
 
 // Del - Removes a key.
 func (rdb *RedisClient) Del(key string) error {
-	_, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.Del(ctx, key).Err()
 		return nil, err
 	})
@@ -113,7 +115,7 @@ func (rdb *RedisClient) Del(key string) error {
 
 // DelWildcard - Removes the matching keys based on a pattern.
 func (rdb *RedisClient) DelWildcard(key string) (int, error) {
-	k, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	k, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		keys, err := rdb.Client.Keys(ctx, key).Result()
 		return keys, err
 	})
@@ -125,7 +127,7 @@ func (rdb *RedisClient) DelWildcard(key string) (int, error) {
 		return l, nil
 	}
 
-	_, errDel := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, errDel := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.Del(ctx, keys...).Err()
 		return nil, err
 	})
@@ -135,7 +137,7 @@ func (rdb *RedisClient) DelWildcard(key string) (int, error) {
 
 // List - Returns the values in a list.
 func (rdb *RedisClient) List(key string) ([]string, error) {
-	value, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	value, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		value, err := rdb.Client.LRange(ctx, key, 0, -1).Result()
 		return value, err
 	})
@@ -149,7 +151,7 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 
 // Push - Append values to a list.
 func (rdb *RedisClient) Push(key string, values []string) error {
-	_, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.RPush(ctx, key, values).Err()
 		return nil, err
 	})
@@ -159,7 +161,7 @@ func (rdb *RedisClient) Push(key string, values []string) error {
 
 // Expire - Sets a TTL on a key.
 func (rdb *RedisClient) Expire(key string, expiration time.Duration) error {
-	_, err := config.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.Expire(ctx, key, expiration).Err()
 		return nil, err
 	})
@@ -169,23 +171,23 @@ func (rdb *RedisClient) Expire(key string, expiration time.Duration) error {
 
 // Encode - Encodes an object with msgpack.
 func (rdb *RedisClient) Encode(obj interface{}) (string, error) {
-	value, err := utils.MsgpackEncode(obj)
+	value, err := msgpack.Encode(obj)
 	if err != nil {
 		return "", err
 	}
 
-	encoded := utils.Base64Encode(value)
+	encoded := base64.Encode(value)
 
 	return encoded, nil
 }
 
 // Decode - Decodes an object with msgpack.
 func (rdb *RedisClient) Decode(encoded string, obj interface{}) error {
-	decoded, err := utils.Base64Decode(encoded)
+	decoded, err := base64.Decode(encoded)
 	if err != nil {
 		return err
 	}
 
-	err = utils.MsgpackDecode(decoded, obj)
+	err = msgpack.Decode(decoded, obj)
 	return err
 }

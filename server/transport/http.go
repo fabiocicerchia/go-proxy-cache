@@ -13,7 +13,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
@@ -73,15 +72,8 @@ func shouldPanicOnCopyError(ctx context.Context) bool {
 }
 
 // ServeCachedResponse - Serve a cached response.
-func ServeCachedResponse(
-	ctx context.Context,
-	lwr *response.LoggedResponseWriter,
-	uriobj cache.URIObj,
-	url url.URL,
-) {
-	var ctxWC context.Context
-	var cancel context.CancelFunc
-	ctxWC, cancel = context.WithCancel(ctx)
+func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter, uriobj cache.URIObj) {
+	ctxWC, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
 		select {
@@ -96,12 +88,17 @@ func ServeCachedResponse(
 		Header:     uriobj.ResponseHeaders,
 	}
 
-	// HTTP Headers
+	announcedTrailers := handleHeaders(lwr, res)
+	handleBody(ctx, lwr, uriobj.Content)
+	handleTrailer(announcedTrailers, lwr, res)
+}
+
+func handleHeaders(lwr *response.LoggedResponseWriter, res http.Response) int {
 	removeConnectionHeaders(res.Header)
 	for _, h := range HopHeaders {
 		res.Header.Del(h)
 	}
-	response.CopyHeaders(lwr.Header(), res.Header)
+	lwr.CopyHeaders(res.Header)
 
 	// The "Trailer" header isn't included in the Transport's response,
 	// at least for *http.Transport. Build it up from Trailer.
@@ -116,7 +113,11 @@ func ServeCachedResponse(
 
 	lwr.WriteHeader(res.StatusCode)
 
-	err := copyResponse(lwr, uriobj.Content)
+	return announcedTrailers
+}
+
+func handleBody(ctx context.Context, lwr *response.LoggedResponseWriter, content [][]byte) {
+	err := copyResponse(lwr, content)
 	if err != nil {
 		// Since we're streaming the response, if we run into an error all we can do
 		// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
@@ -127,8 +128,6 @@ func ServeCachedResponse(
 		}
 		panic(http.ErrAbortHandler)
 	}
-
-	handleTrailer(announcedTrailers, lwr, res)
 }
 
 func handleTrailer(announcedTrailers int, lwr *response.LoggedResponseWriter, res http.Response) {
@@ -142,7 +141,7 @@ func handleTrailer(announcedTrailers int, lwr *response.LoggedResponseWriter, re
 	}
 
 	if len(res.Trailer) == announcedTrailers {
-		response.CopyHeaders(lwr.Header(), res.Trailer)
+		lwr.CopyHeaders(res.Trailer)
 		return
 	}
 

@@ -94,6 +94,5 @@ func main() {
 	initFlags()
 	initLogs()
 
-	// start server
-	server.Start(configFile)
+	server.Run(configFile)
 }

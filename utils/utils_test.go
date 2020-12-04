@@ -1,4 +1,4 @@
-// +build unit
+// +build all unit
 
 package utils_test
 

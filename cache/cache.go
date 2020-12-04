@@ -18,10 +18,17 @@ import (
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
-	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 	log "github.com/sirupsen/logrus"
 )
+
+// CacheObj - Contains cache settings and current cached/cacheable object.
+type CacheObj struct {
+	AllowedStatuses []int
+	AllowedMethods  []string
+	CurrentObj      URIObj
+}
 
 // URIObj - Holds details about the response
 type URIObj struct {
@@ -35,51 +42,73 @@ type URIObj struct {
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
-func IsStatusAllowed(statusCode int) bool {
-	return utils.ContainsInt(config.Config.Cache.AllowedStatuses, statusCode)
+func (c CacheObj) IsStatusAllowed() bool {
+	return slice.ContainsInt(c.AllowedStatuses, c.CurrentObj.StatusCode)
 }
 
 // IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
-func IsMethodAllowed(method string) bool {
-	return utils.ContainsString(config.Config.Cache.AllowedMethods, method)
+func (c CacheObj) IsMethodAllowed() bool {
+	return slice.ContainsString(c.AllowedMethods, c.CurrentObj.Method)
+}
+
+// IsValid - Verifies the validity of a cacheable object.
+func (c CacheObj) IsValid() (bool, error) {
+	if !c.IsStatusAllowed() || slice.LenSliceBytes(c.CurrentObj.Content) == 0 {
+		return false, fmt.Errorf(
+			"not allowed. status %d - content length %d",
+			c.CurrentObj.StatusCode,
+			slice.LenSliceBytes(c.CurrentObj.Content),
+		)
+	}
+
+	return true, nil
+}
+
+func (c CacheObj) handleMetadata(targetURL url.URL, expiration time.Duration) ([]string, error) {
+	meta, err := GetVary(c.CurrentObj.ResponseHeaders)
+	if err != nil {
+		return []string{}, err
+	}
+
+	_, err = StoreMetadata(c.CurrentObj.Method, targetURL, meta, expiration)
+	if err != nil {
+		return []string{}, err
+	}
+
+	return meta, nil
 }
 
 // StoreFullPage - Stores the whole page response in cache.
-func StoreFullPage(obj URIObj, expiration time.Duration) (bool, error) {
-	if !IsStatusAllowed(obj.StatusCode) || !IsMethodAllowed(obj.Method) || expiration < 1 {
+func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
+	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
 		return false, nil
 	}
 
-	targetURL := obj.URL
-	targetURL.Host = obj.Host
+	targetURL := c.CurrentObj.URL
+	targetURL.Host = c.CurrentObj.Host
 
-	meta, err := GetVary(obj.ResponseHeaders)
+	meta, err := c.handleMetadata(targetURL, expiration)
 	if err != nil {
 		return false, err
 	}
 
-	_, err = StoreMetadata(obj.Method, targetURL, meta, expiration)
+	encoded, err := engine.GetConn(targetURL.Host).Encode(c.CurrentObj)
 	if err != nil {
 		return false, err
 	}
 
-	encoded, err := engine.GetConn(targetURL.Host).Encode(obj)
-	if err != nil {
-		return false, err
-	}
-
-	key := StorageKey(obj.Method, targetURL, meta, obj.RequestHeaders)
+	key := StorageKey(c.CurrentObj.Method, targetURL, meta, c.CurrentObj.RequestHeaders)
 
 	return engine.GetConn(targetURL.Host).Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIObj, error) {
+func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) error {
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(method, url)
 	if err != nil {
-		return *obj, fmt.Errorf("cannot fetch metadata: %s", err)
+		return fmt.Errorf("cannot fetch metadata: %s", err)
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
@@ -87,20 +116,22 @@ func RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) (URIOb
 
 	encoded, err := engine.GetConn(url.Host).Get(key)
 	if err != nil {
-		return *obj, fmt.Errorf("cannot get key: %s", err)
+		return fmt.Errorf("cannot get key: %s", err)
 	}
 
 	err = engine.GetConn(url.Host).Decode(encoded, obj)
 	if err != nil {
-		return *obj, fmt.Errorf("cannot decode: %s", err)
+		return fmt.Errorf("cannot decode: %s", err)
 	}
 
-	return *obj, nil
+	c.CurrentObj = *obj
+
+	return nil
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
-func PurgeFullPage(method string, url url.URL) (bool, error) {
-	err := DeleteMetadata(method, url)
+func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
+	err := PurgeMetadata(url)
 	if err != nil {
 		return false, err
 	}
@@ -142,6 +173,14 @@ func FetchMetadata(method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
 	return engine.GetConn(url.Host).List(key)
+}
+
+// PurgeMetadata - Purges the cache metadata for the requested URL.
+func PurgeMetadata(url url.URL) error {
+	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
+
+	_, err := engine.GetConn(url.Host).DelWildcard(keyPattern)
+	return err
 }
 
 // DeleteMetadata - Removes the cache metadata for the requested URL.

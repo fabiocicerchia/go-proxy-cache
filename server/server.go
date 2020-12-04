@@ -25,15 +25,46 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
+	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
+// Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {
 	HTTP  map[string]*http.Server
 	HTTPS map[string]*http.Server
 }
 
-// CreateServerConfig - Generates the http.Server configuration.
-func CreateServerConfig(domain string, port string) *http.Server {
+// Run - Starts the GoProxyCache servers' listeners.
+func Run(configFile string) {
+	// Init configs
+	config.InitConfigFromFileOrEnv(configFile)
+	config.Print()
+
+	servers := &Servers{
+		HTTP:  make(map[string]*http.Server),
+		HTTPS: make(map[string]*http.Server),
+	}
+	for _, domain := range config.GetDomains() {
+		servers.StartDomainServer(domain)
+	}
+
+	// start server http & https
+	servers.startListeners()
+
+	// Wait for an interrupt
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	<-c
+
+	// Attempt a graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	servers.shutdownServers(ctx)
+}
+
+// InitServer - Generates the http.Server configuration.
+func InitServer(domain string) *http.Server {
 	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	timeout := config.Config.Server.Timeout
 	gzip := config.Config.Server.GZip
@@ -58,7 +89,6 @@ func CreateServerConfig(domain string, port string) *http.Server {
 	}
 
 	server := &http.Server{
-		Addr:              ":" + port,
 		ReadTimeout:       time.Duration(timeout.Read) * time.Second,
 		WriteTimeout:      time.Duration(timeout.Write) * time.Second,
 		IdleTimeout:       time.Duration(timeout.Idle) * time.Second,
@@ -69,21 +99,28 @@ func CreateServerConfig(domain string, port string) *http.Server {
 	return server
 }
 
-// GetServerConfigs - Returns a http.Server configuration for HTTP and HTTPS.
-func (s *Servers) AddServerConfigs(domain string, domainConfig *config.Configuration) {
-	srvHTTP := CreateServerConfig(domain, domainConfig.Server.Port.HTTP)
-
-	srvHTTPS := CreateServerConfig(domain, domainConfig.Server.Port.HTTPS)
-	srvtls.ServerOverrides(domain, srvHTTPS, &srvtls.CertificatePair{
-		Cert: domainConfig.Server.TLS.CertFile,
-		Key:  domainConfig.Server.TLS.KeyFile,
-	})
-
-	s.HTTP[domainConfig.Server.Port.HTTP] = srvHTTP
-	s.HTTPS[domainConfig.Server.Port.HTTPS] = srvHTTPS
+// AttachPlain - Adds a new HTTP server in the listener container.
+func (s *Servers) AttachPlain(port string, server *http.Server) {
+	s.HTTP[port] = server
+	s.HTTP[port].Addr = ":" + port
 }
 
-// StartDomainServer - Configures and start listinening for a particular domain.
+// AttachSecure - Adds a new HTTPS server in the listener container.
+func (s *Servers) AttachSecure(port string, server *http.Server) {
+	s.HTTPS[port] = server
+	s.HTTPS[port].Addr = ":" + port
+}
+
+// InitServers - Returns a http.Server configuration for HTTP and HTTPS.
+func (s *Servers) InitServers(domain string, domainConfig config.Server) {
+	srv := InitServer(domain)
+	s.AttachPlain(domainConfig.Port.HTTP, srv)
+
+	srvHTTPS := srvtls.ServerOverrides(domain, *srv, domainConfig)
+	s.AttachSecure(domainConfig.Port.HTTPS, &srvHTTPS)
+}
+
+// StartDomainServer - Configures and start listening for a particular domain.
 func (s *Servers) StartDomainServer(domain string) {
 	domainConfig := config.DomainConf(domain)
 	if domainConfig == nil {
@@ -92,57 +129,36 @@ func (s *Servers) StartDomainServer(domain string) {
 	}
 
 	// redis connect
-	config.InitCircuitBreaker(domain, domainConfig.CircuitBreaker)
+	circuitbreaker.InitCircuitBreaker(domain, domainConfig.CircuitBreaker)
 	engine.InitConn(domain, domainConfig.Cache)
 
 	// Log setup values
 	logger.LogSetup(domainConfig.Server)
 
 	// config server http & https
-	s.AddServerConfigs(domain, domainConfig)
+	s.InitServers(domain, domainConfig.Server)
 
 	// lb
 	balancer.InitRoundRobin(domain, domainConfig.Server.Forwarding.Endpoints)
 }
 
-// Start the GoProxyCache server.
-func Start(configFile string) {
-	// Init configs
-	config.InitConfigFromFileOrEnv(configFile)
-	config.Print()
-
-	servers := &Servers{
-		HTTP:  make(map[string]*http.Server),
-		HTTPS: make(map[string]*http.Server),
-	}
-	for _, domain := range config.GetDomains() {
-		servers.StartDomainServer(domain)
-	}
-
-	// start server http & https
-	for _, srvHTTP := range servers.HTTP {
+func (s Servers) startListeners() {
+	for _, srvHTTP := range s.HTTP {
 		go func(srv *http.Server) { log.Fatal(srv.ListenAndServe()) }(srvHTTP)
 	}
-	for _, srvHTTPS := range servers.HTTPS {
+	for _, srvHTTPS := range s.HTTPS {
 		go func(srv *http.Server) { log.Fatal(srv.ListenAndServeTLS("", "")) }(srvHTTPS)
 	}
+}
 
-	// Wait for an interrupt
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-	<-c
-
-	// Attempt a graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	for k, v := range servers.HTTP {
+func (s Servers) shutdownServers(ctx context.Context) {
+	for k, v := range s.HTTP {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
-	for k, v := range servers.HTTPS {
+	for k, v := range s.HTTPS {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)

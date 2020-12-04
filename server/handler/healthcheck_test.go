@@ -24,6 +24,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
 func TestHealthcheckWithoutRedis(t *testing.T) {
@@ -36,7 +37,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5, // 1 out of 2 fails, or more
 			Interval:    time.Duration(1),
@@ -44,7 +45,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 	engine.GetConn(config.Config.Server.Forwarding.Host).Close()
@@ -75,7 +76,7 @@ func TestHealthcheckWithRedis(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5, // 1 out of 2 fails, or more
 			Interval:    time.Duration(1),
@@ -89,7 +90,7 @@ func TestHealthcheckWithRedis(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleHealthcheck)
 
-	config.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
 
 	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
 

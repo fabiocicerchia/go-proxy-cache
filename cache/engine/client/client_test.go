@@ -20,6 +20,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -41,27 +42,27 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
-	assert.Equal(t, "closed", config.CB("testing").State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
 
 	val := rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", config.CB("testing").State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
 
 	_ = rdb.Close()
 
 	val = rdb.Ping()
 	assert.False(t, val)
-	assert.Equal(t, "half-open", config.CB("testing").State().String())
+	assert.Equal(t, "half-open", circuit_breaker.CB("testing").State().String())
 
 	rdb = client.Connect("testing", config.Config.Cache)
 
 	val = rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", config.CB("testing").State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
 }
 
 func TestClose(t *testing.T) {
@@ -74,7 +75,7 @@ func TestClose(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -82,7 +83,7 @@ func TestClose(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -103,7 +104,7 @@ func TestSetGet(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -111,7 +112,7 @@ func TestSetGet(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -134,7 +135,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -142,7 +143,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -167,7 +168,7 @@ func TestDel(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -175,7 +176,7 @@ func TestDel(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -205,7 +206,7 @@ func TestExpire(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -213,7 +214,7 @@ func TestExpire(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -241,7 +242,7 @@ func TestPushList(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -249,7 +250,7 @@ func TestPushList(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -271,7 +272,7 @@ func TestDelWildcard(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -279,7 +280,7 @@ func TestDelWildcard(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -328,7 +329,7 @@ func TestPurgeAll(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -336,7 +337,7 @@ func TestPurgeAll(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 
@@ -385,7 +386,7 @@ func TestEncodeDecode(t *testing.T) {
 			Port: "6379",
 			DB:   0,
 		},
-		CircuitBreaker: config.CircuitBreaker{
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
 			FailureRate: 0.5,              // 1 out of 2 fails, or more
 			Interval:    0,                // doesn't clears counts
@@ -393,7 +394,7 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	config.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
 
 	rdb := client.Connect("testing", config.Config.Cache)
 

@@ -1,4 +1,4 @@
-package utils
+package base64
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -13,12 +13,12 @@ import (
 	"encoding/base64"
 )
 
-// Base64Encode - Encodes object with base64.
-func Base64Encode(source []byte) string {
+// Encode - Encodes object with base64.
+func Encode(source []byte) string {
 	return base64.StdEncoding.EncodeToString(source)
 }
 
-// Base64Decode - Decodes object with base64.
-func Base64Decode(source string) ([]byte, error) {
+// Decode - Decodes object with base64.
+func Decode(source string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(source)
 }

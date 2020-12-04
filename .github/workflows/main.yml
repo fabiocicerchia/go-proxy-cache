@@ -28,13 +28,13 @@ jobs:
           ./go-proxy-cache -debug -config=config.sample.yml &
           make test
 
+      - name: Coverage
+        run: make cover
+
       - name: Codecov
-        run: |
-          redis-server &
-          ./bin/gen-selfsigned-cert.sh
-          ./go-proxy-cache -debug -config=config.sample.yml &
-          make cover
-          make codecov
+        run: make codecov
+
+      - uses: paambaati/codeclimate-action@latest
 
   sca:
     runs-on: ubuntu-20.04

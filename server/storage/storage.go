@@ -10,7 +10,6 @@ package storage
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"fmt"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -19,54 +18,64 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
+// RequestCallDTO - DTO object containing request and response.
+type RequestCallDTO struct {
+	Response response.LoggedResponseWriter
+	Request  http.Request
+	Scheme   string
+	CacheObj cache.CacheObj
+}
+
 // RetrieveCachedContent - Retrives the cached response.
-func RetrieveCachedContent(
-	lwr *response.LoggedResponseWriter,
-	req http.Request,
-) (cache.URIObj, error) {
-	method := req.Method
-	reqHeaders := req.Header
+func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
+	method := rc.Request.Method
+	reqHeaders := rc.Request.Header
 
-	url := *req.URL
-	url.Host = req.Host
+	url := *rc.Request.URL
+	url.Host = rc.Request.Host
 
-	uriobj, err := cache.RetrieveFullPage(method, url, reqHeaders)
+	err := rc.CacheObj.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
 		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
-	if !cache.IsStatusAllowed(uriobj.StatusCode) || utils.LenSliceBytes(uriobj.Content) == 0 {
-		return uriobj, fmt.Errorf(
-			"not allowed. status %d - content length %d",
-			uriobj.StatusCode,
-			utils.LenSliceBytes(uriobj.Content),
-		)
+	ok, err := rc.CacheObj.IsValid()
+	if !ok || err != nil {
+		return cache.URIObj{}, err
 	}
 
-	return uriobj, nil
+	return rc.CacheObj.CurrentObj, nil
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
-func StoreGeneratedPage(
-	req http.Request,
-	lwr response.LoggedResponseWriter,
-) (bool, error) {
-	domainConfig := config.DomainConf(req.Host)
-	ttl := utils.GetTTL(lwr.Header(), domainConfig.Cache.TTL)
+func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
+	ttl := ttl.GetTTL(rc.Response.Header(), domainConfigCache.TTL)
 
-	response := cache.URIObj{
-		URL:             *req.URL,
-		Host:            req.Host,
-		Method:          req.Method,
-		StatusCode:      lwr.StatusCode,
-		RequestHeaders:  req.Header,
-		ResponseHeaders: lwr.Header(),
-		Content:         lwr.Content,
+	rc.CacheObj.CurrentObj = cache.URIObj{
+		URL:             *rc.Request.URL,
+		Host:            rc.Request.Host,
+		Method:          rc.Request.Method,
+		StatusCode:      rc.Response.StatusCode,
+		RequestHeaders:  rc.Request.Header,
+		ResponseHeaders: rc.Response.Header(),
+		Content:         rc.Response.Content,
 	}
 
-	done, err := cache.StoreFullPage(response, ttl)
+	done, err := rc.CacheObj.StoreFullPage(ttl)
 
 	return done, err
+}
+
+// PurgeCachedContent - Purges a content in the cache.
+func PurgeCachedContent(forwarding config.Forward, rc RequestCallDTO) (bool, error) {
+	scheme := utils.IfEmpty(forwarding.Scheme, rc.Scheme)
+
+	proxyURL := *rc.Request.URL
+	proxyURL.Scheme = scheme
+	proxyURL.Host = forwarding.Host
+
+	return rc.CacheObj.PurgeFullPage(rc.Request.Method, proxyURL)
 }

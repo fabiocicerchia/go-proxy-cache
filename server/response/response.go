@@ -58,18 +58,18 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 }
 
 // CopyHeaders - Adds the headers to the response.
-func CopyHeaders(dst http.Header, src http.Header) {
+func (lwr *LoggedResponseWriter) CopyHeaders(src http.Header) {
 	for k, vv := range src {
 		for _, v := range vv {
-			dst.Add(k, v)
+			lwr.Header().Add(k, v)
 		}
 	}
 }
 
 // WriteBody - Sends the body to the client.
-func WriteBody(rw http.ResponseWriter, page string) bool {
+func (lwr *LoggedResponseWriter) WriteBody(page string) bool {
 	pageByte := []byte(page)
-	sent, err := rw.Write(pageByte)
+	sent, err := lwr.ResponseWriter.Write(pageByte)
 
 	return sent > 0 && err == nil
 }
