@@ -28,11 +28,11 @@ jobs:
           ./go-proxy-cache -debug -config=config.sample.yml &
           make test
 
-      - name: Codecov
+      - name: Coverage
         run: |
-          redis-server &
-          ./bin/gen-selfsigned-cert.sh
-          ./go-proxy-cache -debug -config=config.sample.yml &
+          # redis-server &
+          # ./bin/gen-selfsigned-cert.sh
+          # ./go-proxy-cache -debug -config=config.sample.yml &
           make cover
           make codecov
 

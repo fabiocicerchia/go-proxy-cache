@@ -7,20 +7,28 @@
 Simple Reverse Proxy with Caching, written in Go, using Redis.  
     >>> **(semi) production-ready** <<<
 
-[![MIT License](https://img.shields.io/badge/License-MIT-lightgrey.svg?longCache=true)](LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-brightgreen.svg?longCache=true)](LICENSE)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
+![Maintenance](https://img.shields.io/maintenance/yes/2020)  
 ![Last Commit](https://img.shields.io/github/last-commit/fabiocicerchia/go-proxy-cache)
 ![Release Date](https://img.shields.io/github/release-date/fabiocicerchia/go-proxy-cache)
+![GitHub all releases](https://img.shields.io/github/downloads/fabiocicerchia/go-proxy-cache/total)
 
-![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache.svg "Docker pulls")
-![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache.svg "Docker stars")
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/fabiocicerchia/go-proxy-cache)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/fabiocicerchia/go-proxy-cache)
+
+![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache "Docker pulls")
+![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache "Docker stars")
+
+![GitHub Workflow Status](https://img.shields.io/github/workflow/status/fabiocicerchia/go-proxy-cache/Builds)
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4469/badge)](https://bestpractices.coreinfrastructure.org/projects/4469)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
+[![BCH compliance](https://bettercodehub.com/edge/badge/fabiocicerchia/go-proxy-cache?branch=main)](https://bettercodehub.com/)
+[![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)  
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
-[![Maintainability](https://api.codeclimate.com/v1/badges/6cf8c9ea02b75fccf8b5/maintainability)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/fabiocicerchia/go-proxy-cache.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/fabiocicerchia/go-proxy-cache/alerts/)
-![Builds](https://github.com/fabiocicerchia/go-proxy-cache/workflows/Builds/badge.svg)
+[![Maintainability](https://img.shields.io/codeclimate/maintainability/fabiocicerchia/go-proxy-cache)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
+[![Technical Debt](https://img.shields.io/codeclimate/tech-debt/fabiocicerchia/go-proxy-cache)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
+[![Total alerts](https://img.shields.io/lgtm/alerts/g/fabiocicerchia/go-proxy-cache.svg)](https://lgtm.com/projects/g/fabiocicerchia/go-proxy-cache/alerts/)
 
 </center>
 

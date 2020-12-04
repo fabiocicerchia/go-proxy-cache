@@ -12,34 +12,26 @@ package handler
 import (
 	"net/http"
 
-	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	log "github.com/sirupsen/logrus"
 )
 
 // HandlePurge - Purges the cache for the requested URI.
-func HandlePurge(lwr *response.LoggedResponseWriter, req *http.Request) {
-	domainConfig := config.DomainConf(req.Host)
+func (rc RequestCall) HandlePurge(domainConfig *config.Configuration) {
 	forwarding := domainConfig.Server.Forwarding
+	scheme := utils.IfEmpty(forwarding.Scheme, rc.GetScheme())
 
-	scheme := utils.IfEmpty(forwarding.Scheme, getSchemeFromRequest(*req))
-
-	proxyURL := *req.URL
-	proxyURL.Scheme = scheme
-	proxyURL.Host = forwarding.Host
-
-	status, err := cache.PurgeFullPage(req.Method, proxyURL)
-
+	status, err := storage.PurgeCachedContent(scheme, forwarding.Host, *rc.Request)
 	if !status || err != nil {
-		lwr.WriteHeader(http.StatusNotFound)
-		_ = response.WriteBody(lwr, "KO")
+		rc.Response.WriteHeader(http.StatusNotFound)
+		_ = rc.Response.WriteBody("KO")
 
-		log.Warnf("URL Not Purged %s: %v\n", proxyURL.String(), err)
+		log.Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 		return
 	}
 
-	lwr.WriteHeader(http.StatusOK)
-	_ = response.WriteBody(lwr, "OK")
+	rc.Response.WriteHeader(http.StatusOK)
+	_ = rc.Response.WriteBody("OK")
 }

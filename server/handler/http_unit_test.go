@@ -50,12 +50,14 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 	}
 
 	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
-	handler.FixRequest(u, config.Config.Server.Forwarding, reqMock)
 
-	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
+	r := handler.RequestCall{Request: reqMock}
+	r.FixRequest(u, config.Config.Server.Forwarding)
 
-	assert.Equal(t, "server1:443", reqMock.URL.Host)
-	assert.Equal(t, "developer.mozilla.org", reqMock.Host)
+	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
+
+	assert.Equal(t, "server1:443", r.Request.URL.Host)
+	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
 }
 
 func TestFixRequestThreeItemsInLB(t *testing.T) {
@@ -88,19 +90,20 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 
 	// --- FIRST ROUND
 
-	handler.FixRequest(u, config.Config.Server.Forwarding, reqMock)
+	r := handler.RequestCall{Request: reqMock}
+	r.FixRequest(u, config.Config.Server.Forwarding)
 
-	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
+	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 
-	assert.Equal(t, "server1:443", reqMock.URL.Host)
-	assert.Equal(t, "developer.mozilla.org", reqMock.Host)
+	assert.Equal(t, "server1:443", r.Request.URL.Host)
+	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
 
 	// --- SECOND ROUND
 
-	handler.FixRequest(u, config.Config.Server.Forwarding, reqMock)
+	r.FixRequest(u, config.Config.Server.Forwarding)
 
-	assert.Equal(t, "localhost", reqMock.Header.Get("X-Forwarded-Host"))
+	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 
-	assert.Equal(t, "server2:443", reqMock.URL.Host)
-	assert.Equal(t, "developer.mozilla.org", reqMock.Host)
+	assert.Equal(t, "server2:443", r.Request.URL.Host)
+	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
 }

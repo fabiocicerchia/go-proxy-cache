@@ -1,6 +1,6 @@
-// +build unit
+// +build all unit
 
-package utils_test
+package base64_test
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -14,15 +14,15 @@ package utils_test
 import (
 	"testing"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBase64EncodeDecode(t *testing.T) {
+func TestEncodeDecode(t *testing.T) {
 	str := []byte("test string")
 
-	encoded := utils.Base64Encode(str)
-	decoded, err := utils.Base64Decode(encoded)
+	encoded := base64.Encode(str)
+	decoded, err := base64.Decode(encoded)
 	assert.Nil(t, err)
 
 	assert.Equal(t, str, decoded)
@@ -31,8 +31,8 @@ func TestBase64EncodeDecode(t *testing.T) {
 func TestBase64CorruptedDecode(t *testing.T) {
 	str := []byte("test string")
 
-	encoded := utils.Base64Encode(str)
-	decoded, err := utils.Base64Decode(encoded)
+	encoded := base64.Encode(str)
+	decoded, err := base64.Decode(encoded)
 	assert.Nil(t, err)
 
 	assert.Equal(t, str, decoded)

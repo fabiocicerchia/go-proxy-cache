@@ -1,4 +1,4 @@
-package utils
+package slice
 
 import (
 	"net/http"

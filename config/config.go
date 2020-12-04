@@ -20,19 +20,88 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	"github.com/sony/gobreaker"
+	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/convert"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
 // Config - Holds the server configuration
-var Config Configuration
-var cb map[string]*gobreaker.CircuitBreaker
+var Config Configuration = Configuration{
+	Server: Server{
+		Port: Port{
+			HTTP:  "80",
+			HTTPS: "443",
+		},
+		TLS: TLS{
+			Auto:     false,
+			Email:    "",
+			CertFile: "",
+			KeyFile:  "",
+			Override: &tls.Config{
+				// TODO: handle this
+				// Use modern tls mode https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
+				// NextProtos: []string{"h2", "http/1.1"},
+				// Only use curves which have assembly implementations
+				// https://github.com/golang/go/tree/master/src/crypto/elliptic
+				CurvePreferences: []tls.CurveID{
+					tls.CurveP256,
+				},
+				MinVersion: tls.VersionTLS12,
+				MaxVersion: tls.VersionTLS13,
+				CipherSuites: []uint16{
+					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+					// needed by HTTP/2
+					tls.TLS_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				},
+			},
+		},
+		Timeout: Timeout{
+			Read:       5 * time.Second,
+			ReadHeader: 2 * time.Second,
+			Write:      5 * time.Second,
+			Idle:       20 * time.Second,
+			Handler:    5 * time.Second,
+		},
+		Forwarding: Forward{
+			HTTP2HTTPS:         false,
+			InsecureBridge:     false,
+			RedirectStatusCode: 301,
+		},
+		GZip:        false,
+		Healthcheck: true,
+	},
+	Cache: Cache{
+		Port:            "6379",
+		DB:              0,
+		TTL:             0,
+		AllowedStatuses: []int{200, 301, 302},
+		AllowedMethods:  []string{"HEAD", "GET"},
+	},
+	CircuitBreaker: circuit_breaker.CircuitBreaker{
+		Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+		FailureRate: 0.5,              // 1 out of 2 fails, or more
+		Interval:    0,                // doesn't clears counts
+		Timeout:     60 * time.Second, // clears state after 60s
+		MaxRequests: 1,
+	},
+	Log: Log{
+		TimeFormat: "2006/01/02 15:04:05",
+		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+	},
+}
+
 var allowedSchemes = map[string]string{"HTTP": "http", "HTTPS": "https"}
 
 // Configuration - Defines the server configuration
 type Configuration struct {
 	Server         Server
 	Cache          Cache
-	CircuitBreaker CircuitBreaker
+	CircuitBreaker circuit_breaker.CircuitBreaker
 	Domains        Domains
 	Log            Log
 }
@@ -96,89 +165,9 @@ type Cache struct {
 	AllowedMethods  []string
 }
 
-// CircuitBreaker - Settings for redis circuit breaker.
-type CircuitBreaker struct {
-	Threshold   uint32
-	FailureRate float64
-	Interval    time.Duration
-	Timeout     time.Duration
-	MaxRequests uint32
-}
-
 type Log struct {
 	TimeFormat string
 	Format     string
-}
-
-func getDefaultConfig() Configuration {
-	return Configuration{
-		Server: Server{
-			Port: Port{
-				HTTP:  "80",
-				HTTPS: "443",
-			},
-			TLS: TLS{
-				Auto:     false,
-				Email:    "",
-				CertFile: "",
-				KeyFile:  "",
-				Override: &tls.Config{
-					// TODO: handle this
-					// Use modern tls mode https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
-					// NextProtos: []string{"h2", "http/1.1"},
-					// Only use curves which have assembly implementations
-					// https://github.com/golang/go/tree/master/src/crypto/elliptic
-					CurvePreferences: []tls.CurveID{
-						tls.CurveP256,
-					},
-					MinVersion: tls.VersionTLS12,
-					MaxVersion: tls.VersionTLS13,
-					CipherSuites: []uint16{
-						tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-						tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-						tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-						tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
-						// needed by HTTP/2
-						tls.TLS_AES_128_GCM_SHA256,
-						tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-						tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					},
-				},
-			},
-			Timeout: Timeout{
-				Read:       5 * time.Second,
-				ReadHeader: 2 * time.Second,
-				Write:      5 * time.Second,
-				Idle:       20 * time.Second,
-				Handler:    5 * time.Second,
-			},
-			Forwarding: Forward{
-				HTTP2HTTPS:         false,
-				InsecureBridge:     false,
-				RedirectStatusCode: 301,
-			},
-			GZip:        false,
-			Healthcheck: true,
-		},
-		Cache: Cache{
-			Port:            "6379",
-			DB:              0,
-			TTL:             0,
-			AllowedStatuses: []int{200, 301, 302},
-			AllowedMethods:  []string{"HEAD", "GET"},
-		},
-		CircuitBreaker: CircuitBreaker{
-			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
-			FailureRate: 0.5,              // 1 out of 2 fails, or more
-			Interval:    0,                // doesn't clears counts
-			Timeout:     60 * time.Second, // clears state after 60s
-			MaxRequests: 1,
-		},
-		Log: Log{
-			TimeFormat: "2006/01/02 15:04:05",
-			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
-		},
-	}
 }
 
 func normalizeScheme(scheme string) string {
@@ -191,45 +180,40 @@ func normalizeScheme(scheme string) string {
 }
 
 func getEnvConfig() Configuration {
-	return Configuration{
-		Server: Server{
-			Port: Port{
-				HTTP:  utils.GetEnv("SERVER_HTTP_PORT", ""),
-				HTTPS: utils.GetEnv("SERVER_HTTPS_PORT", ""),
-			},
-			TLS: TLS{
-				Auto:     utils.GetEnv("TLS_AUTO_CERT", "") == "1",
-				Email:    utils.GetEnv("TLS_EMAIL", ""),
-				CertFile: utils.GetEnv("TLS_CERT_FILE", ""),
-				KeyFile:  utils.GetEnv("TLS_KEY_FILE", ""),
-			},
-			Timeout: Timeout{
-				Read:       utils.ConvertToDuration(utils.GetEnv("TIMEOUT_READ", "")),
-				ReadHeader: utils.ConvertToDuration(utils.GetEnv("TIMEOUT_READ_HEADER", "")),
-				Write:      utils.ConvertToDuration(utils.GetEnv("TIMEOUT_WRITE", "")),
-				Idle:       utils.ConvertToDuration(utils.GetEnv("TIMEOUT_IDLE", "")),
-				Handler:    utils.ConvertToDuration(utils.GetEnv("TIMEOUT_HANDLER", "")),
-			},
-			Forwarding: Forward{
-				Host:               utils.GetEnv("FORWARD_HOST", ""),
-				Port:               utils.GetEnv("FORWARD_PORT", ""),
-				Scheme:             normalizeScheme(utils.GetEnv("FORWARD_SCHEME", "")),
-				Endpoints:          strings.Split(utils.GetEnv("LB_ENDPOINT_LIST", ""), ","),
-				HTTP2HTTPS:         utils.GetEnv("HTTP2HTTPS", "") == "1",
-				RedirectStatusCode: utils.ConvertToInt(utils.GetEnv("REDIRECT_STATUS_CODE", "")),
-			},
-			GZip: utils.GetEnv("GZIP_ENABLED", "") == "1",
-		},
-		Cache: Cache{
-			Host:            utils.GetEnv("REDIS_HOST", ""),
-			Port:            utils.GetEnv("REDIS_PORT", ""),
-			Password:        utils.GetEnv("REDIS_PASSWORD", ""),
-			DB:              utils.ConvertToInt(utils.GetEnv("REDIS_DB", "")),
-			TTL:             utils.ConvertToInt(utils.GetEnv("DEFAULT_TTL", "")),
-			AllowedStatuses: utils.ConvertToIntSlice(strings.Split(utils.GetEnv("CACHE_ALLOWED_STATUSES", ""), ",")),
-			AllowedMethods:  strings.Split(utils.GetEnv("CACHE_ALLOWED_METHODS", ""), ","),
-		},
-	}
+	EnvConfig := Configuration{}
+
+	EnvConfig.Server.Port.HTTP = utils.GetEnv("SERVER_HTTP_PORT", "")
+	EnvConfig.Server.Port.HTTPS = utils.GetEnv("SERVER_HTTPS_PORT", "")
+
+	EnvConfig.Server.TLS.Auto = utils.GetEnv("TLS_AUTO_CERT", "") == "1"
+	EnvConfig.Server.TLS.Email = utils.GetEnv("TLS_EMAIL", "")
+	EnvConfig.Server.TLS.CertFile = utils.GetEnv("TLS_CERT_FILE", "")
+	EnvConfig.Server.TLS.KeyFile = utils.GetEnv("TLS_KEY_FILE", "")
+
+	EnvConfig.Server.Timeout.Read = convert.ToDuration(utils.GetEnv("TIMEOUT_READ", ""))
+	EnvConfig.Server.Timeout.ReadHeader = convert.ToDuration(utils.GetEnv("TIMEOUT_READ_HEADER", ""))
+	EnvConfig.Server.Timeout.Write = convert.ToDuration(utils.GetEnv("TIMEOUT_WRITE", ""))
+	EnvConfig.Server.Timeout.Idle = convert.ToDuration(utils.GetEnv("TIMEOUT_IDLE", ""))
+	EnvConfig.Server.Timeout.Handler = convert.ToDuration(utils.GetEnv("TIMEOUT_HANDLER", ""))
+
+	EnvConfig.Server.Forwarding.Host = utils.GetEnv("FORWARD_HOST", "")
+	EnvConfig.Server.Forwarding.Port = utils.GetEnv("FORWARD_PORT", "")
+	EnvConfig.Server.Forwarding.Scheme = normalizeScheme(utils.GetEnv("FORWARD_SCHEME", ""))
+	EnvConfig.Server.Forwarding.Endpoints = strings.Split(utils.GetEnv("LB_ENDPOINT_LIST", ""), ",")
+	EnvConfig.Server.Forwarding.HTTP2HTTPS = utils.GetEnv("HTTP2HTTPS", "") == "1"
+	EnvConfig.Server.Forwarding.RedirectStatusCode = convert.ToInt(utils.GetEnv("REDIRECT_STATUS_CODE", ""))
+
+	EnvConfig.Server.GZip = utils.GetEnv("GZIP_ENABLED", "") == "1"
+
+	EnvConfig.Cache.Host = utils.GetEnv("REDIS_HOST", "")
+	EnvConfig.Cache.Port = utils.GetEnv("REDIS_PORT", "")
+	EnvConfig.Cache.Password = utils.GetEnv("REDIS_PASSWORD", "")
+	EnvConfig.Cache.DB = convert.ToInt(utils.GetEnv("REDIS_DB", ""))
+	EnvConfig.Cache.TTL = convert.ToInt(utils.GetEnv("DEFAULT_TTL", ""))
+	EnvConfig.Cache.AllowedStatuses = convert.ToIntSlice(strings.Split(utils.GetEnv("CACHE_ALLOWED_STATUSES", ""), ","))
+	EnvConfig.Cache.AllowedMethods = strings.Split(utils.GetEnv("CACHE_ALLOWED_METHODS", ""), ",")
+
+	return EnvConfig
 }
 
 func getYamlConfig(file string, strict bool) (Configuration, error) {
@@ -258,8 +242,6 @@ func getYamlConfig(file string, strict bool) (Configuration, error) {
 // InitConfigFromFileOrEnv - Init the configuration in sequence: from a YAML file, from environment variables,
 // then defaults.
 func InitConfigFromFileOrEnv(file string) {
-	Config = Configuration{}
-	Config = CopyOverWith(Config, getDefaultConfig())
 	Config = CopyOverWith(Config, getEnvConfig())
 	YamlConfig, err := getYamlConfig(file, false)
 	if err == nil {
@@ -295,64 +277,44 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	newConf := base
 
 	// --- SERVER
-
-	serverN := newConf.Server
-	serverO := overrides.Server
-	serverN.Port.HTTP = utils.Coalesce(serverO.Port.HTTP, serverN.Port.HTTP, serverO.Port.HTTP == "").(string)
-	serverN.Port.HTTPS = utils.Coalesce(serverO.Port.HTTPS, serverN.Port.HTTPS, serverO.Port.HTTPS == "").(string)
-	serverN.GZip = utils.Coalesce(serverO.GZip, serverN.GZip, !serverO.GZip).(bool)
-	newConf.Server = serverN
+	newConf.Server.Port.HTTP = utils.Coalesce(overrides.Server.Port.HTTP, newConf.Server.Port.HTTP, overrides.Server.Port.HTTP == "").(string)
+	newConf.Server.Port.HTTPS = utils.Coalesce(overrides.Server.Port.HTTPS, newConf.Server.Port.HTTPS, overrides.Server.Port.HTTPS == "").(string)
+	newConf.Server.GZip = utils.Coalesce(overrides.Server.GZip, newConf.Server.GZip, !overrides.Server.GZip).(bool)
 
 	// --- TLS
-
-	tlsN := newConf.Server.TLS
-	tlsO := overrides.Server.TLS
-	tlsN.Auto = utils.Coalesce(tlsO.Auto, tlsN.Auto, !tlsO.Auto).(bool)
-	tlsN.Email = utils.Coalesce(tlsO.Email, tlsN.Email, tlsO.Email == "").(string)
-	tlsN.CertFile = utils.Coalesce(tlsO.CertFile, tlsN.CertFile, tlsO.CertFile == "").(string)
-	tlsN.KeyFile = utils.Coalesce(tlsO.KeyFile, tlsN.KeyFile, tlsO.KeyFile == "").(string)
-	tlsN.Override = utils.Coalesce(tlsO.Override, tlsN.Override, tlsO.Override == nil).(*tls.Config)
-	newConf.Server.TLS = tlsN
+	newConf.Server.TLS.Auto = utils.Coalesce(overrides.Server.TLS.Auto, newConf.Server.TLS.Auto, !overrides.Server.TLS.Auto).(bool)
+	newConf.Server.TLS.Email = utils.Coalesce(overrides.Server.TLS.Email, newConf.Server.TLS.Email, overrides.Server.TLS.Email == "").(string)
+	newConf.Server.TLS.CertFile = utils.Coalesce(overrides.Server.TLS.CertFile, newConf.Server.TLS.CertFile, overrides.Server.TLS.CertFile == "").(string)
+	newConf.Server.TLS.KeyFile = utils.Coalesce(overrides.Server.TLS.KeyFile, newConf.Server.TLS.KeyFile, overrides.Server.TLS.KeyFile == "").(string)
+	newConf.Server.TLS.Override = utils.Coalesce(overrides.Server.TLS.Override, newConf.Server.TLS.Override, overrides.Server.TLS.Override == nil).(*tls.Config)
 
 	// --- Timeout
-
-	timeoutN := newConf.Server.Timeout
-	timeoutO := overrides.Server.Timeout
-	timeoutN.Read = utils.Coalesce(timeoutO.Read, timeoutN.Read, timeoutO.Read == 0).(time.Duration)
-	timeoutN.ReadHeader = utils.Coalesce(timeoutO.ReadHeader, timeoutN.ReadHeader, timeoutO.ReadHeader == 0).(time.Duration)
-	timeoutN.Write = utils.Coalesce(timeoutO.Write, timeoutN.Write, timeoutO.Write == 0).(time.Duration)
-	timeoutN.Idle = utils.Coalesce(timeoutO.Idle, timeoutN.Idle, timeoutO.Idle == 0).(time.Duration)
-	timeoutN.Handler = utils.Coalesce(timeoutO.Handler, timeoutN.Handler, timeoutO.Handler == 0).(time.Duration)
-	newConf.Server.Timeout = timeoutN
+	newConf.Server.Timeout.Read = utils.Coalesce(overrides.Server.Timeout.Read, newConf.Server.Timeout.Read, overrides.Server.Timeout.Read == 0).(time.Duration)
+	newConf.Server.Timeout.ReadHeader = utils.Coalesce(overrides.Server.Timeout.ReadHeader, newConf.Server.Timeout.ReadHeader, overrides.Server.Timeout.ReadHeader == 0).(time.Duration)
+	newConf.Server.Timeout.Write = utils.Coalesce(overrides.Server.Timeout.Write, newConf.Server.Timeout.Write, overrides.Server.Timeout.Write == 0).(time.Duration)
+	newConf.Server.Timeout.Idle = utils.Coalesce(overrides.Server.Timeout.Idle, newConf.Server.Timeout.Idle, overrides.Server.Timeout.Idle == 0).(time.Duration)
+	newConf.Server.Timeout.Handler = utils.Coalesce(overrides.Server.Timeout.Handler, newConf.Server.Timeout.Handler, overrides.Server.Timeout.Handler == 0).(time.Duration)
 
 	// --- Forwarding
-
-	forwardingN := newConf.Server.Forwarding
-	forwardingO := overrides.Server.Forwarding
-	forwardingN.Host = utils.Coalesce(forwardingO.Host, forwardingN.Host, forwardingO.Host == "").(string)
-	forwardingN.Port = utils.Coalesce(forwardingO.Port, forwardingN.Port, forwardingO.Port == "").(string)
-	forwardingN.Scheme = utils.Coalesce(forwardingO.Scheme, forwardingN.Scheme, forwardingO.Scheme == "").(string)
-	forwardingN.Endpoints = utils.Coalesce(forwardingO.Endpoints, forwardingN.Endpoints, len(forwardingO.Endpoints) == 0).([]string)
-	forwardingN.HTTP2HTTPS = utils.Coalesce(forwardingO.HTTP2HTTPS, forwardingN.HTTP2HTTPS, !forwardingO.HTTP2HTTPS).(bool)
-	forwardingN.InsecureBridge = utils.Coalesce(forwardingO.InsecureBridge, forwardingN.InsecureBridge, !forwardingO.InsecureBridge).(bool)
-	forwardingN.RedirectStatusCode = utils.Coalesce(forwardingO.RedirectStatusCode, forwardingN.RedirectStatusCode, forwardingO.RedirectStatusCode == 0).(int)
-	newConf.Server.Forwarding = forwardingN
+	newConf.Server.Forwarding.Host = utils.Coalesce(overrides.Server.Forwarding.Host, newConf.Server.Forwarding.Host, overrides.Server.Forwarding.Host == "").(string)
+	newConf.Server.Forwarding.Port = utils.Coalesce(overrides.Server.Forwarding.Port, newConf.Server.Forwarding.Port, overrides.Server.Forwarding.Port == "").(string)
+	newConf.Server.Forwarding.Scheme = utils.Coalesce(overrides.Server.Forwarding.Scheme, newConf.Server.Forwarding.Scheme, overrides.Server.Forwarding.Scheme == "").(string)
+	newConf.Server.Forwarding.Endpoints = utils.Coalesce(overrides.Server.Forwarding.Endpoints, newConf.Server.Forwarding.Endpoints, len(overrides.Server.Forwarding.Endpoints) == 0).([]string)
+	newConf.Server.Forwarding.HTTP2HTTPS = utils.Coalesce(overrides.Server.Forwarding.HTTP2HTTPS, newConf.Server.Forwarding.HTTP2HTTPS, !overrides.Server.Forwarding.HTTP2HTTPS).(bool)
+	newConf.Server.Forwarding.InsecureBridge = utils.Coalesce(overrides.Server.Forwarding.InsecureBridge, newConf.Server.Forwarding.InsecureBridge, !overrides.Server.Forwarding.InsecureBridge).(bool)
+	newConf.Server.Forwarding.RedirectStatusCode = utils.Coalesce(overrides.Server.Forwarding.RedirectStatusCode, newConf.Server.Forwarding.RedirectStatusCode, overrides.Server.Forwarding.RedirectStatusCode == 0).(int)
 
 	// --- Cache
+	newConf.Cache.Host = utils.Coalesce(overrides.Cache.Host, newConf.Cache.Host, overrides.Cache.Host == "").(string)
+	newConf.Cache.Port = utils.Coalesce(overrides.Cache.Port, newConf.Cache.Port, overrides.Cache.Port == "").(string)
+	newConf.Cache.Password = utils.Coalesce(overrides.Cache.Password, newConf.Cache.Password, overrides.Cache.Password == "").(string)
+	newConf.Cache.DB = utils.Coalesce(overrides.Cache.DB, newConf.Cache.DB, overrides.Cache.DB == 0).(int)
+	newConf.Cache.TTL = utils.Coalesce(overrides.Cache.TTL, newConf.Cache.TTL, overrides.Cache.TTL == 0).(int)
+	newConf.Cache.AllowedStatuses = utils.Coalesce(overrides.Cache.AllowedStatuses, newConf.Cache.AllowedStatuses, len(overrides.Cache.AllowedStatuses) == 0).([]int)
+	newConf.Cache.AllowedMethods = utils.Coalesce(overrides.Cache.AllowedMethods, newConf.Cache.AllowedMethods, len(overrides.Cache.AllowedMethods) == 0).([]string)
 
-	cacheN := newConf.Cache
-	cacheO := overrides.Cache
-	cacheN.Host = utils.Coalesce(cacheO.Host, newConf.Cache.Host, cacheO.Host == "").(string)
-	cacheN.Port = utils.Coalesce(cacheO.Port, newConf.Cache.Port, cacheO.Port == "").(string)
-	cacheN.Password = utils.Coalesce(cacheO.Password, newConf.Cache.Password, cacheO.Password == "").(string)
-	cacheN.DB = utils.Coalesce(cacheO.DB, newConf.Cache.DB, cacheO.DB == 0).(int)
-	cacheN.TTL = utils.Coalesce(cacheO.TTL, newConf.Cache.TTL, cacheO.TTL == 0).(int)
-	cacheN.AllowedStatuses = utils.Coalesce(cacheO.AllowedStatuses, newConf.Cache.AllowedStatuses, len(cacheO.AllowedStatuses) == 0).([]int)
-	cacheN.AllowedMethods = utils.Coalesce(cacheO.AllowedMethods, newConf.Cache.AllowedMethods, len(cacheO.AllowedMethods) == 0).([]string)
-
-	cacheN.AllowedMethods = append(cacheN.AllowedMethods, "HEAD", "GET")
-	cacheN.AllowedMethods = utils.Unique(cacheN.AllowedMethods)
-	newConf.Cache = cacheN
+	newConf.Cache.AllowedMethods = append(newConf.Cache.AllowedMethods, "HEAD", "GET")
+	newConf.Cache.AllowedMethods = slice.Unique(newConf.Cache.AllowedMethods)
 
 	return newConf
 }
@@ -394,38 +356,5 @@ func DomainConf(domain string) *Configuration {
 		return &Config
 	}
 
-	return nil
-}
-
-// InitCircuitBreaker - Initialise the Circuit Breaker.
-func InitCircuitBreaker(name string, config CircuitBreaker) {
-	st := gobreaker.Settings{
-		Name:        name,
-		MaxRequests: config.MaxRequests,
-		Interval:    config.Interval,
-		Timeout:     config.Timeout,
-		ReadyToTrip: func(counts gobreaker.Counts) bool {
-			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-			return counts.Requests >= config.Threshold && failureRatio >= config.FailureRate
-		},
-		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {
-			log.Warnf("Circuit Breaker - Changed from %s to %s", from.String(), to.String())
-		},
-	}
-
-	if cb == nil {
-		cb = make(map[string]*gobreaker.CircuitBreaker)
-	}
-
-	cb[name] = gobreaker.NewCircuitBreaker(st)
-}
-
-// CB - Returns instance of gobreaker.CircuitBreaker.
-func CB(name string) *gobreaker.CircuitBreaker {
-	if val, ok := cb[name]; ok {
-		return val
-	}
-
-	log.Warnf("Missing circuit breaker for %s", name)
 	return nil
 }

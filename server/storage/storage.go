@@ -10,7 +10,6 @@ package storage
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"fmt"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -18,7 +17,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
 // RetrieveCachedContent - Retrives the cached response.
@@ -32,41 +31,65 @@ func RetrieveCachedContent(
 	url := *req.URL
 	url.Host = req.Host
 
-	uriobj, err := cache.RetrieveFullPage(method, url, reqHeaders)
+	// TODO: duplication
+	c := cache.CacheObj{
+		AllowedStatuses: config.Config.Cache.AllowedStatuses,
+		AllowedMethods:  config.Config.Cache.AllowedMethods,
+	}
+
+	err := c.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
 		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
-	if !cache.IsStatusAllowed(uriobj.StatusCode) || utils.LenSliceBytes(uriobj.Content) == 0 {
-		return uriobj, fmt.Errorf(
-			"not allowed. status %d - content length %d",
-			uriobj.StatusCode,
-			utils.LenSliceBytes(uriobj.Content),
-		)
+	ok, err := c.IsValid()
+	if !ok || err != nil {
+		return cache.URIObj{}, err
 	}
 
-	return uriobj, nil
+	return c.CurrentObj, nil
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(
 	req http.Request,
 	lwr response.LoggedResponseWriter,
+	domainConfigCache config.Cache,
 ) (bool, error) {
-	domainConfig := config.DomainConf(req.Host)
-	ttl := utils.GetTTL(lwr.Header(), domainConfig.Cache.TTL)
+	ttl := ttl.GetTTL(lwr.Header(), domainConfigCache.TTL)
 
-	response := cache.URIObj{
-		URL:             *req.URL,
-		Host:            req.Host,
-		Method:          req.Method,
-		StatusCode:      lwr.StatusCode,
-		RequestHeaders:  req.Header,
-		ResponseHeaders: lwr.Header(),
-		Content:         lwr.Content,
+	// TODO: duplication
+	c := cache.CacheObj{
+		// TODO: convert to use domainConfigCache
+		AllowedStatuses: config.Config.Cache.AllowedStatuses,
+		AllowedMethods:  config.Config.Cache.AllowedMethods,
+		CurrentObj: cache.URIObj{
+			URL:             *req.URL,
+			Host:            req.Host,
+			Method:          req.Method,
+			StatusCode:      lwr.StatusCode,
+			RequestHeaders:  req.Header,
+			ResponseHeaders: lwr.Header(),
+			Content:         lwr.Content,
+		},
 	}
 
-	done, err := cache.StoreFullPage(response, ttl)
+	done, err := c.StoreFullPage(ttl)
 
 	return done, err
+}
+
+// PurgeCachedContent - Purges a content in the cache.
+func PurgeCachedContent(scheme string, host string, req http.Request) (bool, error) {
+	proxyURL := *req.URL
+	proxyURL.Scheme = scheme
+	proxyURL.Host = host
+
+	// TODO: duplication
+	c := cache.CacheObj{
+		AllowedStatuses: config.Config.Cache.AllowedStatuses,
+		AllowedMethods:  config.Config.Cache.AllowedMethods,
+	}
+
+	return c.PurgeFullPage(req.Method, proxyURL)
 }

@@ -1,4 +1,4 @@
-package utils
+package convert
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -10,25 +10,30 @@ package utils
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"bytes"
-
-	"github.com/ugorji/go/codec"
+	"strconv"
+	"time"
 )
 
-var msgpackHandler codec.MsgpackHandle
-
-// MsgpackEncode - Encodes object with msgpack.
-func MsgpackEncode(obj interface{}) ([]byte, error) {
-	buff := new(bytes.Buffer)
-	encoder := codec.NewEncoder(buff, &msgpackHandler)
-	err := encoder.Encode(obj)
-
-	return buff.Bytes(), err
+// ToDuration - Converts a string to time.Duration
+func ToDuration(value string) time.Duration {
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return time.Duration(0)
+	}
+	return duration
 }
 
-// MsgpackDecode - Decodes object with msgpack.
-func MsgpackDecode(b []byte, v interface{}) error {
-	decoder := codec.NewDecoderBytes(b, &msgpackHandler)
+// ToInt - Converts a string to int
+func ToInt(value string) int {
+	val, _ := strconv.Atoi(value)
+	return val
+}
 
-	return decoder.Decode(v)
+// ToIntSlice - Converts a slice of strings to a slice of ints
+func ToIntSlice(value []string) []int {
+	values := []int{}
+	for _, v := range value {
+		values = append(values, ToInt(v))
+	}
+	return values
 }

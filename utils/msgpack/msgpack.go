@@ -1,6 +1,4 @@
-// +build unit
-
-package utils_test
+package msgpack
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -12,21 +10,25 @@ package utils_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"testing"
+	"bytes"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	"github.com/stretchr/testify/assert"
+	"github.com/ugorji/go/codec"
 )
 
-func TestMsgpackEncodeDecode(t *testing.T) {
-	str := []byte("test string")
+var msgpackHandler codec.MsgpackHandle
 
-	encoded, err := utils.MsgpackEncode(str)
-	assert.Nil(t, err)
+// Encode - Encodes object with msgpack.
+func Encode(obj interface{}) ([]byte, error) {
+	buff := new(bytes.Buffer)
+	encoder := codec.NewEncoder(buff, &msgpackHandler)
+	err := encoder.Encode(obj)
 
-	var decoded []byte
-	err = utils.MsgpackDecode(encoded, &decoded)
-	assert.Nil(t, err)
+	return buff.Bytes(), err
+}
 
-	assert.Equal(t, str, decoded)
+// Decode - Decodes object with msgpack.
+func Decode(b []byte, v interface{}) error {
+	decoder := codec.NewDecoderBytes(b, &msgpackHandler)
+
+	return decoder.Decode(v)
 }
