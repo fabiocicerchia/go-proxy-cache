@@ -96,11 +96,10 @@ cover:  ## coverage
 	go tool cover -html=c.out
 
 codeclimate:  ## codeclimate
-	go get -v github.com/codeclimate/test-reporter
-	cd $(GOPATH)/src/github.com/codeclimate/test-reporter && go install
-	test-reporter before-build
+	wget -O test-reporter https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 && chmod +x test-reporter
+	./test-reporter before-build
 	make cover
-	test-reporter after-build
+	./test-reporter --debug after-build
 
 codecov: ## codecov
 	curl -s https://codecov.io/bash | bash
