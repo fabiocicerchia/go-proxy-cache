@@ -34,7 +34,7 @@ jobs:
       - name: Codecov
         run: make codecov
 
-      - uses: paambaati/codeclimate-action@latest
+      - uses: paambaati/codeclimate-action@v2.7.4
 
   sca:
     runs-on: ubuntu-20.04
