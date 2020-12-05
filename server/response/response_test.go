@@ -95,6 +95,37 @@ func TestCatchContent(t *testing.T) {
 	tearDownResponse()
 }
 
+func TestCatchContentThreeChunks(t *testing.T) {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+
+	var rwMock ResponseWriterMock
+
+	lwr := response.NewLoggedResponseWriter(rwMock)
+
+	content := []byte("test content")
+	content2 := []byte("test content2")
+	content3 := []byte("test content3")
+	_, err := lwr.Write(content)
+	assert.Nil(t, err)
+	_, err = lwr.Write(content2)
+	assert.Nil(t, err)
+	_, err = lwr.Write(content3)
+	assert.Nil(t, err)
+
+	expectedContent := [][]byte{content, content2, content3}
+
+	// checks lwr
+	assert.Equal(t, 0, lwr.StatusCode)
+	assert.Equal(t, expectedContent, lwr.Content)
+
+	// verify calls on rwMock
+	assert.Equal(t, -1, MockStatusCode)
+	assert.Equal(t, expectedContent, MockContent)
+
+	tearDownResponse()
+}
+
 func tearDownResponse() {
 	MockStatusCode = -1
 	MockContent = make([][]byte, 0)
