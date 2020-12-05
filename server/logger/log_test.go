@@ -112,7 +112,7 @@ func TestLogSetup(t *testing.T) {
 				HTTP:  "80",
 				HTTPS: "443",
 			},
-			Forwarding: config.Forward{
+			Upstream: config.Upstream{
 				Host:      "www.google.com",
 				Scheme:    "https",
 				Endpoints: []string{"1.2.3.4", "8.8.8.8"},

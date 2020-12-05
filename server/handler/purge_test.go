@@ -34,7 +34,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
-			Forwarding: config.Forward{
+			Upstream: config.Upstream{
 				Host:      "www.w3.org",
 				Scheme:    "https",
 				Endpoints: []string{"www.w3.org"},
@@ -55,22 +55,22 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
 
-	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
+	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
 
 	// --- PURGE
 
 	req, err := http.NewRequest("PURGE", "/", nil)
-	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	req.URL.Host = config.Config.Server.Forwarding.Host
-	req.Host = config.Config.Server.Forwarding.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
+	_, err = engine.GetConn(config.Config.Server.Upstream.Host).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -90,7 +90,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
-			Forwarding: config.Forward{
+			Upstream: config.Upstream{
 				Host:      "www.w3.org",
 				Scheme:    "https",
 				Endpoints: []string{"www.w3.org"},
@@ -111,24 +111,24 @@ func TestEndToEndCallPurge(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
 
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Forwarding.Host, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
 
-	engine.InitConn(config.Config.Server.Forwarding.Host, config.Config.Cache)
+	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
 
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	req.URL.Host = config.Config.Server.Forwarding.Host
-	req.Host = config.Config.Server.Forwarding.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn(config.Config.Server.Forwarding.Host).PurgeAll()
+	_, err = engine.GetConn(config.Config.Server.Upstream.Host).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -146,9 +146,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- HIT
 
 	req, err = http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	req.URL.Host = config.Config.Server.Forwarding.Host
-	req.Host = config.Config.Server.Forwarding.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -168,9 +168,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- PURGE
 
 	req, err = http.NewRequest("PURGE", "/", nil)
-	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	req.URL.Host = config.Config.Server.Forwarding.Host
-	req.Host = config.Config.Server.Forwarding.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -187,9 +187,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- MISS
 
 	req, err = http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = config.Config.Server.Forwarding.Scheme
-	req.URL.Host = config.Config.Server.Forwarding.Host
-	req.Host = config.Config.Server.Forwarding.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()

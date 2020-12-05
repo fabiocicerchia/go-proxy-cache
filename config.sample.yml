@@ -12,31 +12,31 @@ server:
 domains:
   example_com:
     server:
-      forwarding:
+      upstream:
         host: example.com
 
   example_org:
     server:
-      forwarding:
+      upstream:
         host: example.org
 
   www_w3_org:
     server:
-      forwarding:
+      upstream:
         host: www.w3.org
         endpoints:
         - www.w3.org
 
   www_fabiocicerchia_it:
     server:
-      forwarding:
+      upstream:
         host: www.fabiocicerchia.it
         endpoints:
         - www.fabiocicerchia.it
 
   fabiocicerchia_it:
     server:
-      forwarding:
+      upstream:
         host: fabiocicerchia.it
         endpoints:
         - fabiocicerchia.it

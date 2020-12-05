@@ -73,8 +73,8 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if rc.GetScheme() == "http" && domainConfig.Server.Forwarding.HTTP2HTTPS {
-		rc.RedirectToHTTPS(domainConfig.Server.Forwarding.RedirectStatusCode)
+	if rc.GetScheme() == "http" && domainConfig.Server.Upstream.HTTP2HTTPS {
+		rc.RedirectToHTTPS(domainConfig.Server.Upstream.RedirectStatusCode)
 		return
 	}
 

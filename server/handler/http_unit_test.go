@@ -26,7 +26,7 @@ import (
 func TestFixRequestOneItemInLB(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
-			Forwarding: config.Forward{
+			Upstream: config.Upstream{
 				Host:      "developer.mozilla.org",
 				Scheme:    "https",
 				Endpoints: []string{"server1"},
@@ -49,10 +49,10 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
 
 	r := handler.RequestCall{Request: reqMock}
-	r.FixRequest(u, config.Config.Server.Forwarding)
+	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 
@@ -63,7 +63,7 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 func TestFixRequestThreeItemsInLB(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
-			Forwarding: config.Forward{
+			Upstream: config.Upstream{
 				Host:      "developer.mozilla.org",
 				Scheme:    "https",
 				Endpoints: []string{"server1", "server2", "server3"},
@@ -86,12 +86,12 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Forwarding.Host, config.Config.Server.Forwarding.Endpoints)
+	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
 
 	// --- FIRST ROUND
 
 	r := handler.RequestCall{Request: reqMock}
-	r.FixRequest(u, config.Config.Server.Forwarding)
+	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 
@@ -100,7 +100,7 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 
 	// --- SECOND ROUND
 
-	r.FixRequest(u, config.Config.Server.Forwarding)
+	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 

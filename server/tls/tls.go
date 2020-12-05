@@ -39,7 +39,7 @@ func ServerOverrides(domain string, server http.Server, domainConfig config.Serv
 	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 
 	if domainConfig.TLS.Auto {
-		certManager := InitCertManager(domainConfig.Forwarding.Host, domainConfig.TLS.Email)
+		certManager := InitCertManager(domainConfig.Upstream.Host, domainConfig.TLS.Email)
 
 		newServer.TLSConfig = certManager.TLSConfig()
 	}

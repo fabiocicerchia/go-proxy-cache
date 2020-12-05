@@ -184,7 +184,7 @@ server:
     # It runs the handler with the given time limit.
     handler: 15s
   # --- FORWARDING
-  forwarding:
+  upstream:
     # Hostname to be used for requests forwarding.
     host: ~
     # Port to be used for requests forwarding.
@@ -275,7 +275,7 @@ circuitbreaker:
 domains:
   fabiocicerchia:
     server:
-      forwarding:
+      upstream:
         host: fabiocicerchia.it
       tls:
         cert_file: /etc/letsencrypt/live/fabiocicerchia.it/fullchain.pem
@@ -283,7 +283,7 @@ domains:
 
   www_fabiocicerchia:
     server:
-      forwarding:
+      upstream:
         host: www.fabiocicerchia.it
       tls:
         cert_file: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/fullchain.pem

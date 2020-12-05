@@ -70,12 +70,12 @@ func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool
 }
 
 // PurgeCachedContent - Purges a content in the cache.
-func PurgeCachedContent(forwarding config.Forward, rc RequestCallDTO) (bool, error) {
-	scheme := utils.IfEmpty(forwarding.Scheme, rc.Scheme)
+func PurgeCachedContent(upstream config.Upstream, rc RequestCallDTO) (bool, error) {
+	scheme := utils.IfEmpty(upstream.Scheme, rc.Scheme)
 
 	proxyURL := *rc.Request.URL
 	proxyURL.Scheme = scheme
-	proxyURL.Host = forwarding.Host
+	proxyURL.Host = upstream.Host
 
 	return rc.CacheObj.PurgeFullPage(rc.Request.Method, proxyURL)
 }

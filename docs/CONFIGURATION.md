@@ -180,7 +180,7 @@ server:
     # It runs the handler with the given time limit.
     handler: 5s
   # --- FORWARDING
-  forwarding:
+  upstream:
     # Hostname to be used for requests forwarding.
     host: ~
     # Port to be used for requests forwarding.
@@ -293,12 +293,12 @@ log:
 domains:
   example_com:
     server:
-      forwarding:
+      upstream:
         host: example.com
 
   example_org:
     server:
-      forwarding:
+      upstream:
         host: example.org
 ```
 

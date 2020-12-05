@@ -21,7 +21,7 @@ import (
 func (rc RequestCall) HandlePurge(domainConfig *config.Configuration) {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	status, err := storage.PurgeCachedContent(domainConfig.Server.Forwarding, rcDTO)
+	status, err := storage.PurgeCachedContent(domainConfig.Server.Upstream, rcDTO)
 	if !status || err != nil {
 		rc.Response.WriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")

@@ -40,12 +40,12 @@ type Domains map[string]Configuration
 
 // Server - Defines basic info for the server
 type Server struct {
-	Port        Port    `yaml:"port"`
-	TLS         TLS     `yaml:"tls"`
-	Timeout     Timeout `yaml:"timeout"`
-	Forwarding  Forward `yaml:"forwarding"`
-	GZip        bool    `yaml:"gzip"`
-	Healthcheck bool    `yaml:"healthcheck"`
+	Port        Port     `yaml:"port"`
+	TLS         TLS      `yaml:"tls"`
+	Timeout     Timeout  `yaml:"timeout"`
+	Upstream    Upstream `yaml:"upstream"`
+	GZip        bool     `yaml:"gzip"`
+	Healthcheck bool     `yaml:"healthcheck"`
 }
 
 // Port - Defines the listening ports per protocol
@@ -63,8 +63,8 @@ type TLS struct {
 	Override *tls.Config `yaml:"override"`
 }
 
-// Forward - Defines the forwarding settings
-type Forward struct {
+// Upstream - Defines the upstream settings
+type Upstream struct {
 	Host               string   `yaml:"host"`
 	Port               string   `yaml:"port"`
 	Scheme             string   `yaml:"scheme"`
@@ -142,7 +142,7 @@ var Config Configuration = Configuration{
 			Idle:       20 * time.Second,
 			Handler:    5 * time.Second,
 		},
-		Forwarding: Forward{
+		Upstream: Upstream{
 			HTTP2HTTPS:         false,
 			InsecureBridge:     false,
 			RedirectStatusCode: 301,
@@ -198,12 +198,12 @@ func getEnvConfig() Configuration {
 	EnvConfig.Server.Timeout.Idle = convert.ToDuration(utils.GetEnv("TIMEOUT_IDLE", ""))
 	EnvConfig.Server.Timeout.Handler = convert.ToDuration(utils.GetEnv("TIMEOUT_HANDLER", ""))
 
-	EnvConfig.Server.Forwarding.Host = utils.GetEnv("FORWARD_HOST", "")
-	EnvConfig.Server.Forwarding.Port = utils.GetEnv("FORWARD_PORT", "")
-	EnvConfig.Server.Forwarding.Scheme = normalizeScheme(utils.GetEnv("FORWARD_SCHEME", ""))
-	EnvConfig.Server.Forwarding.Endpoints = strings.Split(utils.GetEnv("LB_ENDPOINT_LIST", ""), ",")
-	EnvConfig.Server.Forwarding.HTTP2HTTPS = utils.GetEnv("HTTP2HTTPS", "") == "1"
-	EnvConfig.Server.Forwarding.RedirectStatusCode = convert.ToInt(utils.GetEnv("REDIRECT_STATUS_CODE", ""))
+	EnvConfig.Server.Upstream.Host = utils.GetEnv("FORWARD_HOST", "")
+	EnvConfig.Server.Upstream.Port = utils.GetEnv("FORWARD_PORT", "")
+	EnvConfig.Server.Upstream.Scheme = normalizeScheme(utils.GetEnv("FORWARD_SCHEME", ""))
+	EnvConfig.Server.Upstream.Endpoints = strings.Split(utils.GetEnv("LB_ENDPOINT_LIST", ""), ",")
+	EnvConfig.Server.Upstream.HTTP2HTTPS = utils.GetEnv("HTTP2HTTPS", "") == "1"
+	EnvConfig.Server.Upstream.RedirectStatusCode = convert.ToInt(utils.GetEnv("REDIRECT_STATUS_CODE", ""))
 
 	EnvConfig.Server.GZip = utils.GetEnv("GZIP_ENABLED", "") == "1"
 
@@ -232,7 +232,7 @@ func getYamlConfig(file string) (Configuration, error) {
 		return YamlConfig, err
 	}
 
-	YamlConfig.Server.Forwarding.Scheme = normalizeScheme(YamlConfig.Server.Forwarding.Scheme)
+	YamlConfig.Server.Upstream.Scheme = normalizeScheme(YamlConfig.Server.Upstream.Scheme)
 
 	return YamlConfig, err
 }
@@ -297,14 +297,14 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	newConf.Server.Timeout.Idle = utils.Coalesce(overrides.Server.Timeout.Idle, newConf.Server.Timeout.Idle, overrides.Server.Timeout.Idle == 0).(time.Duration)
 	newConf.Server.Timeout.Handler = utils.Coalesce(overrides.Server.Timeout.Handler, newConf.Server.Timeout.Handler, overrides.Server.Timeout.Handler == 0).(time.Duration)
 
-	// --- Forwarding
-	newConf.Server.Forwarding.Host = utils.Coalesce(overrides.Server.Forwarding.Host, newConf.Server.Forwarding.Host, overrides.Server.Forwarding.Host == "").(string)
-	newConf.Server.Forwarding.Port = utils.Coalesce(overrides.Server.Forwarding.Port, newConf.Server.Forwarding.Port, overrides.Server.Forwarding.Port == "").(string)
-	newConf.Server.Forwarding.Scheme = utils.Coalesce(overrides.Server.Forwarding.Scheme, newConf.Server.Forwarding.Scheme, overrides.Server.Forwarding.Scheme == "").(string)
-	newConf.Server.Forwarding.Endpoints = utils.Coalesce(overrides.Server.Forwarding.Endpoints, newConf.Server.Forwarding.Endpoints, len(overrides.Server.Forwarding.Endpoints) == 0).([]string)
-	newConf.Server.Forwarding.HTTP2HTTPS = utils.Coalesce(overrides.Server.Forwarding.HTTP2HTTPS, newConf.Server.Forwarding.HTTP2HTTPS, !overrides.Server.Forwarding.HTTP2HTTPS).(bool)
-	newConf.Server.Forwarding.InsecureBridge = utils.Coalesce(overrides.Server.Forwarding.InsecureBridge, newConf.Server.Forwarding.InsecureBridge, !overrides.Server.Forwarding.InsecureBridge).(bool)
-	newConf.Server.Forwarding.RedirectStatusCode = utils.Coalesce(overrides.Server.Forwarding.RedirectStatusCode, newConf.Server.Forwarding.RedirectStatusCode, overrides.Server.Forwarding.RedirectStatusCode == 0).(int)
+	// --- Upstream
+	newConf.Server.Upstream.Host = utils.Coalesce(overrides.Server.Upstream.Host, newConf.Server.Upstream.Host, overrides.Server.Upstream.Host == "").(string)
+	newConf.Server.Upstream.Port = utils.Coalesce(overrides.Server.Upstream.Port, newConf.Server.Upstream.Port, overrides.Server.Upstream.Port == "").(string)
+	newConf.Server.Upstream.Scheme = utils.Coalesce(overrides.Server.Upstream.Scheme, newConf.Server.Upstream.Scheme, overrides.Server.Upstream.Scheme == "").(string)
+	newConf.Server.Upstream.Endpoints = utils.Coalesce(overrides.Server.Upstream.Endpoints, newConf.Server.Upstream.Endpoints, len(overrides.Server.Upstream.Endpoints) == 0).([]string)
+	newConf.Server.Upstream.HTTP2HTTPS = utils.Coalesce(overrides.Server.Upstream.HTTP2HTTPS, newConf.Server.Upstream.HTTP2HTTPS, !overrides.Server.Upstream.HTTP2HTTPS).(bool)
+	newConf.Server.Upstream.InsecureBridge = utils.Coalesce(overrides.Server.Upstream.InsecureBridge, newConf.Server.Upstream.InsecureBridge, !overrides.Server.Upstream.InsecureBridge).(bool)
+	newConf.Server.Upstream.RedirectStatusCode = utils.Coalesce(overrides.Server.Upstream.RedirectStatusCode, newConf.Server.Upstream.RedirectStatusCode, overrides.Server.Upstream.RedirectStatusCode == 0).(int)
 
 	// --- Cache
 	newConf.Cache.Host = utils.Coalesce(overrides.Cache.Host, newConf.Cache.Host, overrides.Cache.Host == "").(string)
@@ -338,7 +338,7 @@ func GetDomains() []string {
 	// TODO: What if there's no domains only main config?!
 	domains := make([]string, 0, len(Config.Domains))
 	for _, v := range Config.Domains {
-		domains = append(domains, v.Server.Forwarding.Host)
+		domains = append(domains, v.Server.Upstream.Host)
 	}
 
 	return domains
@@ -350,12 +350,12 @@ func DomainConf(domain string) *Configuration {
 	cleanedDomain := domainParts[0]
 
 	for _, v := range Config.Domains {
-		if v.Server.Forwarding.Host == cleanedDomain {
+		if v.Server.Upstream.Host == cleanedDomain {
 			return &v
 		}
 	}
 
-	if Config.Server.Forwarding.Host == cleanedDomain {
+	if Config.Server.Upstream.Host == cleanedDomain {
 		return &Config
 	}
 

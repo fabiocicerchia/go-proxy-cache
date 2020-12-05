@@ -93,7 +93,7 @@ server:
   tls:
     cert_file: server.pem
     key_file: server.key
-  forwarding:
+  upstream:
     host: ~
     port: 443
     scheme: https
@@ -108,12 +108,12 @@ cache:
 domains:
   example_com:
     server:
-      forwarding:
+      upstream:
         host: example.com
 
   example_org:
     server:
-      forwarding:
+      upstream:
         host: example.org
 ```
 

@@ -78,8 +78,8 @@ func (rc RequestCall) serveCachedContent() bool {
 }
 
 func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
-	forwarding := domainConfig.Server.Forwarding
-	proxyURL := rc.patchRequestForReverseProxy(forwarding)
+	upstream := domainConfig.Server.Upstream
+	proxyURL := rc.patchRequestForReverseProxy(upstream)
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
 	log.Debugf("Req URL: %s", rc.Request.URL.String())
@@ -90,7 +90,7 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 	// It can be ignored as it is customisable, but the default is false.
 	proxy.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: domainConfig.Server.Forwarding.InsecureBridge,
+			InsecureSkipVerify: domainConfig.Server.Upstream.InsecureBridge,
 		},
 	} // #nosec
 	proxy.ServeHTTP(rc.Response, rc.Request)
@@ -104,12 +104,12 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 }
 
 // FixRequest - Fixes the Request in order to use the load balanced host.
-func (rc *RequestCall) FixRequest(url url.URL, forwarding config.Forward) {
-	scheme := utils.IfEmpty(forwarding.Scheme, rc.GetScheme())
-	host := utils.IfEmpty(forwarding.Host, url.Host)
+func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
+	scheme := utils.IfEmpty(upstream.Scheme, rc.GetScheme())
+	host := utils.IfEmpty(upstream.Host, url.Host)
 
-	balancedHost := balancer.GetLBRoundRobin(forwarding.Host, url.Host)
-	overridePort := getOverridePort(balancedHost, forwarding.Port, scheme)
+	balancedHost := balancer.GetLBRoundRobin(upstream.Host, url.Host)
+	overridePort := getOverridePort(balancedHost, upstream.Port, scheme)
 
 	// The value of r.URL.Host and r.Host are almost always different. On a
 	// proxy server, r.URL.Host is the host of the target server and r.Host is
@@ -122,13 +122,13 @@ func (rc *RequestCall) FixRequest(url url.URL, forwarding config.Forward) {
 	rc.Request.Host = host
 }
 
-func (rc *RequestCall) patchRequestForReverseProxy(forwarding config.Forward) *url.URL {
-	overridePort := getOverridePort(forwarding.Host, forwarding.Port, rc.GetScheme())
+func (rc *RequestCall) patchRequestForReverseProxy(upstream config.Upstream) *url.URL {
+	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 	targetURL := *rc.Request.URL
 	targetURL.Scheme = rc.GetScheme()
-	targetURL.Host = forwarding.Host + overridePort
+	targetURL.Host = upstream.Host + overridePort
 
-	rc.FixRequest(targetURL, forwarding)
+	rc.FixRequest(targetURL, upstream)
 
 	proxyURL := &url.URL{
 		Scheme: rc.Request.URL.Scheme,
