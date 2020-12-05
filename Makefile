@@ -90,16 +90,17 @@ test-functional: ## test functional
 test-endtoend: ## test endtoend
 	go test -race -count=1 --tags=endtoend ./...
 
-.codeclimate:
-	curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-	chmod +x ./cc-test-reporter
-
-cover: .codeclimate ## coverage
-	# ./cc-test-reporter before-build
+cover:  ## coverage
 	go test -race -count=1 --tags=all -coverprofile c.out ./...
 	go tool cover -func=c.out
 	go tool cover -html=c.out
-	# ./cc-test-reporter after-build
+
+codeclimate:  ## codeclimate
+	go get -v github.com/codeclimate/test-reporter
+	cd $(GOPATH)/src/github.com/codeclimate/test-reporter && go install
+	test-reporter before-build
+	make cover
+	test-reporter after-build
 
 codecov: ## codecov
 	curl -s https://codecov.io/bash | bash

@@ -26,6 +26,80 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
+// Configuration - Defines the server configuration
+type Configuration struct {
+	Server         Server                        `yaml:"server"`
+	Cache          Cache                         `yaml:"cache"`
+	CircuitBreaker circuitbreaker.CircuitBreaker `yaml:"circuit_breaker"`
+	Domains        Domains                       `yaml:"domains"`
+	Log            Log                           `yaml:"log"`
+}
+
+// Domains - Overrides per domain
+type Domains map[string]Configuration
+
+// Server - Defines basic info for the server
+type Server struct {
+	Port        Port    `yaml:"port"`
+	TLS         TLS     `yaml:"tls"`
+	Timeout     Timeout `yaml:"timeout"`
+	Forwarding  Forward `yaml:"forwarding"`
+	GZip        bool    `yaml:"gzip"`
+	Healthcheck bool    `yaml:"healthcheck"`
+}
+
+// Port - Defines the listening ports per protocol
+type Port struct {
+	HTTP  string `yaml:"http"`
+	HTTPS string `yaml:"https"`
+}
+
+// TLS - Defines the configuration for SSL/TLS
+type TLS struct {
+	Auto     bool        `yaml:"auto"`
+	Email    string      `yaml:"email"`
+	CertFile string      `yaml:"cert_file"`
+	KeyFile  string      `yaml:"key_file"`
+	Override *tls.Config `yaml:"override"`
+}
+
+// Forward - Defines the forwarding settings
+type Forward struct {
+	Host               string   `yaml:"host"`
+	Port               string   `yaml:"port"`
+	Scheme             string   `yaml:"scheme"`
+	Endpoints          []string `yaml:"endpoints"`
+	InsecureBridge     bool     `yaml:"insecure_bridge"`
+	HTTP2HTTPS         bool     `yaml:"http_to_https"`
+	RedirectStatusCode int      `yaml:"redirect_status_code"`
+}
+
+// Timeout - Defines the server timeouts
+type Timeout struct {
+	Read       time.Duration `yaml:"read"`
+	ReadHeader time.Duration `yaml:"read_header"`
+	Write      time.Duration `yaml:"write"`
+	Idle       time.Duration `yaml:"idle"`
+	Handler    time.Duration `yaml:"handler"`
+}
+
+// Cache - Defines the config for the cache backend
+type Cache struct {
+	Host            string   `yaml:"host"`
+	Port            string   `yaml:"port"`
+	Password        string   `yaml:"password"`
+	DB              int      `yaml:"db"`
+	TTL             int      `yaml:"ttl"`
+	AllowedStatuses []int    `yaml:"allowed_statuses"`
+	AllowedMethods  []string `yaml:"allowed_methods"`
+}
+
+// Log - Defines the config for the logs
+type Log struct {
+	TimeFormat string `yaml:"time_format"`
+	Format     string `yaml:"format"`
+}
+
 // Config - Holds the server configuration
 var Config Configuration = Configuration{
 	Server: Server{
@@ -97,80 +171,6 @@ var Config Configuration = Configuration{
 }
 
 var allowedSchemes = map[string]string{"HTTP": "http", "HTTPS": "https"}
-
-// Configuration - Defines the server configuration
-type Configuration struct {
-	Server         Server
-	Cache          Cache
-	CircuitBreaker circuitbreaker.CircuitBreaker
-	Domains        Domains
-	Log            Log
-}
-
-// Domains - Overrides per domain
-type Domains map[string]Configuration
-
-// Server - Defines basic info for the server
-type Server struct {
-	Port        Port
-	TLS         TLS
-	Timeout     Timeout
-	Forwarding  Forward
-	GZip        bool
-	Healthcheck bool
-}
-
-// Port - Defines the listening ports per protocol
-type Port struct {
-	HTTP  string
-	HTTPS string
-}
-
-// TLS - Defines the configuration for SSL/TLS
-type TLS struct {
-	Auto     bool
-	Email    string
-	CertFile string
-	KeyFile  string
-	Override *tls.Config
-}
-
-// Forward - Defines the forwarding settings
-type Forward struct {
-	Host               string
-	Port               string
-	Scheme             string
-	Endpoints          []string
-	InsecureBridge     bool
-	HTTP2HTTPS         bool
-	RedirectStatusCode int
-}
-
-// Timeout - Defines the server timeouts
-type Timeout struct {
-	Read       time.Duration
-	ReadHeader time.Duration
-	Write      time.Duration
-	Idle       time.Duration
-	Handler    time.Duration
-}
-
-// Cache - Defines the config for the cache backend
-type Cache struct {
-	Host            string
-	Port            string
-	Password        string
-	DB              int
-	TTL             int
-	AllowedStatuses []int
-	AllowedMethods  []string
-}
-
-// Log - Defines the config for the logs
-type Log struct {
-	TimeFormat string
-	Format     string
-}
 
 func normalizeScheme(scheme string) string {
 	schemeUpper := strings.ToUpper(scheme)

@@ -6,8 +6,8 @@ server:
     http: "8080"
     https: "8443"
   tls:
-    certfile: server.pem
-    keyfile: server.key
+    cert_file: server.pem
+    key_file: server.key
 
 domains:
   example_com:

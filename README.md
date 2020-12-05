@@ -91,16 +91,16 @@ server:
     http: "80"
     https: "443"
   tls:
-    certfile: server.pem
-    keyfile: server.key
+    cert_file: server.pem
+    key_file: server.key
   forwarding:
     host: ~
     port: 443
     scheme: https
     endpoints:
       - 127.0.0.1
-    http2https: true
-    redirectstatuscode: 301
+    http_to_https: true
+    redirect_status_code: 301
 
 cache:
   host: localhost

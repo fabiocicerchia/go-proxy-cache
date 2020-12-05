@@ -57,7 +57,7 @@ server:
     # Automatic Certificate Management Environment
     # Provides automatic generation of SSL/TLS certificates from Let's Encrypt
     # and any other ACME-based CA.
-    # Default: false (need to provide `certfile` and `keyfile`)
+    # Default: false (need to provide `cert_file` and `key_file`)
     auto: false
     # Email optionally specifies a contact email address.
     # This is used by CAs, such as Let's Encrypt, to notify about problems with
@@ -68,8 +68,8 @@ server:
     # pair of files. The files must contain PEM encoded data. The certificate
     # file may contain intermediate certificates following the leaf certificate
     # to form a certificate chain.
-    certfile: ~
-    keyfile: ~
+    cert_file: ~
+    key_file: ~
     # WARNING: INTERNAL SERVER BEHAVIOUR
     override:
       # CipherSuites is a list of supported cipher suites for TLS versions up to
@@ -166,13 +166,13 @@ server:
     # body.
     # Because it does not let Handlers make per-request decisions on each
     # request body's acceptable deadline or upload rate, most users will prefer
-    # to use `readheader`. It is valid to use them both.
+    # to use `read_header`. It is valid to use them both.
     read: 5s
     # It is the amount of time allowed to read request headers. The connection's
     # read deadline is reset after reading the headers and the Handler can
     # decide what is considered too slow for the body. If it is zero, the value
     # of `read` is used. If both are zero, there is no timeout.
-    readheader: 2s
+    read_header: 2s
     # It is the maximum duration before timing out writes of the response. It is
     # reset whenever a new request's header is read. Like `read`, it does not
     # let Handlers make decisions on a per-request basis.
@@ -201,15 +201,15 @@ server:
       - 127.0.0.1
     # Forces redirect from HTTP to HTTPS.
     # Default: false
-    http2https: true
+    http_to_https: true
     # This allows to have communication between the proxy and the upstream in
     # case of invalid TLS certificate.
     # Can be disabled in the global config.
     # Default: false
-    insecurebridge: true
+    insecure_bridge: true
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
-    redirectstatuscode: 301
+    redirect_status_code: 301
 
 # --- CACHE
 cache:
@@ -233,7 +233,7 @@ cache:
   # --- ALLOWED VALUES
   # Allows caching for different response codes.
   # Default: 200, 301, 302
-  allowedstatuses:
+  allowed_statuses:
     - 200
     - 301
     - 302
@@ -241,7 +241,7 @@ cache:
   # will be cached. "GET" and "HEAD" methods are always added to the list,
   # though it is recommended to specify them explicitly.
   # Default: HEAD, GET
-  allowedmethods:
+  allowed_methods:
     - HEAD
     - GET
 
@@ -278,16 +278,16 @@ domains:
       forwarding:
         host: fabiocicerchia.it
       tls:
-        certfile: /etc/letsencrypt/live/fabiocicerchia.it/fullchain.pem
-        keyfile: /etc/letsencrypt/live/fabiocicerchia.it/privkey.pem
+        cert_file: /etc/letsencrypt/live/fabiocicerchia.it/fullchain.pem
+        key_file: /etc/letsencrypt/live/fabiocicerchia.it/privkey.pem
 
   www_fabiocicerchia:
     server:
       forwarding:
         host: www.fabiocicerchia.it
       tls:
-        certfile: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/fullchain.pem
-        keyfile: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/privkey.pem
+        cert_file: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/fullchain.pem
+        key_file: /etc/letsencrypt/live/www.fabiocicerchia.it-0001/privkey.pem
 ```
 
 ## SSL Report
