@@ -12,10 +12,12 @@ package handler
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
@@ -27,14 +29,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const enableStoringResponse = true
+const enableCachedResponse = true
+const enableLoggingRequest = true
+
 // HandleRequestAndProxy - Handles the requests and proxies to backend server.
 func (rc RequestCall) HandleRequestAndProxy(domainConfig *config.Configuration) {
-	cached := rc.serveCachedContent()
+	cached := false
+	if enableCachedResponse {
+		cached = rc.serveCachedContent()
+	}
+
 	if !cached {
 		rc.serveReverseProxy(domainConfig)
 	}
 
-	logger.LogRequest(*rc.Request, *rc.Response, cached)
+	if enableLoggingRequest {
+		logger.LogRequest(*rc.Request, *rc.Response, cached)
+	}
 }
 
 func getOverridePort(host string, port string, scheme string) string {
@@ -89,17 +101,41 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
 	// It can be ignored as it is customisable, but the default is false.
 	proxy.Transport = &http.Transport{
+		MaxIdleConns:        1000,
+		MaxIdleConnsPerHost: 1000,
+		MaxConnsPerHost:     1000,
+		Dial: func(network, addr string) (net.Conn, error) {
+			conn, err := net.DialTimeout(network, addr, 15*time.Second)
+			if err != nil {
+				return conn, err
+			}
+
+			return conn, err
+		},
+		DisableKeepAlives: false,
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: domainConfig.Server.Upstream.InsecureBridge,
 		},
 	} // #nosec
+
+	director := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		// the default director implementation returned by httputil.NewSingleHostReverseProxy
+		// takes care of setting the request Scheme, Host, and Path.
+		director(req)
+
+		// TODO: Move patchRequestForReverseProxy in here
+	}
 	proxy.ServeHTTP(rc.Response, rc.Request)
 
-	rcDTO := ConvertToRequestCallDTO(rc)
+	if enableStoringResponse {
+		// TODO: Move to async routine
+		rcDTO := ConvertToRequestCallDTO(rc)
 
-	stored, err := storage.StoreGeneratedPage(rcDTO, domainConfig.Cache)
-	if !stored || err != nil {
-		logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
+		stored, err := storage.StoreGeneratedPage(rcDTO, domainConfig.Cache)
+		if !stored || err != nil {
+			logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
+		}
 	}
 }
 

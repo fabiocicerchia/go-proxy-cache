@@ -8,6 +8,12 @@ server:
   tls:
     cert_file: server.pem
     key_file: server.key
+  timeout:
+    read: 5s
+    read_header: 2s
+    write: 5s
+    idle: 20s
+    handler: 15s
 
 domains:
   example_com:
@@ -39,4 +45,4 @@ domains:
       upstream:
         host: fabiocicerchia.it
         endpoints:
-        - fabiocicerchia.it
+        - 161.35.67.75:443
