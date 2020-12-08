@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  go-proxy-cache:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      network: host
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - redis
+    volumes:
+      - ./config.benchmark.yml:/app/config.yml
+      - ./server.key:/app/server.key
+      - ./server.pem:/app/server.pem
+  redis:
+    image: redis:6.0.8-alpine3.12
+    ports:
+      - 6379:6379
+    sysctls:
+      net.core.somaxconn: 1024
+  nginx:
+    image: nginx:1.19.5-alpine
+    restart: always
+    ports:
+      - "81:80"
+      - "444:443"

@@ -247,7 +247,7 @@ cache:
 
 # --- CIRCUIT BREAKER
 # WARNING: INTERNAL SERVER BEHAVIOUR
-circuitbreaker:
+circuit_breaker:
   # Will start evaluating the failures after n requests as defined by the
   # threshold.
   threshold: 1

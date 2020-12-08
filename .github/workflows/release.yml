@@ -31,3 +31,11 @@ jobs:
           body: ${{ steps.changelogs.outputs.changelogs }}
           draft: false
           prerelease: ${{ steps.changelogs.outputs.release_type == 'prerelease' }}
+
+      - uses: ethomson/send-tweet-action@v1
+        with:
+          status: "The version ${{ github.ref }} of go-proxy-cache has been released. https://github.com/fabiocicerchia/go-proxy-cache"
+          consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
+          consumer-secret: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
+          access-token: ${{ secrets.TWITTER_ACCESS_TOKEN }}
+          access-token-secret: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}

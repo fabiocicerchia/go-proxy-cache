@@ -40,6 +40,9 @@ help: ## prints this help
 ################################################################################
 
 build: ## build
+	go build -o go-proxy-cache main.go
+
+build-race: ## build-race
 	go build -race -o go-proxy-cache main.go
 
 ################################################################################

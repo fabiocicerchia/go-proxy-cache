@@ -28,6 +28,8 @@ import (
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
+const enableTimeoutHandler = true
+
 // Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {
 	HTTP  map[string]*http.Server
@@ -77,12 +79,16 @@ func InitServer(domain string) *http.Server {
 	}
 	mux.HandleFunc("/", handler.HandleRequest)
 
-	// TODO: make it optional?
-	muxWithMiddlewares := http.TimeoutHandler(
-		mux,
-		timeout.Handler,
-		"Timed Out\n",
-	)
+	var muxWithMiddlewares http.Handler
+	muxWithMiddlewares = mux
+
+	if enableTimeoutHandler {
+		muxWithMiddlewares = http.TimeoutHandler(
+			mux,
+			timeout.Handler,
+			"Timed Out\n",
+		)
+	}
 
 	if gzip {
 		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
@@ -143,7 +149,9 @@ func (s *Servers) StartDomainServer(domain string) {
 }
 
 func (s Servers) startListeners() {
+	// TODO: TOO MANY SUBROUTINES
 	for _, srvHTTP := range s.HTTP {
+		// TODO: PRINT TO FIND OUT HOW MANY OF THEM
 		go func(srv *http.Server) { log.Fatal(srv.ListenAndServe()) }(srvHTTP)
 	}
 	for _, srvHTTPS := range s.HTTPS {

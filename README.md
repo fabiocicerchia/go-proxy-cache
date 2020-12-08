@@ -34,6 +34,38 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 </center>
 
+## How it works
+
+When the request is not cached:
+
+```
+         .---------.       .---------.       .---------.
+         |         |       |         |       |         |
+         |         |       |         |       |         |
+you ---->|---->----|--->---|---->----|--->---|-->--.   |
+         |         |       |         |       |     |   |
+    <----|----<----|---<---|----<----|---<---|--<--'   |
+         `---------´       `---------´       `---------´
+           network        go-proxy-cache        redis
+```
+
+When the request is cached:
+
+```
+            website
+               _
+              | |
+         .----+-+--.       .---------.       .---------.
+         |    | '->|--->---|---->----|--->---|-->--,   |
+         |    '-<--|---<---|<--,     |       |     |   |
+         |         |       |   |     |       |     |   |
+you ---->|---->----|--->---|---'     |       |     |   |
+         |         |       |         |       |     |   |
+    <----|----<----|---<---|----<----|---<---|--<--'   |
+         `---------´       `---------´       `---------´
+           network        go-proxy-cache        redis
+```
+
 ## Features
 
 ### Small, Pragmatic and Easy to Use
@@ -142,6 +174,12 @@ Usage of go-proxy-cache:
 ```
 
 For examples check the relative documentation in [docs/EXAMPLES.md](https://github.com/fabiocicerchia/go-proxy-cache/blob/main/docs/EXAMPLES.md)
+
+## Release Cycle
+
+- Bug-fixes (e.g. `1.1.1`, `1.1.2`, `1.2.1`, `1.2.3`) are released as needed (no additional features are delivered in those versions, bug-fixes only).
+- Each version is supported until the next one is released (e.g. `1.1.x` will be supported until `1.2.0` is out).
+- We use [Semantic Versioning](https://semver.org/).
 
 ## Common Errors
 

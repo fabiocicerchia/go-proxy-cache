@@ -92,14 +92,19 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 		return false, err
 	}
 
-	encoded, err := engine.GetConn(targetURL.Host).Encode(c.CurrentObj)
+	conn := engine.GetConn(targetURL.Host)
+	if conn == nil {
+		return false, fmt.Errorf("missing redis connection")
+	}
+
+	encoded, err := conn.Encode(c.CurrentObj)
 	if err != nil {
 		return false, err
 	}
 
 	key := StorageKey(c.CurrentObj.Method, targetURL, meta, c.CurrentObj.RequestHeaders)
 
-	return engine.GetConn(targetURL.Host).Set(key, encoded, expiration)
+	return conn.Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
@@ -111,15 +116,20 @@ func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.
 		return fmt.Errorf("cannot fetch metadata: %s", err)
 	}
 
+	conn := engine.GetConn(url.Host)
+	if conn == nil {
+		return fmt.Errorf("missing redis connection")
+	}
+
 	key := StorageKey(method, url, meta, reqHeaders)
 	log.Debugf("StorageKey: %s", key)
 
-	encoded, err := engine.GetConn(url.Host).Get(key)
+	encoded, err := conn.Get(key)
 	if err != nil {
 		return fmt.Errorf("cannot get key: %s", err)
 	}
 
-	err = engine.GetConn(url.Host).Decode(encoded, obj)
+	err = conn.Decode(encoded, obj)
 	if err != nil {
 		return fmt.Errorf("cannot decode: %s", err)
 	}
@@ -136,13 +146,18 @@ func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
 		return false, err
 	}
 
+	conn := engine.GetConn(url.Host)
+	if conn == nil {
+		return false, fmt.Errorf("missing redis connection")
+	}
+
 	var meta []string
 	key := StorageKey(method, url, meta, http.Header{})
 
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
 	keyPattern := strings.Replace(key, match, replace, 1) + "*"
-	affected, err := engine.GetConn(url.Host).DelWildcard(keyPattern)
+	affected, err := conn.DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
 	}
@@ -172,14 +187,24 @@ func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Heade
 func FetchMetadata(method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	return engine.GetConn(url.Host).List(key)
+	conn := engine.GetConn(url.Host)
+	if conn == nil {
+		return []string{}, fmt.Errorf("missing redis connection")
+	}
+
+	return conn.List(key)
 }
 
 // PurgeMetadata - Purges the cache metadata for the requested URL.
 func PurgeMetadata(url url.URL) error {
 	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
 
-	_, err := engine.GetConn(url.Host).DelWildcard(keyPattern)
+	conn := engine.GetConn(url.Host)
+	if conn == nil {
+		return fmt.Errorf("missing redis connection")
+	}
+
+	_, err := conn.DelWildcard(keyPattern)
 	return err
 }
 
@@ -187,23 +212,33 @@ func PurgeMetadata(url url.URL) error {
 func DeleteMetadata(method string, url url.URL) error {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	return engine.GetConn(url.Host).Del(key)
+	conn := engine.GetConn(url.Host)
+	if conn == nil {
+		return fmt.Errorf("missing redis connection")
+	}
+
+	return conn.Del(key)
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
 func StoreMetadata(method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	_ = engine.GetConn(url.Host).Del(key) //nolint:golint,errcheck
-	err := engine.GetConn(url.Host).Push(key, meta)
+	conn := engine.GetConn(url.Host)
+	if conn == nil {
+		return false, fmt.Errorf("missing redis connection")
+	}
+
+	_ = conn.Del(key) //nolint:golint,errcheck
+	err := conn.Push(key, meta)
 	if err != nil {
 		return false, err
 	}
 
-	err = engine.GetConn(url.Host).Expire(key, expiration)
+	err = conn.Expire(key, expiration)
 	if err != nil {
 		// TODO: use transaction
-		_ = engine.GetConn(url.Host).Del(key)
+		_ = conn.Del(key)
 
 		return false, err
 	}

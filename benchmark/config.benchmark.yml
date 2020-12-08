@@ -1,0 +1,20 @@
+server:
+  port:
+    http: "80"
+    https: "443"
+  tls:
+    cert_file: /app/server.pem
+    key_file: /app/server.key
+  timeout:
+    read: 5s
+    read_header: 2s
+    write: 5s
+    idle: 20s
+    handler: 15s
+domains:
+  www_w3_org:
+    server:
+      upstream:
+        host: www.w3.org
+        endpoints:
+        - nginx:80

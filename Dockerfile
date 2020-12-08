@@ -11,6 +11,8 @@ FROM golang:1.15.6-alpine3.12 AS builder
 
 WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
+ENV CGO_CFLAGS -march=native -O3
+
 COPY . ./
 
 RUN apk update \
@@ -18,7 +20,6 @@ RUN apk update \
       gcc \
       libc-dev \
       make \
-      redis \
     && make build
 
 FROM alpine:3.12.1
