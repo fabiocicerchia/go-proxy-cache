@@ -82,7 +82,8 @@ func InitServer(domain string) *http.Server {
 	var muxWithMiddlewares http.Handler
 	muxWithMiddlewares = mux
 
-	if enableTimeoutHandler {
+	// TODO: TimeoutHandler doesn't support Hijacker
+	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxWithMiddlewares = http.TimeoutHandler(
 			mux,
 			timeout.Handler,
@@ -128,7 +129,7 @@ func (s *Servers) InitServers(domain string, domainConfig config.Server) {
 
 // StartDomainServer - Configures and start listening for a particular domain.
 func (s *Servers) StartDomainServer(domain string) {
-	domainConfig := config.DomainConf(domain)
+	domainConfig := config.DomainConf(domain, "")
 	if domainConfig == nil {
 		log.Errorf("Missing configuration for %s.", domain)
 		return

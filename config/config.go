@@ -345,16 +345,27 @@ func GetDomains() []string {
 }
 
 // DomainConf - Returns the configuration for the requested domain.
-func DomainConf(domain string) *Configuration {
+func DomainConf(domain string, scheme string) *Configuration {
 	domainParts := strings.Split(domain, ":")
 	cleanedDomain := domainParts[0]
 
+	// TODO: Use memoization
+	
+	// First round: host & scheme
+	for _, v := range Config.Domains {
+		if v.Server.Upstream.Host == cleanedDomain && v.Server.Upstream.Scheme == scheme {
+			return &v
+		}
+	}
+
+	// Second round: host
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain {
 			return &v
 		}
 	}
 
+	// Third round: global
 	if Config.Server.Upstream.Host == cleanedDomain {
 		return &Config
 	}

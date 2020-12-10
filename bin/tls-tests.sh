@@ -23,5 +23,18 @@ curl --ipv4 --insecure --include --verbose --write-out @curl_vars.txt --http1.1 
 curl --ipv4 --insecure --include --verbose --write-out @curl_vars.txt --http2 https://localhost/ 2>&1
 
 # PROXY TESTS
-curl --ipv4 --insecure --verbose --proxy http://localhost:80 http://fabiocicerchia.it
-curl --ipv4 --insecure --proxy-insecure --verbose --proxy https://localhost:443 https://fabiocicerchia.it
+curl --ipv4 --insecure --verbose --proxy http://localhost:80 http://testing.local
+curl --ipv4 --insecure --proxy-insecure --verbose --proxy https://localhost:443 https://testing.local
+
+# WEBSOCKET
+curl --include \
+     --no-buffer \
+     --header "Connection: Upgrade" \
+     --header "Upgrade: websocket" \
+     --header "Host: example.com:80" \
+     --header "Origin: http://example.com:80" \
+     --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+     --header "Sec-WebSocket-Version: 13" \
+     http://example.com:80/
+
+# WEBSOCKET SECURE

@@ -15,6 +15,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/yhat/wsutil"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
@@ -63,7 +65,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 	listeningPort := getListeningPort(req.Context())
 
-	domainConfig := config.DomainConf(req.Host)
+	domainConfig := config.DomainConf(req.Host, rc.GetScheme())
 	if domainConfig == nil ||
 		(domainConfig.Server.Port.HTTP != listeningPort &&
 			domainConfig.Server.Port.HTTPS != listeningPort) {
@@ -90,15 +92,29 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// GetScheme - Returns current request scheme
+// GetScheme - Returns current request scheme.
 // For server requests the URL is parsed from the URI supplied on the
 // Request-Line as stored in RequestURI. For most requests, fields other than
 // Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
+	// TODO: COVERAGE
+	if rc.IsWebSocket() && rc.Request.TLS != nil {
+		return "wss"
+	}
+
+	if rc.IsWebSocket() {
+		return "ws"
+	}
+
 	if rc.Request.TLS != nil {
-		// TODO: COVERAGE
 		return "https"
 	}
+
 	return "http"
+}
+
+// IsWebSocket - Checks whether a request is a websocket.
+func (rc RequestCall) IsWebSocket() bool {
+	return wsutil.IsWebSocketRequest(rc.Request)
 }

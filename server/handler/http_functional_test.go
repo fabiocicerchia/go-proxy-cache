@@ -35,9 +35,9 @@ func setCommonConfig() {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
-				Host:      "www.fabiocicerchia.it",
+				Host:      "www.testing.local",
 				Scheme:    "https",
-				Endpoints: []string{"161.35.67.75"},
+				Endpoints: []string{"127.0.0.1"},
 			},
 		},
 		Cache: config.Cache{
@@ -75,7 +75,8 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
-	assert.Contains(t, rr.Body.String(), `<a href="https://www.fabiocicerchia.it/">Moved Permanently</a>`)
+	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
+	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 
 	tearDownHTTPFunctional()
 }
@@ -245,9 +246,9 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
-				Host:               "fabiocicerchia.it",
+				Host:               "testing.local",
 				Scheme:             "http",
-				Endpoints:          []string{"161.35.67.75"},
+				Endpoints:          []string{"127.0.0.1"},
 				HTTP2HTTPS:         true,
 				RedirectStatusCode: http.StatusFound,
 			},
@@ -269,7 +270,7 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 
 	assert.Equal(t, http.StatusFound, rr.Code)
 
-	assert.Equal(t, "https://fabiocicerchia.it/", rr.HeaderMap["Location"][0])
+	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
 
 	tearDownHTTPFunctional()
 }
@@ -332,7 +333,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
-	assert.Equal(t, "https://fabiocicerchia.it/", rr.HeaderMap["Location"][0])
+	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
 	assert.Contains(t, rr.Body.String(), `<title>301 Moved Permanently</title>`)
 
 	tearDownHTTPFunctional()

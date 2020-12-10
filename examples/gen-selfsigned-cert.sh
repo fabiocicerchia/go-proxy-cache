@@ -12,10 +12,10 @@ openssl req \
   -keyout server.key \
   -new \
   -out server.pem \
-  -subj /CN=localhost \
+  -subj /CN=testing.local \
   -reqexts SAN \
   -extensions SAN \
   -config <(cat $sslConfig \
-    <(printf '[SAN]\nsubjectAltName=DNS:localhost')) \
+    <(printf '[SAN]\nsubjectAltName=DNS:www.testing.local')) \
   -sha256 \
   -days 3650

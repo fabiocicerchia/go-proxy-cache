@@ -10,6 +10,7 @@ require (
 	github.com/sony/gobreaker v0.4.1
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go/codec v1.2.0
+	github.com/yhat/wsutil v0.0.0-20170731153501-1d66fa95c997
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20201006153459-a7d1128ccaa0
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
