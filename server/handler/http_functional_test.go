@@ -75,7 +75,8 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
-	assert.Contains(t, rr.Body.String(), `<a href="https://www.fabiocicerchia.it/">Moved Permanently</a>`)
+	assert.Equal(t, "https://fabiocicerchia.it/", rr.HeaderMap["Location"][0])
+	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 
 	tearDownHTTPFunctional()
 }

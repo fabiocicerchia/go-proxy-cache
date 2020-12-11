@@ -81,6 +81,7 @@ you ---->|---->----|--->---|---'     |       |     |   |
 - **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI.
 - **Support Chunking**, by replicating exactly the same original amount.
 - **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
+- **ETag Support**, generating non-weak tags, handling `304 Not Modified`, managing HTTP headers `If-Modified-Since`, `If-Unmodified-Since`, `If-None-Match`, `If-Match`.
 
 ### Load Balancing
 
@@ -190,6 +191,10 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - `501 Not Implemented`  
   If there's no domain defined in the main configuration nor in the domain overrides, and a client will request an
   unknown domain the status `501` is returned.
+- `context deadline exceeded`  
+  The reason is because the timeout on the context.Context of the client side of the request is shorter than the timeout
+  in the server side handler. This means that the client gives up before any response is written.
+
 
 ## References
 
@@ -201,6 +206,7 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
 - [What Happens in a TLS Handshake? | SSL Handshake](https://www.cloudflare.com/en-gb/learning/ssl/what-happens-in-a-tls-handshake/)
 - [A step by step guide to mTLS in Go](https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go)
+- [Learning HTTP caching in Go](https://www.sanarias.com/blog/115LearningHTTPcachinginGo)
 
 ## License
 
