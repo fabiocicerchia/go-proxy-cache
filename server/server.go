@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/go-http-utils/etag"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -79,19 +80,25 @@ func InitServer(domain string) *http.Server {
 	}
 	mux.HandleFunc("/", handler.HandleRequest)
 
+	// basic
 	var muxWithMiddlewares http.Handler
 	muxWithMiddlewares = mux
 
+	// etag middleware
+	muxWithMiddlewares = etag.Handler(muxWithMiddlewares, false)
+
+	// gzip middleware
+	if gzip {
+		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
+	}
+
+	// timeout middleware
 	if enableTimeoutHandler {
 		muxWithMiddlewares = http.TimeoutHandler(
 			mux,
 			timeout.Handler,
 			"Timed Out\n",
 		)
-	}
-
-	if gzip {
-		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
 	}
 
 	server := &http.Server{

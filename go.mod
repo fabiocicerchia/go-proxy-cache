@@ -4,6 +4,9 @@ go 1.14
 
 require (
 	github.com/NYTimes/gziphandler v1.1.1
+	github.com/go-http-utils/etag v0.0.0-20161124023236-513ea8f21eb1
+	github.com/go-http-utils/fresh v0.0.0-20161124030543-7231e26a4b27 // indirect
+	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a // indirect
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.3.0
