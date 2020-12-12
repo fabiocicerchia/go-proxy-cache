@@ -11,6 +11,7 @@
 ```
 echo "127.0.0.1 testing.local www.testing.local" >> /etc/hosts
 cd examples
+./gen-selfsigned-cert.sh*
 docker-compose up
 ```
 

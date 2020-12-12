@@ -161,7 +161,8 @@ func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
 	scheme := utils.IfEmpty(upstream.Scheme, rc.GetScheme())
 	host := utils.IfEmpty(upstream.Host, url.Host)
 
-	balancedHost := balancer.GetLBRoundRobin(upstream.Host, url.Host)
+	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme
+	balancedHost := balancer.GetLBRoundRobin(lbID, url.Host)
 	overridePort := getOverridePort(balancedHost, upstream.Port, scheme)
 
 	// The value of r.URL.Host and r.Host are almost always different. On a

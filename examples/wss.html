@@ -1,7 +1,7 @@
 <script>
-// let socket = new WebSocket("ws://testing.local:9001"); // direct
-// let socket = new WebSocket("ws://testing.local:8881"); // nginx
-let socket = new WebSocket("ws://testing.local:8080"); // go-proxy-cache
+let socket = new WebSocket("wss://testing.local:9002"); // direct
+// let socket = new WebSocket("wss://testing.local:8882"); // nginx
+// let socket = new WebSocket("wss://testing.local:4443"); // go-proxy-cache
 
 socket.onopen = function(e) {
   alert("[open] Connection established");

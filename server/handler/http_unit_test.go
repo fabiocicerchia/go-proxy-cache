@@ -21,6 +21,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 func TestFixRequestOneItemInLB(t *testing.T) {
@@ -49,7 +50,8 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 
 	r := handler.RequestCall{Request: reqMock}
 	r.FixRequest(u, config.Config.Server.Upstream)
@@ -86,7 +88,8 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 
 	// --- FIRST ROUND
 

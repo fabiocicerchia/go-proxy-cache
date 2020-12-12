@@ -14,6 +14,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/yhat/wsutil"
 
@@ -65,7 +66,8 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 	listeningPort := getListeningPort(req.Context())
 
-	domainConfig := config.DomainConf(req.Host, rc.GetScheme())
+	host := strings.Split(req.Host, ":")[0] // TODO: HACK
+	domainConfig := config.DomainConf(host, rc.GetScheme())
 	if domainConfig == nil ||
 		(domainConfig.Server.Port.HTTP != listeningPort &&
 			domainConfig.Server.Port.HTTPS != listeningPort) {

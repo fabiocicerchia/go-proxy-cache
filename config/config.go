@@ -334,11 +334,15 @@ func Print() {
 }
 
 // GetDomains - Returns a list of domains.
-func GetDomains() []string {
+func GetDomains() []map[string]string {
 	// TODO: What if there's no domains only main config?!
-	domains := make([]string, 0, len(Config.Domains))
+	domains := make([]map[string]string, 0, len(Config.Domains))
 	for _, v := range Config.Domains {
-		domains = append(domains, v.Server.Upstream.Host)
+		d := map[string]string{
+			"host":   v.Server.Upstream.Host,
+			"scheme": v.Server.Upstream.Scheme,
+		}
+		domains = append(domains, d)
 	}
 
 	return domains
@@ -350,7 +354,7 @@ func DomainConf(domain string, scheme string) *Configuration {
 	cleanedDomain := domainParts[0]
 
 	// TODO: Use memoization
-	
+
 	// First round: host & scheme
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain && v.Server.Upstream.Scheme == scheme {

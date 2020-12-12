@@ -25,6 +25,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
@@ -47,7 +48,7 @@ func Run(configFile string) {
 		HTTPS: make(map[string]*http.Server),
 	}
 	for _, domain := range config.GetDomains() {
-		servers.StartDomainServer(domain)
+		servers.StartDomainServer(domain["host"], domain["scheme"])
 	}
 
 	// start server http & https
@@ -82,7 +83,6 @@ func InitServer(domain string) *http.Server {
 	var muxWithMiddlewares http.Handler
 	muxWithMiddlewares = mux
 
-	// TODO: TimeoutHandler doesn't support Hijacker
 	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxWithMiddlewares = http.TimeoutHandler(
 			mux,
@@ -128,16 +128,18 @@ func (s *Servers) InitServers(domain string, domainConfig config.Server) {
 }
 
 // StartDomainServer - Configures and start listening for a particular domain.
-func (s *Servers) StartDomainServer(domain string) {
-	domainConfig := config.DomainConf(domain, "")
+func (s *Servers) StartDomainServer(domain string, scheme string) {
+	domainConfig := config.DomainConf(domain, scheme)
 	if domainConfig == nil {
 		log.Errorf("Missing configuration for %s.", domain)
 		return
 	}
 
+	domainID := domain + utils.StringSeparatorOne + scheme
+
 	// redis connect
-	circuitbreaker.InitCircuitBreaker(domain, domainConfig.CircuitBreaker)
-	engine.InitConn(domain, domainConfig.Cache)
+	circuitbreaker.InitCircuitBreaker(domainID, domainConfig.CircuitBreaker)
+	engine.InitConn(domainID, domainConfig.Cache) // TODO: Apply to GetConn!!!
 
 	// Log setup values
 	logger.LogSetup(domainConfig.Server)
@@ -146,7 +148,7 @@ func (s *Servers) StartDomainServer(domain string) {
 	s.InitServers(domain, domainConfig.Server)
 
 	// lb
-	balancer.InitRoundRobin(domain, domainConfig.Server.Upstream.Endpoints)
+	balancer.InitRoundRobin(domainID, domainConfig.Server.Upstream.Endpoints)
 }
 
 func (s Servers) startListeners() {

@@ -55,9 +55,9 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
-
-	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	// --- PURGE
 
@@ -70,7 +70,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn(config.Config.Server.Upstream.Host).PurgeAll()
+	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -111,11 +111,10 @@ func TestEndToEndCallPurge(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
-
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
-
-	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	// --- MISS
 
@@ -128,7 +127,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn(config.Config.Server.Upstream.Host).PurgeAll()
+	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)

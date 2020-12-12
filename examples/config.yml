@@ -3,8 +3,8 @@
 ################################################################################
 server:
   port:
-    http: "8080"
-    https: "8443"
+    http: "80"
+    https: "443"
   tls:
     cert_file: server.pem
     key_file: server.key
@@ -13,7 +13,7 @@ server:
     read_header: 2s
     write: 5s
     idle: 20s
-    handler: 0s
+    handler: -1
 
 cache:
   host: redis
@@ -59,3 +59,11 @@ domains:
         scheme: ws
         endpoints:
         - nginx:81
+
+  testing_local_wss:
+    server:
+      upstream:
+        host: testing.local
+        scheme: wss
+        endpoints:
+        - nginx:82

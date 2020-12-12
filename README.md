@@ -191,6 +191,7 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - `501 Not Implemented`  
   If there's no domain defined in the main configuration nor in the domain overrides, and a client will request an
   unknown domain the status `501` is returned.
+- WebSocket and TimeoutHandler are not working together, because TimeoutHandler doesn't support Hijacker, so in order to have WebSocket support the setting `TimeoutHandler` must be set to `-1`.
 
 ## References
 

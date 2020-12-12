@@ -23,7 +23,7 @@ import (
 func TestHTTPClientCall(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://testing.local:80/", nil)
+	req, err := http.NewRequest("GET", "http://testing.local:8080/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
@@ -53,7 +53,7 @@ func TestHTTPClientCall(t *testing.T) {
 func TestHTTPClientCallToMissingDomain(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://testing.local:80/", nil)
+	req, err := http.NewRequest("GET", "http://testing.local:8080/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.google.com"
 	res, err := client.Do(req)

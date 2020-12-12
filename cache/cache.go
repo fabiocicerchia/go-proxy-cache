@@ -92,7 +92,8 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 		return false, err
 	}
 
-	conn := engine.GetConn(targetURL.Host)
+	domainID := targetURL.Host + utils.StringSeparatorOne + targetURL.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return false, fmt.Errorf("missing redis connection")
 	}
@@ -116,7 +117,8 @@ func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.
 		return fmt.Errorf("cannot fetch metadata: %s", err)
 	}
 
-	conn := engine.GetConn(url.Host)
+	domainID := url.Host + utils.StringSeparatorOne + url.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return fmt.Errorf("missing redis connection")
 	}
@@ -146,7 +148,8 @@ func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
 		return false, err
 	}
 
-	conn := engine.GetConn(url.Host)
+	domainID := url.Host + utils.StringSeparatorOne + url.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return false, fmt.Errorf("missing redis connection")
 	}
@@ -187,7 +190,8 @@ func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Heade
 func FetchMetadata(method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	domainID := url.Host + utils.StringSeparatorOne + url.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return []string{}, fmt.Errorf("missing redis connection")
 	}
@@ -199,7 +203,8 @@ func FetchMetadata(method string, url url.URL) ([]string, error) {
 func PurgeMetadata(url url.URL) error {
 	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	domainID := url.Host + utils.StringSeparatorOne + url.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return fmt.Errorf("missing redis connection")
 	}
@@ -212,7 +217,8 @@ func PurgeMetadata(url url.URL) error {
 func DeleteMetadata(method string, url url.URL) error {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	domainID := url.Host + utils.StringSeparatorOne + url.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return fmt.Errorf("missing redis connection")
 	}
@@ -224,7 +230,8 @@ func DeleteMetadata(method string, url url.URL) error {
 func StoreMetadata(method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	domainID := url.Host + utils.StringSeparatorOne + url.Scheme
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return false, fmt.Errorf("missing redis connection")
 	}

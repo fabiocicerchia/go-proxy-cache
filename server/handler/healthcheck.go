@@ -14,6 +14,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // HandleHealthcheck - Returns healthcheck status.
@@ -23,7 +24,8 @@ func HandleHealthcheck(res http.ResponseWriter, req *http.Request) {
 	lwr.WriteHeader(http.StatusOK)
 	_ = lwr.WriteBody("HTTP OK\n")
 
-	if conn := engine.GetConn(req.Host); conn != nil && conn.Ping() {
+	domainID := req.Host + utils.StringSeparatorOne + req.URL.Scheme
+	if conn := engine.GetConn(domainID); conn != nil && conn.Ping() {
 		_ = lwr.WriteBody("REDIS OK\n")
 	} else {
 		_ = lwr.WriteBody("REDIS KO\n")
