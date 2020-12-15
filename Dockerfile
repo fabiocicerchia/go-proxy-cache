@@ -22,7 +22,7 @@ RUN apk update \
       make \
     && make build
 
-FROM alpine:3.12.1
+FROM alpine:3.12.2
 
 WORKDIR /app
 
