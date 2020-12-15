@@ -127,7 +127,17 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 	if rc.IsWebSocket() {
 		enableStoringResponse = false
 		proxy := wsutil.NewSingleHostReverseProxy(proxyURL)
+		proxy.Dial = func(network, addr string) (net.Conn, error) {
+			conn, err := net.DialTimeout(network, addr, 15*time.Second)
+			if err != nil {
+				return conn, err
+			}
 
+			return conn, err
+		}
+		proxy.TLSClientConfig = &tls.Config{
+			InsecureSkipVerify: domainConfig.Server.Upstream.InsecureBridge,
+		}
 		proxy.ServeHTTP(rc.Response, rc.Request)
 	} else {
 		proxy := httputil.NewSingleHostReverseProxy(proxyURL)
