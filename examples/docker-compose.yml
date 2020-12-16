@@ -21,8 +21,8 @@ services:
     depends_on:
       - redis
     ports:
-      - "8080:80"
-      - "4443:443"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./config.yml:/app/config.yml
       - ./server.key:/app/server.key
@@ -45,10 +45,10 @@ services:
       - ./server.key:/server.key
       - ./server.pem:/server.pem
     ports:
-      - "8880:80" # http
-      - "8881:81" # ws
-      - "8882:82" # wss
-      - "8883:443" # https
+      - "8080:80" # http
+      - "8081:81" # ws
+      - "8082:82" # wss
+      - "8083:443" # https
 
   node:
     image: node:15.4.0-alpine3.10
@@ -58,5 +58,5 @@ services:
     volumes:
       - ./:/home/node/app
     ports:
-      - "9001:8081" # ws
-      - "9002:8082" # wss
+      - "9001:9001" # ws
+      - "9002:9002" # wss

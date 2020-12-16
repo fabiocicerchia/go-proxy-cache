@@ -91,7 +91,7 @@ you ---->|---->----|--->---|---'     |       |     |   |
 
 ### Security
 
-- **HTTP/2 Support**
+- **HTTP/2 Support**, HTTP/2 Pusher is achievable only if upstream implements [HTTP header `Link`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link).
 - **SSL/TLS Certificates via ACME**, provides automatic generation of SSL/TLS certificates from [Let's Encrypt](https://letsencrypt.org/) and any other ACME-based CA.
 - **Using your own SSL/TLS Certificates**, optional.
 
@@ -208,6 +208,7 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [What Happens in a TLS Handshake? | SSL Handshake](https://www.cloudflare.com/en-gb/learning/ssl/what-happens-in-a-tls-handshake/)
 - [A step by step guide to mTLS in Go](https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go)
 - [Learning HTTP caching in Go](https://www.sanarias.com/blog/115LearningHTTPcachinginGo)
+- [Nginx HTTP2 Server Push](https://ops.tips/blog/nginx-http2-server-push/)
 
 ## License
 

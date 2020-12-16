@@ -12,6 +12,7 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,7 +38,7 @@ func setCommonConfig() {
 			Upstream: config.Upstream{
 				Host:      "www.testing.local",
 				Scheme:    "https",
-				Endpoints: []string{"127.0.0.1:8880"},
+				Endpoints: []string{"127.0.0.1:8080"},
 			},
 		},
 		Cache: config.Cache{
@@ -318,7 +319,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
-	config.Config.Server.Upstream.Endpoints = []string{"127.0.0.1:8883"}
+	config.Config.Server.Upstream.Endpoints = []string{"127.0.0.1:8083"}
 	// This is because there's no client sending their certificate, so the handshake will be broken with a
 	// `remote error: tls: bad certificate`.
 	// More details on: https://www.prakharsrivastav.com/posts/from-http-to-https-using-go/
@@ -467,6 +468,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -492,6 +494,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()

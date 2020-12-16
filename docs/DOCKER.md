@@ -24,8 +24,8 @@ $ docker run \
     --env REDIS_PORT=6379 \
     --env REDIS_PASSWORD= \
     --env REDIS_DB=0 \
-    -p 8080:80
-    -p 8443:443
+    -p 80:80
+    -p 443:443
     fabiocicerchia/go-proxy-cache
 ```
 
@@ -35,8 +35,8 @@ Example #2:
 $ docker run \
     -it --rm -n goproxycache \
     -v $PWD/config.yml:/app/config.yml
-    -p 8080:80
-    -p 8443:443
+    -p 80:80
+    -p 443:443
     fabiocicerchia/go-proxy-cache
 ```
 

@@ -5,7 +5,7 @@ var WebSocket = require('ws');
 console.log("Server started");
 
 // WS
-ws = new WebSocket.Server({port: 8081});
+ws = new WebSocket.Server({port: 9001});
 ws.on('connection', function(ws) {
     ws.on('message', function(message) {
       console.log('Received from client: %s', message);
@@ -29,4 +29,4 @@ wss.on('connection', function(wss) {
     wss.send('Server received from client: ' + message);
   });
 });
-server.listen(8082);
+server.listen(9002);

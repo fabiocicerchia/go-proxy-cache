@@ -15,6 +15,21 @@ cd examples
 docker-compose up
 ```
 
+## Test
+
+```console
+$ make test
+[...]
+$ cd examples && node ws_client.js
+launched plain
+launched secure
+Sending plain message
+Server received from client: {}
+Sending secure message
+Server received from client: {}
+^C
+```
+
 ## Monitor file descriptors
 
 Launch wrk then:
