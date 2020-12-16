@@ -28,6 +28,7 @@ type CacheObj struct {
 	AllowedStatuses []int
 	AllowedMethods  []string
 	CurrentObj      URIObj
+	DomainID        string
 }
 
 // URIObj - Holds details about the response
@@ -64,13 +65,13 @@ func (c CacheObj) IsValid() (bool, error) {
 	return true, nil
 }
 
-func (c CacheObj) handleMetadata(targetURL url.URL, expiration time.Duration) ([]string, error) {
+func (c CacheObj) handleMetadata(domainID string, targetURL url.URL, expiration time.Duration) ([]string, error) {
 	meta, err := GetVary(c.CurrentObj.ResponseHeaders)
 	if err != nil {
 		return []string{}, err
 	}
 
-	_, err = StoreMetadata(c.CurrentObj.Method, targetURL, meta, expiration)
+	_, err = StoreMetadata(domainID, c.CurrentObj.Method, targetURL, meta, expiration)
 	if err != nil {
 		return []string{}, err
 	}
@@ -87,12 +88,12 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 	targetURL := c.CurrentObj.URL
 	targetURL.Host = c.CurrentObj.Host
 
-	meta, err := c.handleMetadata(targetURL, expiration)
+	meta, err := c.handleMetadata(c.DomainID, targetURL, expiration)
 	if err != nil {
 		return false, err
 	}
 
-	conn := engine.GetConn(targetURL.Host)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return false, fmt.Errorf("missing redis connection")
 	}
@@ -111,12 +112,12 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) error {
 	obj := &URIObj{}
 
-	meta, err := FetchMetadata(method, url)
+	meta, err := FetchMetadata(c.DomainID, method, url)
 	if err != nil {
 		return fmt.Errorf("cannot fetch metadata: %s", err)
 	}
 
-	conn := engine.GetConn(url.Host)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return fmt.Errorf("missing redis connection")
 	}
@@ -141,12 +142,12 @@ func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.
 
 // PurgeFullPage - Deletes the whole page response from cache.
 func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
-	err := PurgeMetadata(url)
+	err := PurgeMetadata(c.DomainID, url)
 	if err != nil {
 		return false, err
 	}
 
-	conn := engine.GetConn(url.Host)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return false, fmt.Errorf("missing redis connection")
 	}
@@ -184,10 +185,10 @@ func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Heade
 }
 
 // FetchMetadata - Returns the cache metadata for the requested URL.
-func FetchMetadata(method string, url url.URL) ([]string, error) {
+func FetchMetadata(domainID string, method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return []string{}, fmt.Errorf("missing redis connection")
 	}
@@ -196,10 +197,10 @@ func FetchMetadata(method string, url url.URL) ([]string, error) {
 }
 
 // PurgeMetadata - Purges the cache metadata for the requested URL.
-func PurgeMetadata(url url.URL) error {
+func PurgeMetadata(domainID string, url url.URL) error {
 	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return fmt.Errorf("missing redis connection")
 	}
@@ -208,23 +209,11 @@ func PurgeMetadata(url url.URL) error {
 	return err
 }
 
-// DeleteMetadata - Removes the cache metadata for the requested URL.
-func DeleteMetadata(method string, url url.URL) error {
-	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
-
-	conn := engine.GetConn(url.Host)
-	if conn == nil {
-		return fmt.Errorf("missing redis connection")
-	}
-
-	return conn.Del(key)
-}
-
 // StoreMetadata - Saves the cache metadata for the requested URL.
-func StoreMetadata(method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
+func StoreMetadata(domainID string, method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := engine.GetConn(url.Host)
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return false, fmt.Errorf("missing redis connection")
 	}

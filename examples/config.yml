@@ -3,8 +3,8 @@
 ################################################################################
 server:
   port:
-    http: "8080"
-    https: "8443"
+    http: "80"
+    https: "443"
   tls:
     cert_file: server.pem
     key_file: server.key
@@ -13,7 +13,10 @@ server:
     read_header: 2s
     write: 5s
     idle: 20s
-    handler: 15s
+    handler: -1
+
+cache:
+  host: redis
 
 domains:
   example_com:
@@ -33,16 +36,35 @@ domains:
         endpoints:
         - www.w3.org
 
-  www_fabiocicerchia_it:
+  www_testing_local:
     server:
       upstream:
-        host: www.fabiocicerchia.it
+        host: www.testing.local
+        scheme: http
         endpoints:
-        - www.fabiocicerchia.it
+        - nginx:80
 
-  fabiocicerchia_it:
+  testing_local:
     server:
       upstream:
-        host: fabiocicerchia.it
+        host: testing.local
+        scheme: http
         endpoints:
-        - 161.35.67.75:443
+        - nginx:80
+
+  testing_local_ws:
+    server:
+      upstream:
+        host: testing.local
+        scheme: ws
+        endpoints:
+        - nginx:81
+
+  testing_local_wss:
+    server:
+      upstream:
+        host: testing.local
+        scheme: wss
+        insecure_bridge: true
+        endpoints:
+        - nginx:82

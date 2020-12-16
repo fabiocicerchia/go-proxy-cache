@@ -90,9 +90,10 @@ func TestHealthcheckWithRedis(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleHealthcheck)
 
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 
-	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	h.ServeHTTP(rr, req)
 

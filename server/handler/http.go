@@ -29,19 +29,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const enableStoringResponse = true
-const enableCachedResponse = true
-const enableLoggingRequest = true
+var enableStoringResponse = true
+var enableCachedResponse = true
+var enableLoggingRequest = true
 
-// HandleRequestAndProxy - Handles the requests and proxies to backend server.
-func (rc RequestCall) HandleRequestAndProxy(domainConfig *config.Configuration) {
+// HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
+func (rc RequestCall) HandleHTTPRequestAndProxy(domainConfig *config.Configuration) {
 	cached := false
+
 	if enableCachedResponse {
 		cached = rc.serveCachedContent()
 	}
 
 	if !cached {
-		rc.serveReverseProxy(domainConfig)
+		rc.serveReverseProxyHTTP(domainConfig)
 	}
 
 	if enableLoggingRequest {
@@ -89,18 +90,10 @@ func (rc RequestCall) serveCachedContent() bool {
 	return true
 }
 
-func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
-	upstream := domainConfig.Server.Upstream
-	proxyURL := rc.patchRequestForReverseProxy(upstream)
-
-	log.Debugf("ProxyURL: %s", proxyURL.String())
-	log.Debugf("Req URL: %s", rc.Request.URL.String())
-	log.Debugf("Req Host: %s", rc.Request.Host)
-
-	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+func (rc RequestCall) patchProxyTransport(domainConfig *config.Configuration) *http.Transport {
 	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
 	// It can be ignored as it is customisable, but the default is false.
-	proxy.Transport = &http.Transport{
+	return &http.Transport{
 		MaxIdleConns:        1000,
 		MaxIdleConnsPerHost: 1000,
 		MaxConnsPerHost:     1000,
@@ -117,6 +110,18 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 			InsecureSkipVerify: domainConfig.Server.Upstream.InsecureBridge,
 		},
 	} // #nosec
+}
+
+func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) {
+	upstream := domainConfig.Server.Upstream
+	proxyURL := rc.patchRequestForReverseProxy(upstream)
+
+	log.Debugf("ProxyURL: %s", proxyURL.String())
+	log.Debugf("Req URL: %s", rc.Request.URL.String())
+	log.Debugf("Req Host: %s", rc.Request.Host)
+
+	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	proxy.Transport = rc.patchProxyTransport(domainConfig)
 
 	director := proxy.Director
 	proxy.Director = func(req *http.Request) {
@@ -126,6 +131,7 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 
 		// TODO: Move patchRequestForReverseProxy in here
 	}
+
 	proxy.ServeHTTP(rc.Response, rc.Request)
 
 	if enableStoringResponse {
@@ -144,7 +150,8 @@ func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
 	scheme := utils.IfEmpty(upstream.Scheme, rc.GetScheme())
 	host := utils.IfEmpty(upstream.Host, url.Host)
 
-	balancedHost := balancer.GetLBRoundRobin(upstream.Host, url.Host)
+	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme
+	balancedHost := balancer.GetLBRoundRobin(lbID, url.Host)
 	overridePort := getOverridePort(balancedHost, upstream.Port, scheme)
 
 	// The value of r.URL.Host and r.Host are almost always different. On a

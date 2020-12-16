@@ -26,7 +26,8 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4469/badge)](https://bestpractices.coreinfrastructure.org/projects/4469)
 [![BCH compliance](https://bettercodehub.com/edge/badge/fabiocicerchia/go-proxy-cache?branch=main)](https://bettercodehub.com/results/fabiocicerchia/go-proxy-cache)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)  
+[![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_shield)  
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
 [![Maintainability](https://img.shields.io/codeclimate/maintainability/fabiocicerchia/go-proxy-cache)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
 [![Technical Debt](https://img.shields.io/codeclimate/tech-debt/fabiocicerchia/go-proxy-cache)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
@@ -191,10 +192,10 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - `501 Not Implemented`  
   If there's no domain defined in the main configuration nor in the domain overrides, and a client will request an
   unknown domain the status `501` is returned.
+- WebSocket and TimeoutHandler are not working together, because TimeoutHandler doesn't support Hijacker, so in order to have WebSocket support the setting `TimeoutHandler` must be set to `-1`.
 - `context deadline exceeded`  
   The reason is because the timeout on the context.Context of the client side of the request is shorter than the timeout
   in the server side handler. This means that the client gives up before any response is written.
-
 
 ## References
 
@@ -231,3 +232,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_large)

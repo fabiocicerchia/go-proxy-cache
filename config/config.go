@@ -100,6 +100,12 @@ type Log struct {
 	Format     string `yaml:"format"`
 }
 
+// DomainSet - Holds the uniqueness details of the domain
+type DomainSet struct {
+	Host   string
+	Scheme string
+}
+
 // Config - Holds the server configuration
 var Config Configuration = Configuration{
 	Server: Server{
@@ -334,27 +340,42 @@ func Print() {
 }
 
 // GetDomains - Returns a list of domains.
-func GetDomains() []string {
+func GetDomains() []DomainSet {
 	// TODO: What if there's no domains only main config?!
-	domains := make([]string, 0, len(Config.Domains))
+	domains := make([]DomainSet, 0, len(Config.Domains))
 	for _, v := range Config.Domains {
-		domains = append(domains, v.Server.Upstream.Host)
+		d := DomainSet{
+			Host:   v.Server.Upstream.Host,
+			Scheme: v.Server.Upstream.Scheme,
+		}
+		domains = append(domains, d)
 	}
 
 	return domains
 }
 
 // DomainConf - Returns the configuration for the requested domain.
-func DomainConf(domain string) *Configuration {
+func DomainConf(domain string, scheme string) *Configuration {
 	domainParts := strings.Split(domain, ":")
 	cleanedDomain := domainParts[0]
 
+	// TODO: Use memoization
+
+	// First round: host & scheme
+	for _, v := range Config.Domains {
+		if v.Server.Upstream.Host == cleanedDomain && v.Server.Upstream.Scheme == scheme {
+			return &v
+		}
+	}
+
+	// Second round: host
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain {
 			return &v
 		}
 	}
 
+	// Third round: global
 	if Config.Server.Upstream.Host == cleanedDomain {
 		return &Config
 	}
