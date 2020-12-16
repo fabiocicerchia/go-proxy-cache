@@ -184,7 +184,7 @@ Valid domain uncacheable cacheable with redis for 30s:
 
 ```console
 $ ./go-proxy-cache -config config.sample.yml &
-$ wrk -t12 -c1000 -d30s -s benchmark/script.lua http://127.0.0.1:8080 
+$ wrk -t12 -c1000 -d30s -s benchmark/script.lua http://127.0.0.1:8080
 Running 30s test @ http://127.0.0.1:8080
   12 threads and 1000 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
@@ -213,5 +213,3 @@ Running 30s test @ https://www.w3.org:8443/standards/
 Requests/sec:     66.47
 Transfer/sec:    584.56KB
 ```
-
-

@@ -38,7 +38,7 @@ func setCommonConfig() {
 			Upstream: config.Upstream{
 				Host:      "www.testing.local",
 				Scheme:    "https",
-				Endpoints: []string{"127.0.0.1:8080"},
+				Endpoints: []string{"127.0.0.1:2080"},
 			},
 		},
 		Cache: config.Cache{
@@ -319,7 +319,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
-	config.Config.Server.Upstream.Endpoints = []string{"127.0.0.1:8083"}
+	config.Config.Server.Upstream.Endpoints = []string{"nginx:443"}
 	// This is because there's no client sending their certificate, so the handshake will be broken with a
 	// `remote error: tls: bad certificate`.
 	// More details on: https://www.prakharsrivastav.com/posts/from-http-to-https-using-go/

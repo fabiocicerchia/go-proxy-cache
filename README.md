@@ -39,32 +39,32 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 When the request is not cached:
 
-```
-         .---------.       .---------.       .---------.
-         |         |       |         |       |         |
-         |         |       |         |       |         |
-you ---->|---->----|--->---|---->----|--->---|-->--.   |
-         |         |       |         |       |     |   |
-    <----|----<----|---<---|----<----|---<---|--<--'   |
-         `---------´       `---------´       `---------´
-           network        go-proxy-cache        redis
+```text
+        .---------.       .---------.       .---------.
+        |         |       |         |       |         |
+        |         |       |         |       |         |
+you --->|---->----|--->---|---->----|--->---|-->--.   |
+        |         |       |         |       |     |   |
+    <---|----<----|---<---|----<----|---<---|--<--'   |
+        `---------´       `---------´       `---------´
+          network        go-proxy-cache        redis
 ```
 
 When the request is cached:
 
-```
-            website
-               _
-              | |
-         .----+-+--.       .---------.       .---------.
-         |    | '->|--->---|---->----|--->---|-->--,   |
-         |    '-<--|---<---|<--,     |       |     |   |
-         |         |       |   |     |       |     |   |
-you ---->|---->----|--->---|---'     |       |     |   |
-         |         |       |         |       |     |   |
-    <----|----<----|---<---|----<----|---<---|--<--'   |
-         `---------´       `---------´       `---------´
-           network        go-proxy-cache        redis
+```text
+          website
+             _
+            | |
+        .---+-+---.       .---------.       .---------.
+        |   | '-->|--->---|---->----|--->---|-->--,   |
+        |   '-<---|---<---|<--,     |       |     |   |
+        |         |       |   |     |       |     |   |
+you --->|---->----|--->---|---'     |       |     |   |
+        |         |       |         |       |     |   |
+    <---|----<----|---<---|----<----|---<---|--<--'   |
+        `---------´       `---------´       `---------´
+          network        go-proxy-cache        redis
 ```
 
 ## Features
@@ -116,9 +116,11 @@ you ---->|---->----|--->---|---'     |       |     |   |
 - **Debug/Verbose mode**, it is possible to have additional levels of details by settings the flags `-verbose` or `-debug`.
 
 ## Configuration
+
 ## YAML
 
 This is a simple (and not comprehensive) configuration:
+
 ```yaml
 server:
   port:
@@ -233,6 +235,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_large)

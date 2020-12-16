@@ -85,7 +85,10 @@ func GetTTLFromCacheControl(cacheType string, cacheControl string) time.Duration
 	age := ageRegex.FindStringSubmatch(cacheControl)
 
 	if len(age) > 0 {
-		ageTTL, _ := strconv.ParseInt(age[1], 10, 64)
+		ageTTL, err := strconv.ParseInt(age[1], 10, 64)
+		if err != nil {
+			ageTTL = 0
+		}
 		ttl = time.Duration(ageTTL) * time.Second
 	}
 

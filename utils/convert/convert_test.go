@@ -30,15 +30,15 @@ func TestToDurationEmpty(t *testing.T) {
 func TestToDurationSeconds(t *testing.T) {
 	value := convert.ToDuration("10s")
 
-	assert.Equal(t, time.Duration(10*time.Second), value)
+	assert.Equal(t, 10*time.Second, value)
 }
 
 func TestToDurationDifferentValues(t *testing.T) {
 	value := convert.ToDuration("10m")
-	assert.Equal(t, time.Duration(10*time.Minute), value)
+	assert.Equal(t, 10*time.Minute, value)
 
 	value = convert.ToDuration("10h")
-	assert.Equal(t, time.Duration(10*time.Hour), value)
+	assert.Equal(t, 10*time.Hour, value)
 }
 
 // --- ToInt

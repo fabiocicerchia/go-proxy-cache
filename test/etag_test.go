@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +24,7 @@ import (
 func TestETag(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://127.0.0.1:8080/", nil)
+	req, err := http.NewRequest("GET", "http://127.0.0.1:2080/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
@@ -39,7 +40,7 @@ func TestETag(t *testing.T) {
 	res.Body.Close()
 
 	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
-	assert.Contains(t, res.Header.Get("ETag"), `-5b62a6cdf2bc0;89-3f26bd17a2f00-gzip"`)
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9a-f]{4}-[0-9a-f]{13};[0-9a-f]{2}-[0-9a-f]{13}-gzip\"$`), res.Header.Get("ETag"))
 
 	assert.Equal(t, "HTTP/1.1", res.Proto)
 	assert.Equal(t, 1, res.ProtoMajor)

@@ -21,12 +21,12 @@ services:
     depends_on:
       - redis
     ports:
-      - "80:80"
-      - "443:443"
+      - "2080:2080"
+      - "2443:2443"
     volumes:
       - ./config.yml:/app/config.yml
-      - ./server.key:/app/server.key
-      - ./server.pem:/app/server.pem
+      - ./certs/server.key:/app/server.key
+      - ./certs/server.pem:/app/server.pem
 
   redis:
     image: redis:6.0.8-alpine3.12
@@ -41,9 +41,9 @@ services:
     image: nginx:1.19.5-alpine
     restart: always
     volumes:
-      - ./vhost.conf:/etc/nginx/conf.d/vhost.conf
-      - ./server.key:/server.key
-      - ./server.pem:/server.pem
+      - ./nginx/compose.conf:/etc/nginx/conf.d/default.conf
+      - ./certs/server.key:/server.key
+      - ./certs/server.pem:/server.pem
     ports:
       - "8080:80" # http
       - "8081:81" # ws

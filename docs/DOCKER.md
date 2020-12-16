@@ -2,7 +2,7 @@
 
 ## Official Image
 
-Available on Docker Hub: https://hub.docker.com/r/fabiocicerchia/go-proxy-cache
+Available on Docker Hub: [https://hub.docker.com/r/fabiocicerchia/go-proxy-cache](https://hub.docker.com/r/fabiocicerchia/go-proxy-cache)
 
 ![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache.svg "Docker pulls")
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache.svg "Docker stars")
