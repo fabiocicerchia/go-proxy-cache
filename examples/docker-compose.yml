@@ -10,18 +10,19 @@
 version: '3.8'
 
 services:
-  # TODO: ADD ENV VAR TO BUILD -race
   go-proxy-cache:
     build:
       context: ..
       dockerfile: Dockerfile
       network: host
+      args:
+        BUILD_CMD: build-race
     command: ["go-proxy-cache", "-debug"]
     depends_on:
       - redis
     ports:
-      - "8000:80"
-      - "4444:443"
+      - "8080:80"
+      - "4443:443"
     volumes:
       - ./config.yml:/app/config.yml
       - ./server.key:/app/server.key

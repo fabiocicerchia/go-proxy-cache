@@ -48,7 +48,7 @@ func Run(configFile string) {
 		HTTPS: make(map[string]*http.Server),
 	}
 	for _, domain := range config.GetDomains() {
-		servers.StartDomainServer(domain["host"], domain["scheme"])
+		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
 
 	// start server http & https
@@ -139,7 +139,7 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 
 	// redis connect
 	circuitbreaker.InitCircuitBreaker(domainID, domainConfig.CircuitBreaker)
-	engine.InitConn(domainID, domainConfig.Cache) // TODO: Apply to GetConn!!!
+	engine.InitConn(domainID, domainConfig.Cache)
 
 	// Log setup values
 	logger.LogSetup(domainConfig.Server)

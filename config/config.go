@@ -100,6 +100,12 @@ type Log struct {
 	Format     string `yaml:"format"`
 }
 
+// DomainSet - Holds the uniqueness details of the domain
+type DomainSet struct {
+	Host   string
+	Scheme string
+}
+
 // Config - Holds the server configuration
 var Config Configuration = Configuration{
 	Server: Server{
@@ -334,13 +340,13 @@ func Print() {
 }
 
 // GetDomains - Returns a list of domains.
-func GetDomains() []map[string]string {
+func GetDomains() []DomainSet {
 	// TODO: What if there's no domains only main config?!
-	domains := make([]map[string]string, 0, len(Config.Domains))
+	domains := make([]DomainSet, 0, len(Config.Domains))
 	for _, v := range Config.Domains {
-		d := map[string]string{
-			"host":   v.Server.Upstream.Host,
-			"scheme": v.Server.Upstream.Scheme,
+		d := DomainSet{
+			Host:   v.Server.Upstream.Host,
+			Scheme: v.Server.Upstream.Scheme,
 		}
 		domains = append(domains, d)
 	}

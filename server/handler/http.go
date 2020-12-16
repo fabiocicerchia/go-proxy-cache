@@ -27,26 +27,22 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	log "github.com/sirupsen/logrus"
-	"github.com/yhat/wsutil"
 )
 
 var enableStoringResponse = true
 var enableCachedResponse = true
 var enableLoggingRequest = true
 
-// HandleRequestAndProxy - Handles the requests and proxies to backend server.
-func (rc RequestCall) HandleRequestAndProxy(domainConfig *config.Configuration) {
-	if rc.IsWebSocket() {
-		enableCachedResponse = false
-	}
-
+// HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
+func (rc RequestCall) HandleHTTPRequestAndProxy(domainConfig *config.Configuration) {
 	cached := false
+
 	if enableCachedResponse {
 		cached = rc.serveCachedContent()
 	}
 
 	if !cached {
-		rc.serveReverseProxy(domainConfig)
+		rc.serveReverseProxyHTTP(domainConfig)
 	}
 
 	if enableLoggingRequest {
@@ -116,7 +112,7 @@ func (rc RequestCall) patchProxyTransport(domainConfig *config.Configuration) *h
 	} // #nosec
 }
 
-func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
+func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) {
 	upstream := domainConfig.Server.Upstream
 	proxyURL := rc.patchRequestForReverseProxy(upstream)
 
@@ -124,36 +120,19 @@ func (rc RequestCall) serveReverseProxy(domainConfig *config.Configuration) {
 	log.Debugf("Req URL: %s", rc.Request.URL.String())
 	log.Debugf("Req Host: %s", rc.Request.Host)
 
-	if rc.IsWebSocket() {
-		enableStoringResponse = false
-		proxy := wsutil.NewSingleHostReverseProxy(proxyURL)
-		proxy.Dial = func(network, addr string) (net.Conn, error) {
-			conn, err := net.DialTimeout(network, addr, 15*time.Second)
-			if err != nil {
-				return conn, err
-			}
+	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	proxy.Transport = rc.patchProxyTransport(domainConfig)
 
-			return conn, err
-		}
-		proxy.TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: domainConfig.Server.Upstream.InsecureBridge,
-		}
-		proxy.ServeHTTP(rc.Response, rc.Request)
-	} else {
-		proxy := httputil.NewSingleHostReverseProxy(proxyURL)
-		proxy.Transport = rc.patchProxyTransport(domainConfig)
+	director := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		// the default director implementation returned by httputil.NewSingleHostReverseProxy
+		// takes care of setting the request Scheme, Host, and Path.
+		director(req)
 
-		director := proxy.Director
-		proxy.Director = func(req *http.Request) {
-			// the default director implementation returned by httputil.NewSingleHostReverseProxy
-			// takes care of setting the request Scheme, Host, and Path.
-			director(req)
-
-			// TODO: Move patchRequestForReverseProxy in here
-		}
-
-		proxy.ServeHTTP(rc.Response, rc.Request)
+		// TODO: Move patchRequestForReverseProxy in here
 	}
+
+	proxy.ServeHTTP(rc.Response, rc.Request)
 
 	if enableStoringResponse {
 		// TODO: Move to async routine
@@ -197,10 +176,6 @@ func (rc *RequestCall) patchRequestForReverseProxy(upstream config.Upstream) *ur
 	proxyURL := &url.URL{
 		Scheme: rc.Request.URL.Scheme,
 		Host:   rc.Request.URL.Host,
-	}
-
-	if rc.IsWebSocket() {
-		proxyURL.Scheme = rc.GetScheme()
 	}
 
 	return proxyURL

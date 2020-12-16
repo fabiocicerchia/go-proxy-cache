@@ -32,9 +32,18 @@ curl --include \
      --header "Connection: Upgrade" \
      --header "Upgrade: websocket" \
      --header "Host: example.com:80" \
-     --header "Origin: http://example.com:80" \
+     --header "Origin: http://testing.local:8080" \
      --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
      --header "Sec-WebSocket-Version: 13" \
-     http://example.com:80/
+     http://testing.local:8080/
 
 # WEBSOCKET SECURE
+curl --include \
+     --no-buffer \
+     --header "Connection: Upgrade" \
+     --header "Upgrade: websocket" \
+     --header "Host: example.com:80" \
+     --header "Origin: https://testing.local:4443" \
+     --header "Sec-WebSocket-Key: SGVsbG8sIHdvcmxkIQ==" \
+     --header "Sec-WebSocket-Version: 13" \
+     https://testing.local:4443/

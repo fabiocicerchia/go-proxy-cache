@@ -23,6 +23,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,6 +43,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 		CacheObj: cache.CacheObj{
 			AllowedStatuses: config.Config.Cache.AllowedStatuses,
 			AllowedMethods:  config.Config.Cache.AllowedMethods,
+			DomainID:        rc.Request.Host + utils.StringSeparatorOne + rc.GetScheme(),
 		},
 	}
 }
@@ -90,7 +92,11 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodConnect {
 		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
 	} else {
-		rc.HandleRequestAndProxy(domainConfig)
+		if rc.IsWebSocket() {
+			rc.HandleWSRequestAndProxy(domainConfig)
+		} else {
+			rc.HandleHTTPRequestAndProxy(domainConfig)
+		}
 	}
 }
 

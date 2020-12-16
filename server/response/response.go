@@ -40,7 +40,7 @@ func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
 	return lwr
 }
 
-// Hijack
+// Hijack lets the caller take over the connection.
 func (lwr *LoggedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hj, ok := lwr.ResponseWriter.(http.Hijacker)
 	if !ok {
