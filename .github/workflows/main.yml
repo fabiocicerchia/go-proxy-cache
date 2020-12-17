@@ -17,12 +17,12 @@ jobs:
     # container: docker:stable
     container: golang:alpine
     services:
-      # redis:
-      #   image: redis:6.0.8-alpine3.12
-      #   ports:
-      #     - 6379/tcp
-      #   options: >-
-      #     --entrypoint redis-server
+      redis:
+        image: redis:6.0.8-alpine3.12
+        ports:
+          - 6379/tcp
+        options: >-
+          --entrypoint redis-server
       nginx:
         image: fabiocicerchia/go-proxy-cache-test:latest
         ports:
@@ -49,21 +49,23 @@ jobs:
       - name: Install Dependencies
         run: |
           apk update
-          apk add make gcc libc-dev redis
+          apk add make gcc libc-dev redis curl bash
 
       - name: Build
         run: make build-race
 
       - name: Test
         run: |
-          redis-server &
-          echo "127.0.0.1 redis testing.local www.testing.local" | tee -a /etc/hosts
+          echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
           export REDIS_HOST=redis
           ./go-proxy-cache -debug -config=examples/config.no-docker.yml &
           make test
 
       - name: Coverage
-        run: make cover
+        run: |
+          echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
+          export REDIS_HOST=redis
+          make cover
 
       - name: Codecov
         run: make codecov
