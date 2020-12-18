@@ -3,8 +3,8 @@
 ################################################################################
 server:
   port:
-    http: "2080"
-    https: "2443"
+    http: "50080"
+    https: "50443"
   tls:
     cert_file: certs/server.pem
     key_file: certs/server.key

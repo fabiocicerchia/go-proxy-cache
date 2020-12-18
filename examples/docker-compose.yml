@@ -21,17 +21,16 @@ services:
     depends_on:
       - redis
     ports:
-      - "2080:2080"
-      - "2443:2443"
+      - "50080:80"
+      - "50443:443"
     volumes:
       - ./config.yml:/app/config.yml
-      - ./certs/server.key:/app/server.key
-      - ./certs/server.pem:/app/server.pem
+      - ./certs:/app/certs
 
   redis:
     image: redis:6.0.8-alpine3.12
     ports:
-      - "6379:6379"
+      - 6379:6379
     sysctls:
       # WARNING: The TCP backlog setting of 511 cannot be enforced because
       # /proc/sys/net/core/somaxconn is set to the lower value of 128.
@@ -42,13 +41,12 @@ services:
     restart: always
     volumes:
       - ./nginx/compose.conf:/etc/nginx/conf.d/default.conf
-      - ./certs/server.key:/server.key
-      - ./certs/server.pem:/server.pem
+      - ./certs:/certs
     ports:
-      - "8080:80" # http
-      - "8081:81" # ws
-      - "8082:82" # wss
-      - "8083:443" # https
+      - 40080:80 # http
+      - 40081:81 # ws
+      - 40082:82 # wss
+      - 40443:443 # https
 
   node:
     image: node:15.4.0-alpine3.10
@@ -58,5 +56,5 @@ services:
     volumes:
       - ./:/home/node/app
     ports:
-      - "9001:9001" # ws
-      - "9002:9002" # wss
+      - 9001 # ws
+      - 9002 # wss

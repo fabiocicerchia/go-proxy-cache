@@ -3,8 +3,8 @@
 ################################################################################
 server:
   port:
-    http: "2080"
-    https: "2443"
+    http: "80"
+    https: "443"
   tls:
     cert_file: certs/server.pem
     key_file: certs/server.key
@@ -42,7 +42,7 @@ domains:
         host: www.testing.local
         scheme: http
         endpoints:
-        - nginx:80
+        - 127.0.0.1:40080
 
   testing_local:
     server:
@@ -50,7 +50,7 @@ domains:
         host: testing.local
         scheme: http
         endpoints:
-        - nginx:80
+        - 127.0.0.1:40080
 
   testing_local_ws:
     server:
@@ -58,7 +58,7 @@ domains:
         host: testing.local
         scheme: ws
         endpoints:
-        - nginx:81
+        - 127.0.0.1:40081
 
   testing_local_wss:
     server:
@@ -67,4 +67,4 @@ domains:
         scheme: wss
         insecure_bridge: true
         endpoints:
-        - nginx:82
+        - 127.0.0.1:40082

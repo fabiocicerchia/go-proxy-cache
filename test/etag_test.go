@@ -24,7 +24,7 @@ import (
 func TestETag(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://127.0.0.1:2080/", nil)
+	req, err := http.NewRequest("GET", "http://localhost:50080/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)

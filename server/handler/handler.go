@@ -35,6 +35,7 @@ type RequestCall struct {
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
+	// TODO: COVERAGE
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
 		Request:  *rc.Request,

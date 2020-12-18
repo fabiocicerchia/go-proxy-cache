@@ -14,7 +14,6 @@ jobs:
 
   build-test:
     runs-on: ubuntu-20.04
-    # container: docker:stable
     container: golang:alpine
     services:
       redis:
@@ -26,10 +25,10 @@ jobs:
       nginx:
         image: fabiocicerchia/go-proxy-cache-test:latest
         ports:
-          - "8080:80" # http
-          - "8081:81" # ws
-          - "8082:82" # wss
-          - "8083:443" # https
+          - "40080:80" # http
+          - "40081:81" # ws
+          - "40082:82" # wss
+          - "40443:443" # https
         options: >-
           --link node
     steps:
@@ -57,21 +56,28 @@ jobs:
       - name: Test
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
-          export REDIS_HOST=redis
           ./go-proxy-cache -debug -config=examples/config.no-docker.yml &
           make test
+        env:
+          REDIS_HOST: redis
+          NGINX_HOST_80: nginx:80
+          NGINX_HOST_443: nginx:443
 
       - name: Coverage
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
-          export REDIS_HOST=redis
           make cover
+        env:
+          REDIS_HOST: redis
+          NGINX_HOST_80: nginx:80
+          NGINX_HOST_443: nginx:443
 
       - name: Codecov
         run: make codecov
 
-      #- name: CodeClimate
-      #  run: make codeclimate
+      - name: CodeClimate
+        continue-on-error: true
+        run: make codeclimate
 
   sca:
     runs-on: ubuntu-20.04

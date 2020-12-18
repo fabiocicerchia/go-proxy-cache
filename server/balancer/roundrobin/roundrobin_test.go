@@ -21,9 +21,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestPickEmpty(t *testing.T) {
+func initLogs() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006/01/02 15:04:05",
+	})
+}
+
+func TestPickEmpty(t *testing.T) {
+	initLogs()
 
 	b := roundrobin.New([]string{})
 
@@ -37,8 +46,7 @@ func TestPickEmpty(t *testing.T) {
 }
 
 func TestPickWithData(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	b := roundrobin.New([]string{
 		"item1",
@@ -56,8 +64,7 @@ func TestPickWithData(t *testing.T) {
 }
 
 func TestPickCorrectness(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	b := roundrobin.New([]string{
 		"item1",

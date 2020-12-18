@@ -18,8 +18,6 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
@@ -30,8 +28,7 @@ import (
 )
 
 func TestEndToEndCallPurgeDoNothing(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -86,8 +83,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 }
 
 func TestEndToEndCallPurge(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
