@@ -95,7 +95,7 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 
 	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
-		return false, fmt.Errorf("missing redis connection")
+		return false, fmt.Errorf("missing redis connection for %s", c.DomainID)
 	}
 
 	encoded, err := conn.Encode(c.CurrentObj)
@@ -119,7 +119,7 @@ func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.
 
 	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
-		return fmt.Errorf("missing redis connection")
+		return fmt.Errorf("missing redis connection for %s", c.DomainID)
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
@@ -149,7 +149,7 @@ func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
 
 	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
-		return false, fmt.Errorf("missing redis connection")
+		return false, fmt.Errorf("missing redis connection for %s", c.DomainID)
 	}
 
 	var meta []string
@@ -190,7 +190,7 @@ func FetchMetadata(domainID string, method string, url url.URL) ([]string, error
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
-		return []string{}, fmt.Errorf("missing redis connection")
+		return []string{}, fmt.Errorf("missing redis connection for %s", domainID)
 	}
 
 	return conn.List(key)
@@ -202,7 +202,7 @@ func PurgeMetadata(domainID string, url url.URL) error {
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
-		return fmt.Errorf("missing redis connection")
+		return fmt.Errorf("missing redis connection for %s", domainID)
 	}
 
 	_, err := conn.DelWildcard(keyPattern)
@@ -215,7 +215,7 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
-		return false, fmt.Errorf("missing redis connection")
+		return false, fmt.Errorf("missing redis connection for %s", domainID)
 	}
 
 	_ = conn.Del(key) //nolint:golint,errcheck

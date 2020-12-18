@@ -2,7 +2,7 @@
 
 ## Official Image
 
-Available on Docker Hub: https://hub.docker.com/r/fabiocicerchia/go-proxy-cache
+Available on Docker Hub: [https://hub.docker.com/r/fabiocicerchia/go-proxy-cache](https://hub.docker.com/r/fabiocicerchia/go-proxy-cache)
 
 ![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache.svg "Docker pulls")
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache.svg "Docker stars")
@@ -24,8 +24,8 @@ $ docker run \
     --env REDIS_PORT=6379 \
     --env REDIS_PASSWORD= \
     --env REDIS_DB=0 \
-    -p 8080:80
-    -p 8443:443
+    -p 80:80
+    -p 443:443
     fabiocicerchia/go-proxy-cache
 ```
 
@@ -35,8 +35,8 @@ Example #2:
 $ docker run \
     -it --rm -n goproxycache \
     -v $PWD/config.yml:/app/config.yml
-    -p 8080:80
-    -p 8443:443
+    -p 80:80
+    -p 443:443
     fabiocicerchia/go-proxy-cache
 ```
 

@@ -36,6 +36,8 @@ func ContainsString(items []string, value string) bool {
 
 // GetByKeyCaseInsensitive - Retrieves value by key matched case-insensitively.
 func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
+	// TODO: COVERAGE
+
 	keyLower := strings.ToLower(key)
 	for k, v := range items {
 		if strings.ToLower(k) == keyLower {

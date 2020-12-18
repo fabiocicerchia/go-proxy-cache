@@ -45,9 +45,18 @@ func TestGetLBRoundRobinDefined(t *testing.T) {
 	tearDown()
 }
 
-func setUp() {
+func initLogs() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006/01/02 15:04:05",
+	})
+}
+
+func setUp() {
+	initLogs()
 
 	config.Config = config.Configuration{}
 }

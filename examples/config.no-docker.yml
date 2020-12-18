@@ -1,10 +1,10 @@
 # TESTING PURPOSES ONLY
-# for more details check `config.yml`
+# TODO: code smell, should be only one file
 ################################################################################
 server:
   port:
-    http: "80"
-    https: "443"
+    http: "50080"
+    https: "50443"
   tls:
     cert_file: certs/server.pem
     key_file: certs/server.key
@@ -42,7 +42,7 @@ domains:
         host: www.testing.local
         scheme: http
         endpoints:
-        - 127.0.0.1:40080
+        - nginx:80
 
   testing_local:
     server:
@@ -50,7 +50,7 @@ domains:
         host: testing.local
         scheme: http
         endpoints:
-        - 127.0.0.1:40080
+        - nginx:80
 
   testing_local_ws:
     server:
@@ -58,7 +58,7 @@ domains:
         host: testing.local
         scheme: ws
         endpoints:
-        - 127.0.0.1:40081
+        - nginx:81
 
   testing_local_wss:
     server:
@@ -67,4 +67,4 @@ domains:
         scheme: wss
         insecure_bridge: true
         endpoints:
-        - 127.0.0.1:40082
+        - nginx:82

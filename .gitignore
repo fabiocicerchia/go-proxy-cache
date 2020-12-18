@@ -47,7 +47,4 @@
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,go,dotenv
 
-examples/*.pem
 examples/node_modules
-examples/*.csr
-examples/*.key

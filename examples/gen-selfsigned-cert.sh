@@ -5,27 +5,27 @@ openssl req \
   -new \
   -x509 \
   -days 9999 \
-  -config ca.cnf \
-  -keyout ca-key.pem \
-  -out ca-crt.pem
+  -config certs/ca.cnf \
+  -keyout certs/ca-key.pem \
+  -out certs/ca-crt.pem
 
-openssl genrsa -out server.key 4096
+openssl genrsa -out certs/server.key 4096
 
 # CSR
 openssl req \
   -new \
-  -config server.cnf \
-  -key server.key \
-  -out server.csr
+  -config certs/server.cnf \
+  -key certs/server.key \
+  -out certs/server.csr
 
 # CERT
 openssl x509 \
   -req \
-  -extfile server.cnf \
+  -extfile certs/server.cnf \
   -days 3650 \
   -passin "pass:password" \
-  -in server.csr \
-  -CA ca-crt.pem \
-  -CAkey ca-key.pem \
+  -in certs/server.csr \
+  -CA certs/ca-crt.pem \
+  -CAkey certs/ca-key.pem \
   -CAcreateserial \
-  -out server.pem
+  -out certs/server.pem

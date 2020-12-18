@@ -12,12 +12,11 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -29,8 +28,7 @@ import (
 )
 
 func TestEndToEndCallPurgeDoNothing(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -85,8 +83,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 }
 
 func TestEndToEndCallPurge(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -122,6 +119,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -148,6 +146,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -170,6 +169,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -189,6 +189,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
