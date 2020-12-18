@@ -12,12 +12,11 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -29,8 +28,7 @@ import (
 )
 
 func TestEndToEndCallPurgeDoNothing(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -55,9 +53,9 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
-
-	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	// --- PURGE
 
@@ -70,7 +68,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn(config.Config.Server.Upstream.Host).PurgeAll()
+	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -85,8 +83,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 }
 
 func TestEndToEndCallPurge(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -111,11 +108,10 @@ func TestEndToEndCallPurge(t *testing.T) {
 		},
 	}
 
-	balancer.InitRoundRobin(config.Config.Server.Upstream.Host, config.Config.Server.Upstream.Endpoints)
-
-	circuit_breaker.InitCircuitBreaker(config.Config.Server.Upstream.Host, config.Config.CircuitBreaker)
-
-	engine.InitConn(config.Config.Server.Upstream.Host, config.Config.Cache)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	// --- MISS
 
@@ -123,12 +119,13 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleRequest)
 
-	_, err = engine.GetConn(config.Config.Server.Upstream.Host).PurgeAll()
+	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
 
 	h.ServeHTTP(rr, req)
@@ -149,6 +146,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -171,6 +169,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -190,6 +189,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()

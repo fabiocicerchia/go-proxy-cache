@@ -14,28 +14,68 @@ jobs:
 
   build-test:
     runs-on: ubuntu-20.04
+    container: golang:alpine
+    services:
+      redis:
+        image: redis:6.0.8-alpine3.12
+        ports:
+          - 6379/tcp
+        options: >-
+          --entrypoint redis-server
+      nginx:
+        image: fabiocicerchia/go-proxy-cache-test:latest
+        ports:
+          - "40080:80" # http
+          - "40081:81" # ws
+          - "40082:82" # wss
+          - "40443:443" # https
+        options: >-
+          --link node
     steps:
       - uses: actions/checkout@v2
 
+      # Ref: https://github.community/t/services-and-volumes/16313
+      - name: Restart nginx
+        uses: docker://docker
+        with:
+          args: docker restart "${{ job.services.nginx.id }}"
+
+      - name: Service Logs - nginx
+        uses: docker://docker
+        with:
+          args: docker logs "${{ job.services.nginx.id }}"
+
+      - name: Install Dependencies
+        run: |
+          apk update
+          apk add make gcc libc-dev redis curl bash
+
       - name: Build
-        run: make build
+        run: make build-race
 
       - name: Test
         run: |
-          sudo apt-get install -y redis-server
-          redis-server &
-          ./bin/gen-selfsigned-cert.sh
-          ./go-proxy-cache -debug -config=config.sample.yml &
+          echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
+          ./go-proxy-cache -debug -config=examples/config.no-docker.yml &
           make test
+        env:
+          REDIS_HOST: redis
+          NGINX_HOST_80: nginx:80
+          NGINX_HOST_443: nginx:443
 
       - name: Coverage
-        run: make cover
+        run: |
+          echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
+          make cover
+          make codecov
+        env:
+          REDIS_HOST: redis
+          NGINX_HOST_80: nginx:80
+          NGINX_HOST_443: nginx:443
 
-      - name: Codecov
-        run: make codecov
-
-      #- name: CodeClimate
-      #  run: make codeclimate
+      - name: CodeClimate
+        continue-on-error: true
+        run: make codeclimate
 
   sca:
     runs-on: ubuntu-20.04

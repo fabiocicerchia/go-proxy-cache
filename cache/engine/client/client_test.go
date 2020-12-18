@@ -24,9 +24,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCircuitBreakerWithPingTimeout(t *testing.T) {
+func initLogs() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006/01/02 15:04:05",
+	})
+}
+
+func TestCircuitBreakerWithPingTimeout(t *testing.T) {
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -66,8 +75,7 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -95,8 +103,7 @@ func TestClose(t *testing.T) {
 }
 
 func TestSetGet(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -126,8 +133,7 @@ func TestSetGet(t *testing.T) {
 }
 
 func TestSetGetWithExpiration(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -159,8 +165,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 }
 
 func TestDel(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -197,8 +202,7 @@ func TestDel(t *testing.T) {
 }
 
 func TestExpire(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -233,8 +237,7 @@ func TestExpire(t *testing.T) {
 }
 
 func TestPushList(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -263,8 +266,7 @@ func TestPushList(t *testing.T) {
 }
 
 func TestDelWildcard(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -320,8 +322,7 @@ func TestDelWildcard(t *testing.T) {
 }
 
 func TestPurgeAll(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
@@ -377,8 +378,7 @@ func TestPurgeAll(t *testing.T) {
 }
 
 func TestEncodeDecode(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{

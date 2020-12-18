@@ -1,0 +1,60 @@
+#                                                                         __
+# .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+# |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+# |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+# |_____|            |__|                   |_____|
+#
+# Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+# Repo: https://github.com/fabiocicerchia/go-proxy-cache
+
+version: '3.8'
+
+services:
+  go-proxy-cache:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      network: host
+      args:
+        BUILD_CMD: build-race
+    command: ["go-proxy-cache", "-debug"]
+    depends_on:
+      - redis
+    ports:
+      - "50080:80"
+      - "50443:443"
+    volumes:
+      - ./config.yml:/app/config.yml
+      - ./certs:/app/certs
+
+  redis:
+    image: redis:6.0.8-alpine3.12
+    ports:
+      - 6379:6379
+    sysctls:
+      # WARNING: The TCP backlog setting of 511 cannot be enforced because
+      # /proc/sys/net/core/somaxconn is set to the lower value of 128.
+      net.core.somaxconn: 1024
+
+  nginx:
+    image: nginx:1.19.5-alpine
+    restart: always
+    volumes:
+      - ./nginx/compose.conf:/etc/nginx/conf.d/default.conf
+      - ./certs:/certs
+    ports:
+      - 40080:80 # http
+      - 40081:81 # ws
+      - 40082:82 # wss
+      - 40443:443 # https
+
+  node:
+    image: node:15.4.0-alpine3.10
+    restart: always
+    command: "npm start"
+    working_dir: /home/node/app
+    volumes:
+      - ./:/home/node/app
+    ports:
+      - 9001 # ws
+      - 9002 # wss

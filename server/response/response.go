@@ -10,6 +10,9 @@ package response
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"bufio"
+	"errors"
+	"net"
 	"net/http"
 )
 
@@ -25,6 +28,7 @@ const CacheStatusHeaderMiss = "MISS"
 // LoggedResponseWriter - Decorator for http.ResponseWriter
 type LoggedResponseWriter struct {
 	http.ResponseWriter
+	http.Hijacker
 	StatusCode int
 	Content    [][]byte
 }
@@ -34,6 +38,18 @@ func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
 	lwr := &LoggedResponseWriter{ResponseWriter: w}
 	lwr.Reset()
 	return lwr
+}
+
+// Hijack lets the caller take over the connection.
+func (lwr *LoggedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	// TODO: COVERAGE
+
+	hj, ok := lwr.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+
+	return hj.Hijack()
 }
 
 // Reset - Reset the stored content of LoggedResponseWriter.

@@ -36,9 +36,18 @@ func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
 	return 0, nil
 }
 
-func TestNewWriter(t *testing.T) {
+func initLogs() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006/01/02 15:04:05",
+	})
+}
+
+func TestNewWriter(t *testing.T) {
+	initLogs()
 
 	var rwMock ResponseWriterMock
 
@@ -51,8 +60,7 @@ func TestNewWriter(t *testing.T) {
 }
 
 func TestCatchStatusCode(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	var rwMock ResponseWriterMock
 
@@ -71,8 +79,7 @@ func TestCatchStatusCode(t *testing.T) {
 }
 
 func TestCatchContent(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	var rwMock ResponseWriterMock
 
@@ -96,8 +103,7 @@ func TestCatchContent(t *testing.T) {
 }
 
 func TestCatchContentThreeChunks(t *testing.T) {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
+	initLogs()
 
 	var rwMock ResponseWriterMock
 

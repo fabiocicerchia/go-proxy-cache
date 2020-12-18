@@ -9,6 +9,8 @@
 
 FROM golang:1.15.6-alpine3.12 AS builder
 
+ARG BUILD_CMD=build
+
 WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
 ENV CGO_CFLAGS -march=native -O3
@@ -20,7 +22,7 @@ RUN apk update \
       gcc \
       libc-dev \
       make \
-    && make build
+    && make $BUILD_CMD
 
 FROM alpine:3.12.3
 

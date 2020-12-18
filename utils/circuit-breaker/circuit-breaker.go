@@ -21,10 +21,10 @@ var cb map[string]*gobreaker.CircuitBreaker
 
 // CircuitBreaker - Settings for redis circuit breaker.
 type CircuitBreaker struct {
-	Threshold   uint32
 	FailureRate float64
 	Interval    time.Duration
 	Timeout     time.Duration
+	Threshold   uint32
 	MaxRequests uint32
 }
 

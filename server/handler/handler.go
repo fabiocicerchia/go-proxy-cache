@@ -14,12 +14,16 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
+
+	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,14 +35,16 @@ type RequestCall struct {
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
+	// TODO: COVERAGE
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
 		Request:  *rc.Request,
 		Scheme:   rc.GetScheme(),
-		// TODO: convert to use domainConfigCache
 		CacheObj: cache.CacheObj{
+			// TODO: convert to use domainConfigCache
 			AllowedStatuses: config.Config.Cache.AllowedStatuses,
 			AllowedMethods:  config.Config.Cache.AllowedMethods,
+			DomainID:        rc.Request.Host + utils.StringSeparatorOne + rc.GetScheme(),
 		},
 	}
 }
@@ -63,7 +69,8 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 	listeningPort := getListeningPort(req.Context())
 
-	domainConfig := config.DomainConf(req.Host)
+	host := strings.Split(req.Host, ":")[0] // TODO: HACK
+	domainConfig := config.DomainConf(host, rc.GetScheme())
 	if domainConfig == nil ||
 		(domainConfig.Server.Port.HTTP != listeningPort &&
 			domainConfig.Server.Port.HTTPS != listeningPort) {
@@ -86,19 +93,37 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodConnect {
 		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
 	} else {
-		rc.HandleRequestAndProxy(domainConfig)
+		if rc.IsWebSocket() {
+			rc.HandleWSRequestAndProxy(domainConfig)
+		} else {
+			rc.HandleHTTPRequestAndProxy(domainConfig)
+		}
 	}
 }
 
-// GetScheme - Returns current request scheme
+// GetScheme - Returns current request scheme.
 // For server requests the URL is parsed from the URI supplied on the
 // Request-Line as stored in RequestURI. For most requests, fields other than
 // Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
+	// TODO: COVERAGE
+	if rc.IsWebSocket() && rc.Request.TLS != nil {
+		return "wss"
+	}
+
+	if rc.IsWebSocket() {
+		return "ws"
+	}
+
 	if rc.Request.TLS != nil {
-		// TODO: COVERAGE
 		return "https"
 	}
+
 	return "http"
+}
+
+// IsWebSocket - Checks whether a request is a websocket.
+func (rc RequestCall) IsWebSocket() bool {
+	return wsutil.IsWebSocketRequest(rc.Request)
 }

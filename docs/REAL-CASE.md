@@ -296,28 +296,28 @@ domains:
 
 ### Protocols
 
-| Protocols | Supported | 
+| Protocols | Supported |
 |-----------|-----------|
-| TLS 1.3 | Yes | 
-| TLS 1.2 | Yes | 
-| TLS 1.1 | No | 
-| TLS 1.0 | No | 
-| SSL 3 | No | 
-| SSL 2 | No | 
+| TLS 1.3 | Yes |
+| TLS 1.2 | Yes |
+| TLS 1.1 | No |
+| TLS 1.0 | No |
+| SSL 3 | No |
+| SSL 2 | No |
 
 ### Cipher Suites
 
-| TLS 1.3 (suites in server-preferred order) | | 
+| TLS 1.3 (suites in server-preferred order) | |
 |-|-|
-| TLS_AES_128_GCM_SHA256 (0x1301)    (eq. 3072 bits RSA)  |128 | 
-| TLS_CHACHA20_POLY1305_SHA256 (0x1303)    (eq. 3072 bits RSA)  |256 | 
-| TLS_AES_256_GCM_SHA384 (0x1302)    (eq. 3072 bits RSA)  |256 | 
+| TLS_AES_128_GCM_SHA256 (0x1301)    (eq. 3072 bits RSA)  |128 |
+| TLS_CHACHA20_POLY1305_SHA256 (0x1303)    (eq. 3072 bits RSA)  |256 |
+| TLS_AES_256_GCM_SHA384 (0x1302)    (eq. 3072 bits RSA)  |256 |
 
-| TLS 1.2 (suites in server-preferred order) | | 
+| TLS 1.2 (suites in server-preferred order) | |
 |-|-|
-| TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 (0xc030)    (eq. 3072 bits RSA)  |256 | 
-| TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 (0xcca8)    (eq. 3072 bits RSA)  |256 | 
-| TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xc02f)    (eq. 3072 bits RSA)  |128 | 
+| TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 (0xc030)    (eq. 3072 bits RSA)  |256 |
+| TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256 (0xcca8)    (eq. 3072 bits RSA)  |256 |
+| TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (0xc02f)    (eq. 3072 bits RSA)  |128 |
 
 ### Handshake Simulation
 
@@ -341,10 +341,10 @@ domains:
 | Firefox 62 / Win 7 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | Firefox 73 / Win 10 | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
 | Googlebot Feb 2018 | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
-| IE 11 / Win 7 Server sent fatal alert: handshake_failure | 
-| IE 11 / Win 8.1 Server sent fatal alert: handshake_failure | 
-| IE 11 / Win Phone 8.1 Server sent fatal alert: handshake_failure | 
-| IE 11 / Win Phone 8.1 Update Server sent fatal alert: handshake_failure | 
+| IE 11 / Win 7 Server sent fatal alert: handshake_failure |
+| IE 11 / Win 8.1 Server sent fatal alert: handshake_failure |
+| IE 11 / Win Phone 8.1 Server sent fatal alert: handshake_failure |
+| IE 11 / Win Phone 8.1 Update Server sent fatal alert: handshake_failure |
 | IE 11 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | Edge 15 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | Edge 16 / Win 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
@@ -357,11 +357,11 @@ domains:
 | OpenSSL 1.0.2s | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | OpenSSL 1.1.0k | RSA 2048 (SHA256) | TLS 1.2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | OpenSSL 1.1.1c | - | TLS 1.3 | TLS_AES_128_GCM_SHA256 |
-| Safari 6 / iOS 6.0.1 | Server sent fatal alert: handshake_failure | 
-| Safari 7 / iOS 7.1 | Server sent fatal alert: handshake_failure | 
-| Safari 7 / OS X 10.9 | Server sent fatal alert: handshake_failure | 
-| Safari 8 / iOS 8.4 | Server sent fatal alert: handshake_failure | 
-| Safari 8 / OS X 10.10 | Server sent fatal alert: handshake_failure | 
+| Safari 6 / iOS 6.0.1 | Server sent fatal alert: handshake_failure |
+| Safari 7 / iOS 7.1 | Server sent fatal alert: handshake_failure |
+| Safari 7 / OS X 10.9 | Server sent fatal alert: handshake_failure |
+| Safari 8 / iOS 8.4 | Server sent fatal alert: handshake_failure |
+| Safari 8 / OS X 10.10 | Server sent fatal alert: handshake_failure |
 | Safari 9 / iOS 9 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | Safari 9 / OS X 10.11 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
 | Safari 10 / iOS 10 | RSA 2048 (SHA256) | TLS 1.2 > h2 | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 |
@@ -389,4 +389,4 @@ domains:
 - Java 7u25
 - OpenSSL 0.9.8y
 - Safari 5.1.9 / OS X 10.6.8
-- Safari 6.0.4 / OS X 10.8.4 
+- Safari 6.0.4 / OS X 10.8.4

@@ -100,6 +100,12 @@ type Log struct {
 	Format     string `yaml:"format"`
 }
 
+// DomainSet - Holds the uniqueness details of the domain
+type DomainSet struct {
+	Host   string
+	Scheme string
+}
+
 // Config - Holds the server configuration
 var Config Configuration = Configuration{
 	Server: Server{
@@ -240,7 +246,7 @@ func getYamlConfig(file string) (Configuration, error) {
 // InitConfigFromFileOrEnv - Init the configuration in sequence: from a YAML file, from environment variables,
 // then defaults.
 func InitConfigFromFileOrEnv(file string) {
-	Config = CopyOverWith(Config, getEnvConfig())
+	Config = CopyOverWith(Config, getEnvConfig(), nil)
 
 	var YamlConfig Configuration
 	_, err := os.Stat(file)
@@ -249,7 +255,7 @@ func InitConfigFromFileOrEnv(file string) {
 		if err != nil {
 			log.Fatalf("Cannot unmarshal YAML: %s\n", err)
 		}
-		Config = CopyOverWith(Config, YamlConfig)
+		Config = CopyOverWith(Config, YamlConfig, &file)
 	}
 
 	// allow only the config file to specify overrides per domain
@@ -260,7 +266,7 @@ func InitConfigFromFileOrEnv(file string) {
 		domains := Config.Domains
 		for k, v := range domains {
 			baseConf := Config
-			domain := CopyOverWith(baseConf, v)
+			domain := CopyOverWith(baseConf, v, &file)
 			domain.Domains = Domains{}
 			domains[k] = domain
 		}
@@ -274,8 +280,25 @@ func Validate(file string) (bool, error) {
 	return err != nil, err
 }
 
+func patchAbsFilePath(filePath string, relativeTo *string) string {
+	abs, err := os.Getwd()
+
+	if err == nil && relativeTo != nil && *relativeTo != "" {
+		abs, err = filepath.Abs(*relativeTo)
+		abs = filepath.Dir(abs)
+	}
+
+	if err == nil {
+		if filePath != "" && !strings.HasPrefix(filePath, "/") {
+			return filepath.Join(abs, filepath.Clean(filePath))
+		}
+	}
+
+	return filePath
+}
+
 // CopyOverWith - Copies the Configuration over another (preserving not defined settings).
-func CopyOverWith(base Configuration, overrides Configuration) Configuration {
+func CopyOverWith(base Configuration, overrides Configuration, file *string) Configuration {
 	newConf := base
 
 	// --- SERVER
@@ -289,6 +312,9 @@ func CopyOverWith(base Configuration, overrides Configuration) Configuration {
 	newConf.Server.TLS.CertFile = utils.Coalesce(overrides.Server.TLS.CertFile, newConf.Server.TLS.CertFile, overrides.Server.TLS.CertFile == "").(string)
 	newConf.Server.TLS.KeyFile = utils.Coalesce(overrides.Server.TLS.KeyFile, newConf.Server.TLS.KeyFile, overrides.Server.TLS.KeyFile == "").(string)
 	newConf.Server.TLS.Override = utils.Coalesce(overrides.Server.TLS.Override, newConf.Server.TLS.Override, overrides.Server.TLS.Override == nil).(*tls.Config)
+
+	newConf.Server.TLS.CertFile = patchAbsFilePath(newConf.Server.TLS.CertFile, file)
+	newConf.Server.TLS.KeyFile = patchAbsFilePath(newConf.Server.TLS.KeyFile, file)
 
 	// --- Timeout
 	newConf.Server.Timeout.Read = utils.Coalesce(overrides.Server.Timeout.Read, newConf.Server.Timeout.Read, overrides.Server.Timeout.Read == 0).(time.Duration)
@@ -334,27 +360,42 @@ func Print() {
 }
 
 // GetDomains - Returns a list of domains.
-func GetDomains() []string {
+func GetDomains() []DomainSet {
 	// TODO: What if there's no domains only main config?!
-	domains := make([]string, 0, len(Config.Domains))
+	domains := make([]DomainSet, 0, len(Config.Domains))
 	for _, v := range Config.Domains {
-		domains = append(domains, v.Server.Upstream.Host)
+		d := DomainSet{
+			Host:   v.Server.Upstream.Host,
+			Scheme: v.Server.Upstream.Scheme,
+		}
+		domains = append(domains, d)
 	}
 
 	return domains
 }
 
 // DomainConf - Returns the configuration for the requested domain.
-func DomainConf(domain string) *Configuration {
+func DomainConf(domain string, scheme string) *Configuration {
 	domainParts := strings.Split(domain, ":")
 	cleanedDomain := domainParts[0]
 
+	// TODO: Use memoization
+
+	// First round: host & scheme
+	for _, v := range Config.Domains {
+		if v.Server.Upstream.Host == cleanedDomain && v.Server.Upstream.Scheme == scheme {
+			return &v
+		}
+	}
+
+	// Second round: host
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain {
 			return &v
 		}
 	}
 
+	// Third round: global
 	if Config.Server.Upstream.Host == cleanedDomain {
 		return &Config
 	}

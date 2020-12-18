@@ -154,7 +154,7 @@ server:
     # Endpoint scheme to be used when forwarding traffic.
     # Default: incoming connection.
     # Values: http, https.
-    scheme: https
+    scheme: ~
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
     # Allowed formats: IPv4, IPv4:port

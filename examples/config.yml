@@ -1,0 +1,70 @@
+# TESTING PURPOSES ONLY
+# for more details check `config.yml`
+################################################################################
+server:
+  port:
+    http: "80"
+    https: "443"
+  tls:
+    cert_file: certs/server.pem
+    key_file: certs/server.key
+  timeout:
+    read: 5s
+    read_header: 2s
+    write: 5s
+    idle: 20s
+    handler: -1
+
+cache:
+  host: redis
+
+domains:
+  example_com:
+    server:
+      upstream:
+        host: example.com
+
+  example_org:
+    server:
+      upstream:
+        host: example.org
+
+  www_w3_org:
+    server:
+      upstream:
+        host: www.w3.org
+        endpoints:
+        - www.w3.org
+
+  www_testing_local:
+    server:
+      upstream:
+        host: www.testing.local
+        scheme: http
+        endpoints:
+        - 127.0.0.1:40080
+
+  testing_local:
+    server:
+      upstream:
+        host: testing.local
+        scheme: http
+        endpoints:
+        - 127.0.0.1:40080
+
+  testing_local_ws:
+    server:
+      upstream:
+        host: testing.local
+        scheme: ws
+        endpoints:
+        - 127.0.0.1:40081
+
+  testing_local_wss:
+    server:
+      upstream:
+        host: testing.local
+        scheme: wss
+        insecure_bridge: true
+        endpoints:
+        - 127.0.0.1:40082

@@ -25,7 +25,10 @@ func ToDuration(value string) time.Duration {
 
 // ToInt - Converts a string to int
 func ToInt(value string) int {
-	val, _ := strconv.Atoi(value)
+	val, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
 	return val
 }
 

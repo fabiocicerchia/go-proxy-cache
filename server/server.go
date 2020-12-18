@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/go-http-utils/etag"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -25,6 +26,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
@@ -47,7 +49,7 @@ func Run(configFile string) {
 		HTTPS: make(map[string]*http.Server),
 	}
 	for _, domain := range config.GetDomains() {
-		servers.StartDomainServer(domain)
+		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
 
 	// start server http & https
@@ -79,19 +81,25 @@ func InitServer(domain string) *http.Server {
 	}
 	mux.HandleFunc("/", handler.HandleRequest)
 
+	// basic
 	var muxWithMiddlewares http.Handler
 	muxWithMiddlewares = mux
 
-	if enableTimeoutHandler {
+	// etag middleware
+	muxWithMiddlewares = etag.Handler(muxWithMiddlewares, false)
+
+	// gzip middleware
+	if gzip {
+		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
+	}
+
+	// timeout middleware
+	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxWithMiddlewares = http.TimeoutHandler(
 			mux,
 			timeout.Handler,
 			"Timed Out\n",
 		)
-	}
-
-	if gzip {
-		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
 	}
 
 	server := &http.Server{
@@ -127,16 +135,18 @@ func (s *Servers) InitServers(domain string, domainConfig config.Server) {
 }
 
 // StartDomainServer - Configures and start listening for a particular domain.
-func (s *Servers) StartDomainServer(domain string) {
-	domainConfig := config.DomainConf(domain)
+func (s *Servers) StartDomainServer(domain string, scheme string) {
+	domainConfig := config.DomainConf(domain, scheme)
 	if domainConfig == nil {
 		log.Errorf("Missing configuration for %s.", domain)
 		return
 	}
 
+	domainID := domain + utils.StringSeparatorOne + scheme
+
 	// redis connect
-	circuitbreaker.InitCircuitBreaker(domain, domainConfig.CircuitBreaker)
-	engine.InitConn(domain, domainConfig.Cache)
+	circuitbreaker.InitCircuitBreaker(domainID, domainConfig.CircuitBreaker)
+	engine.InitConn(domainID, domainConfig.Cache)
 
 	// Log setup values
 	logger.LogSetup(domainConfig.Server)
@@ -145,7 +155,7 @@ func (s *Servers) StartDomainServer(domain string) {
 	s.InitServers(domain, domainConfig.Server)
 
 	// lb
-	balancer.InitRoundRobin(domain, domainConfig.Server.Upstream.Endpoints)
+	balancer.InitRoundRobin(domainID, domainConfig.Server.Upstream.Endpoints)
 }
 
 func (s Servers) startListeners() {

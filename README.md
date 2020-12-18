@@ -39,32 +39,32 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 When the request is not cached:
 
-```
-         .---------.       .---------.       .---------.
-         |         |       |         |       |         |
-         |         |       |         |       |         |
-you ---->|---->----|--->---|---->----|--->---|-->--.   |
-         |         |       |         |       |     |   |
-    <----|----<----|---<---|----<----|---<---|--<--'   |
-         `---------´       `---------´       `---------´
-           network        go-proxy-cache        redis
+```text
+        .---------.       .---------.       .---------.
+        |         |       |         |       |         |
+        |         |       |         |       |         |
+you --->|---->----|--->---|---->----|--->---|-->--.   |
+        |         |       |         |       |     |   |
+    <---|----<----|---<---|----<----|---<---|--<--'   |
+        `---------´       `---------´       `---------´
+          network        go-proxy-cache        redis
 ```
 
 When the request is cached:
 
-```
-            website
-               _
-              | |
-         .----+-+--.       .---------.       .---------.
-         |    | '->|--->---|---->----|--->---|-->--,   |
-         |    '-<--|---<---|<--,     |       |     |   |
-         |         |       |   |     |       |     |   |
-you ---->|---->----|--->---|---'     |       |     |   |
-         |         |       |         |       |     |   |
-    <----|----<----|---<---|----<----|---<---|--<--'   |
-         `---------´       `---------´       `---------´
-           network        go-proxy-cache        redis
+```text
+          website
+             _
+            | |
+        .---+-+---.       .---------.       .---------.
+        |   | '-->|--->---|---->----|--->---|-->--,   |
+        |   '-<---|---<---|<--,     |       |     |   |
+        |         |       |   |     |       |     |   |
+you --->|---->----|--->---|---'     |       |     |   |
+        |         |       |         |       |     |   |
+    <---|----<----|---<---|----<----|---<---|--<--'   |
+        `---------´       `---------´       `---------´
+          network        go-proxy-cache        redis
 ```
 
 ## Features
@@ -82,6 +82,7 @@ you ---->|---->----|--->---|---'     |       |     |   |
 - **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI.
 - **Support Chunking**, by replicating exactly the same original amount.
 - **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
+- **ETag Support**, generating non-weak tags, handling `304 Not Modified`, managing HTTP headers `If-Modified-Since`, `If-Unmodified-Since`, `If-None-Match`, `If-Match`.
 
 ### Load Balancing
 
@@ -90,7 +91,7 @@ you ---->|---->----|--->---|---'     |       |     |   |
 
 ### Security
 
-- **HTTP/2 Support**
+- **HTTP/2 Support**, HTTP/2 Pusher is achievable only if upstream implements [HTTP header `Link`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link).
 - **SSL/TLS Certificates via ACME**, provides automatic generation of SSL/TLS certificates from [Let's Encrypt](https://letsencrypt.org/) and any other ACME-based CA.
 - **Using your own SSL/TLS Certificates**, optional.
 
@@ -115,9 +116,11 @@ you ---->|---->----|--->---|---'     |       |     |   |
 - **Debug/Verbose mode**, it is possible to have additional levels of details by settings the flags `-verbose` or `-debug`.
 
 ## Configuration
+
 ## YAML
 
 This is a simple (and not comprehensive) configuration:
+
 ```yaml
 server:
   port:
@@ -191,6 +194,10 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - `501 Not Implemented`  
   If there's no domain defined in the main configuration nor in the domain overrides, and a client will request an
   unknown domain the status `501` is returned.
+- WebSocket and TimeoutHandler are not working together, because TimeoutHandler doesn't support Hijacker, so in order to have WebSocket support the setting `TimeoutHandler` must be set to `-1`.
+- `context deadline exceeded`  
+  The reason is because the timeout on the context.Context of the client side of the request is shorter than the timeout
+  in the server side handler. This means that the client gives up before any response is written.
 
 ## References
 
@@ -202,6 +209,8 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
 - [What Happens in a TLS Handshake? | SSL Handshake](https://www.cloudflare.com/en-gb/learning/ssl/what-happens-in-a-tls-handshake/)
 - [A step by step guide to mTLS in Go](https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go)
+- [Learning HTTP caching in Go](https://www.sanarias.com/blog/115LearningHTTPcachinginGo)
+- [Nginx HTTP2 Server Push](https://ops.tips/blog/nginx-http2-server-push/)
 
 ## License
 
@@ -226,6 +235,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_large)
