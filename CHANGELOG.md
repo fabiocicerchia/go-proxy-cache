@@ -1,6 +1,26 @@
 Changelog
 =========
 
+v0.2.0 (2020-12-18)
+------------
+
+New
+
+- WebSockets, closes #16 (#63) [Fabio Cicerchia, Fabio Cicerchia
+  <info@fabiocicerchia.it>    * Bump alpine from 3.12.1 to 3.12.2 (#61)
+  Bumps alpine from 3.12.1 to 3.12.2.    Signed-off-by: dependabot[bot]
+  <support@github.com>    Co-authored-by: dependabot[bot]
+  <49699333+dependabot[bot]@users.noreply.github.com>    * updated
+  changelog    * new: WebSockets - closes #16    * refactoring    *
+  fixed wss connection    * code review    Co-authored-by: fossabot
+  <badges@fossa.io>, dependabot[bot]]
+- Handle ETags, closes #10 (#62) [Fabio Cicerchia]
+
+Other
+
+- Bump alpine from 3.12.2 to 3.12.3 (#66) [dependabot[bot]]
+- HTTP2 Pusher interface is broken (#65) [Fabio Cicerchia]
+
 v0.1.0 (2020-12-15)
 ------------
 - Updated changelog. [Fabio Cicerchia]
