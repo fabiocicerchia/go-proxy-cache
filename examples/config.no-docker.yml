@@ -1,5 +1,5 @@
 # TESTING PURPOSES ONLY
-# for more details check `config.yml`
+# TODO: code smell, should be only one file
 ################################################################################
 server:
   port:

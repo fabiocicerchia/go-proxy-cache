@@ -67,13 +67,11 @@ jobs:
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
           make cover
+          make codecov
         env:
           REDIS_HOST: redis
           NGINX_HOST_80: nginx:80
           NGINX_HOST_443: nginx:443
-
-      - name: Codecov
-        run: make codecov
 
       - name: CodeClimate
         continue-on-error: true
