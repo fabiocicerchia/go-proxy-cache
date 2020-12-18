@@ -42,6 +42,7 @@ New
 
 Fix
 
+
 - Fixing to achieve good score on BetterCodeHub, #40. [Fabio Cicerchia]
 - Broken tests for logs. [Fabio Cicerchia]
 
