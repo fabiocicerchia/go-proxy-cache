@@ -62,6 +62,44 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
 }
 
+func TestFixRequestOneItemWithPortInLB(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "developer.mozilla.org",
+				Scheme:    "https",
+				Endpoints: []string{"server1:8080"},
+			},
+		},
+	}
+
+	u := url.URL{
+		Scheme: "https",
+		Host:   "localhost",
+	}
+
+	reqMock := &http.Request{
+		Proto:      "HTTPS",
+		Method:     "POST",
+		RemoteAddr: "127.0.0.1",
+		URL:        &url.URL{Path: "/path/to/file"},
+		Header: http.Header{
+			"Host": []string{"localhost"},
+		},
+	}
+
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+
+	r := handler.RequestCall{Request: reqMock}
+	r.FixRequest(u, config.Config.Server.Upstream)
+
+	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
+
+	assert.Equal(t, "server1:8080", r.Request.URL.Host)
+	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
+}
+
 func TestFixRequestThreeItemsInLB(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{

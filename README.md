@@ -37,7 +37,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 ## How it works
 
-When the request is not cached:
+When the request is cached:
 
 ```text
         .---------.       .---------.       .---------.
@@ -50,11 +50,11 @@ you --->|---->----|--->---|---->----|--->---|-->--.   |
           network        go-proxy-cache        redis
 ```
 
-When the request is cached:
+When the request is not cached:
 
 ```text
           website
-             _
+            ,_,
             | |
         .---+-+---.       .---------.       .---------.
         |   | '-->|--->---|---->----|--->---|-->--,   |

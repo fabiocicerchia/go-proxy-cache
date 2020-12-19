@@ -63,12 +63,28 @@ func TestGetTTLWhenNotSet(t *testing.T) {
 	assert.Equal(t, 1*time.Second, value)
 }
 
-func TestGetTTLWhenSetCacheControl(t *testing.T) {
+func TestGetTTLWhenSetCacheControlSmaxage(t *testing.T) {
 	headers := http.Header{
 		"Cache-Control": []string{"public, max-age=3600, s-maxage=86400"},
 	}
 	value := ttl.GetTTL(headers, 1)
 	assert.Equal(t, 86400*time.Second, value)
+}
+
+func TestGetTTLWhenSetCacheControlMaxage(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"public, max-age=3600"},
+	}
+	value := ttl.GetTTL(headers, 1)
+	assert.Equal(t, 3600*time.Second, value)
+}
+
+func TestGetTTLWhenSetCacheControlEmpty(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"public"},
+	}
+	value := ttl.GetTTL(headers, 1)
+	assert.Equal(t, 1*time.Second, value)
 }
 
 func TestGetTTLWhenCacheControlNoCache(t *testing.T) {
@@ -95,8 +111,18 @@ func TestGetTTLWhenSetExpires(t *testing.T) {
 		"Expires": []string{expires},
 	}
 	value := ttl.GetTTL(headers, 1)
-	assert.Less(t, float64(59), value.Seconds())
-	assert.Greater(t, float64(60), value.Seconds())
+	assert.Less(t, 59.0, value.Seconds())
+	assert.Greater(t, 60.0, value.Seconds())
+}
+
+func TestGetTTLWhenInvalidExpires(t *testing.T) {
+	expires := "test"
+
+	headers := http.Header{
+		"Expires": []string{expires},
+	}
+	value := ttl.GetTTL(headers, 1)
+	assert.Equal(t, 1.0, value.Seconds())
 }
 
 func TestGetTTLWhenSetCacheControlAndExpires(t *testing.T) {

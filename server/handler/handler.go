@@ -35,7 +35,6 @@ type RequestCall struct {
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
-	// TODO: COVERAGE
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
 		Request:  *rc.Request,
@@ -107,7 +106,6 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 // Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
-	// TODO: COVERAGE
 	if rc.IsWebSocket() && rc.Request.TLS != nil {
 		return "wss"
 	}

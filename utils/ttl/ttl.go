@@ -28,7 +28,6 @@ func ttlFromExpires(expiresValue string) *time.Duration {
 		}
 	}
 
-	// TODO: COVERAGE
 	return nil
 }
 
@@ -43,7 +42,6 @@ func ttlFromCacheControlChain(cacheControlValue string) *time.Duration {
 		return &smaxage
 	}
 
-	// TODO: COVERAGE
 	if maxage := GetTTLFromCacheControl("max-age", cacheControlValue); maxage > 0 {
 		return &maxage
 	}

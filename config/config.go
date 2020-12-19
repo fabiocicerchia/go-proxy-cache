@@ -298,6 +298,7 @@ func patchAbsFilePath(filePath string, relativeTo *string) string {
 }
 
 // CopyOverWith - Copies the Configuration over another (preserving not defined settings).
+// TODO: KEEP SMALL
 func CopyOverWith(base Configuration, overrides Configuration, file *string) Configuration {
 	newConf := base
 

@@ -32,6 +32,7 @@ func Log(req http.Request, message string) {
 }
 
 // LogRequest - Logs the requested URL.
+// TODO: KEEP SMALL
 func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool) {
 	logLine := config.Config.Log.Format
 

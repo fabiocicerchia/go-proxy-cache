@@ -94,9 +94,9 @@ test-endtoend: ## test endtoend
 	go test -race -count=1 --tags=endtoend ./...
 
 cover:  ## coverage
-	go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
-	go tool cover -func=c.out
-	go tool cover -html=c.out
+	go test -race -count=1 --tags=unit,functional -coverprofile coverage.txt ./...
+	go tool cover -func=coverage.txt
+	go tool cover -html=coverage.txt
 
 codeclimate:  ## codeclimate
 	wget -O test-reporter https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 && chmod +x test-reporter

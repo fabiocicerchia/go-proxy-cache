@@ -53,14 +53,12 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(domainConfig *config.Configurati
 func getOverridePort(host string, port string, scheme string) string {
 	// if there's already a port it must have priority
 	if strings.Contains(host, ":") {
-		// TODO: COVERAGE
 		return ""
 	}
 
 	portOverride := port
 
 	if portOverride == "" && scheme == "http" {
-		// TODO: COVERAGE
 		portOverride = "80"
 	} else if portOverride == "" && scheme == "https" {
 		portOverride = "443"
@@ -94,8 +92,6 @@ func (rc RequestCall) serveCachedContent() bool {
 }
 
 func (rc RequestCall) patchProxyTransport(domainConfig *config.Configuration) *http.Transport {
-	// TODO: COVERAGE
-
 	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
 	// It can be ignored as it is customisable, but the default is false.
 	return &http.Transport{
@@ -171,8 +167,6 @@ func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
 }
 
 func (rc *RequestCall) patchRequestForReverseProxy(upstream config.Upstream) *url.URL {
-	// TODO: COVERAGE
-
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 	targetURL := *rc.Request.URL
 	targetURL.Scheme = rc.GetScheme()

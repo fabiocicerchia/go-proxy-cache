@@ -54,11 +54,7 @@ func (rdb *RedisClient) PurgeAll() (bool, error) {
 		return nil, err
 	})
 
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return err == nil, err
 }
 
 // Ping - Tests the connection.
@@ -78,11 +74,7 @@ func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) 
 		return nil, err
 	})
 
-	if err != nil {
-		return false, err
-	}
-
-	return true, nil
+	return err == nil, err
 }
 
 // Get - Gets a key.

@@ -96,7 +96,7 @@ func InitServer(domain string) *http.Server {
 	// timeout middleware
 	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxWithMiddlewares = http.TimeoutHandler(
-			mux,
+			muxWithMiddlewares,
 			timeout.Handler,
 			"Timed Out\n",
 		)

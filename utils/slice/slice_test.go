@@ -115,3 +115,35 @@ func TestLenSliceBytesTwosItems(t *testing.T) {
 
 	assert.Equal(t, 13, value)
 }
+
+func TestGetByKeyCaseInsensitive(t *testing.T) {
+	input := make(map[string][]string)
+	input["key"] = []string{"a"}
+	input["Test"] = []string{"b"}
+
+	value := slice.GetByKeyCaseInsensitive(input, "test")
+
+	assert.Equal(t, []string{"b"}, value)
+}
+
+func TestGetByKeyCaseInsensitiveMultipleMatch(t *testing.T) {
+	input := make(map[string][]string)
+	input["Test"] = []string{"a"}
+	input["key"] = []string{"b"}
+	input["test"] = []string{"c"}
+
+	value := slice.GetByKeyCaseInsensitive(input, "test")
+
+	assert.Equal(t, []string{"a"}, value)
+}
+
+func TestGetByKeyCaseInsensitiveNoMatch(t *testing.T) {
+	input := make(map[string][]string)
+	input["Test"] = []string{"a"}
+	input["key"] = []string{"b"}
+	input["test"] = []string{"c"}
+
+	value := slice.GetByKeyCaseInsensitive(input, "miss")
+
+	assert.Nil(t, value)
+}
