@@ -136,7 +136,6 @@ func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) 
 	proxy.ServeHTTP(rc.Response, rc.Request)
 
 	if enableStoringResponse {
-		// TODO: Move to async routine
 		rcDTO := ConvertToRequestCallDTO(rc)
 
 		stored, err := storage.StoreGeneratedPage(rcDTO, domainConfig.Cache)

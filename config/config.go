@@ -11,6 +11,7 @@ package config
 
 import (
 	"crypto/tls"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -122,6 +123,7 @@ var Config Configuration = Configuration{
 				// TODO: handle this
 				// Use modern tls mode https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility
 				// NextProtos: []string{"h2", "http/1.1"},
+
 				// Only use curves which have assembly implementations
 				// https://github.com/golang/go/tree/master/src/crypto/elliptic
 				CurvePreferences: []tls.CurveID{
@@ -177,6 +179,7 @@ var Config Configuration = Configuration{
 }
 
 var allowedSchemes = map[string]string{"HTTP": "http", "HTTPS": "https"}
+var domainsCache map[string]*Configuration
 
 func normalizeScheme(scheme string) string {
 	schemeUpper := strings.ToUpper(scheme)
@@ -298,7 +301,6 @@ func patchAbsFilePath(filePath string, relativeTo *string) string {
 }
 
 // CopyOverWith - Copies the Configuration over another (preserving not defined settings).
-// TODO: KEEP SMALL
 func CopyOverWith(base Configuration, overrides Configuration, file *string) Configuration {
 	newConf := base
 
@@ -362,17 +364,27 @@ func Print() {
 
 // GetDomains - Returns a list of domains.
 func GetDomains() []DomainSet {
-	// TODO: What if there's no domains only main config?!
-	domains := make([]DomainSet, 0, len(Config.Domains))
+	domains := make(map[string]DomainSet)
+
+	// add global upstream server...
+	domains[Config.Server.Upstream.Host+utils.StringSeparatorOne+Config.Server.Upstream.Scheme] = DomainSet{
+		Host:   Config.Server.Upstream.Host,
+		Scheme: Config.Server.Upstream.Scheme,
+	}
+
 	for _, v := range Config.Domains {
-		d := DomainSet{
+		domains[v.Server.Upstream.Host+utils.StringSeparatorOne+v.Server.Upstream.Scheme] = DomainSet{
 			Host:   v.Server.Upstream.Host,
 			Scheme: v.Server.Upstream.Scheme,
 		}
-		domains = append(domains, d)
 	}
 
-	return domains
+	domainsUnique := make([]DomainSet, 0, len(domains))
+	for _, d := range domains {
+		domainsUnique = append(domainsUnique, d)
+	}
+
+	return domainsUnique
 }
 
 // DomainConf - Returns the configuration for the requested domain.
@@ -380,11 +392,20 @@ func DomainConf(domain string, scheme string) *Configuration {
 	domainParts := strings.Split(domain, ":")
 	cleanedDomain := domainParts[0]
 
-	// TODO: Use memoization
+	// Memoization
+	if domainsCache == nil {
+		domainsCache = make(map[string]*Configuration)
+	}
+	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
+	if val, ok := domainsCache[keyCache]; ok {
+		log.Debugf("Cached configuration for %s", keyCache)
+		return val
+	}
 
 	// First round: host & scheme
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain && v.Server.Upstream.Scheme == scheme {
+			domainsCache[keyCache] = &v
 			return &v
 		}
 	}
@@ -392,12 +413,14 @@ func DomainConf(domain string, scheme string) *Configuration {
 	// Second round: host
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain {
+			domainsCache[keyCache] = &v
 			return &v
 		}
 	}
 
 	// Third round: global
 	if Config.Server.Upstream.Host == cleanedDomain {
+		domainsCache[keyCache] = &Config
 		return &Config
 	}
 

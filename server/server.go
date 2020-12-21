@@ -159,9 +159,7 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 }
 
 func (s Servers) startListeners() {
-	// TODO: TOO MANY SUBROUTINES
 	for _, srvHTTP := range s.HTTP {
-		// TODO: PRINT TO FIND OUT HOW MANY OF THEM
 		go func(srv *http.Server) { log.Fatal(srv.ListenAndServe()) }(srvHTTP)
 	}
 	for _, srvHTTPS := range s.HTTPS {
