@@ -12,6 +12,7 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"net/http"
 	"net/url"
 	"testing"
@@ -57,6 +58,8 @@ func TestFixRequestOneItemInLB(t *testing.T) {
 	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
+	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
+	assert.Equal(t, "127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))
 
 	assert.Equal(t, "server1:443", r.Request.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
@@ -95,6 +98,8 @@ func TestFixRequestOneItemWithPortInLB(t *testing.T) {
 	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
+	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
+	assert.Equal(t, "127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))
 
 	assert.Equal(t, "server1:8080", r.Request.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
@@ -116,6 +121,11 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 		Host:   "localhost",
 	}
 
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+
+	// --- FIRST ROUND
+
 	reqMock := &http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
@@ -126,25 +136,73 @@ func TestFixRequestThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
-
-	// --- FIRST ROUND
-
 	r := handler.RequestCall{Request: reqMock}
 	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
+	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
+	assert.Equal(t, "127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))
 
 	assert.Equal(t, "server1:443", r.Request.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
 
 	// --- SECOND ROUND
 
+	reqMock = &http.Request{
+		Proto:      "HTTPS",
+		Method:     "POST",
+		RemoteAddr: "127.0.0.1",
+		URL:        &url.URL{Path: "/path/to/file"},
+		Header: http.Header{
+			"Host": []string{"localhost"},
+		},
+	}
+
+	r = handler.RequestCall{Request: reqMock}
 	r.FixRequest(u, config.Config.Server.Upstream)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
+	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
+	assert.Equal(t, "127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))
 
 	assert.Equal(t, "server2:443", r.Request.URL.Host)
 	assert.Equal(t, "developer.mozilla.org", r.Request.Host)
+}
+
+func TestXForwardedFor(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "developer.mozilla.org",
+				Scheme:    "https",
+				Endpoints: []string{"server1"},
+			},
+		},
+	}
+
+	u := url.URL{
+		Scheme: "https",
+		Host:   "localhost",
+	}
+
+	reqMock := &http.Request{
+		Proto:      "HTTPS",
+		Method:     "POST",
+		RemoteAddr: "127.0.0.1",
+		URL:        &url.URL{Path: "/path/to/file"},
+		Header: http.Header{
+			"Host":            []string{"localhost"},
+			"X-Forwarded-For": []string{"192.168.1.1"},
+		},
+		TLS: &tls.ConnectionState{}, // mock a fake https
+	}
+
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+
+	r := handler.RequestCall{Request: reqMock}
+	r.FixRequest(u, config.Config.Server.Upstream)
+
+	assert.Equal(t, "https", r.Request.Header.Get("X-Forwarded-Proto"))
+	assert.Equal(t, "192.168.1.1, 127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))
 }

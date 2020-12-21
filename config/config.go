@@ -389,8 +389,7 @@ func GetDomains() []DomainSet {
 
 // DomainConf - Returns the configuration for the requested domain.
 func DomainConf(domain string, scheme string) *Configuration {
-	domainParts := strings.Split(domain, ":")
-	cleanedDomain := domainParts[0]
+	cleanedDomain := utils.StripPort(domain)
 
 	// Memoization
 	if domainsCache == nil {

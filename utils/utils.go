@@ -11,6 +11,7 @@ package utils
 
 import (
 	"os"
+	"strings"
 )
 
 // StringSeparatorOne - Main text separator, used for joins.
@@ -44,4 +45,14 @@ func Coalesce(value interface{}, fallback interface{}, condition bool) interface
 	}
 
 	return value
+}
+
+// StripPort - Removes the port from a string like hostname:port.
+func StripPort(val string) string {
+	valParts := strings.Split(val, ":")
+	max := len(valParts) - 1
+	if max <= 0 {
+		max = 1
+	}
+	return strings.Join(valParts[:max], ":")
 }

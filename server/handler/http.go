@@ -160,6 +160,16 @@ func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
 	// Ref: https://stackoverflow.com/a/42926149/888162
 	rc.Request.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
 
+	rc.Request.Header.Set("X-Forwarded-Proto", rc.GetScheme())
+
+	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
+	clientIP := utils.StripPort(rc.Request.RemoteAddr)
+	xForwardedFor := net.ParseIP(clientIP).String()
+	if previousXForwardedFor != "" {
+		xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
+	}
+	rc.Request.Header.Set("X-Forwarded-For", xForwardedFor)
+
 	rc.Request.URL.Host = balancedHost + overridePort
 	rc.Request.URL.Scheme = scheme
 	rc.Request.Host = host
