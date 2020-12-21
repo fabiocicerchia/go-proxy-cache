@@ -10,9 +10,9 @@ package main
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -23,9 +23,10 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server"
 )
 
-var logLevel log.Level
 var configFile string
+var logLevel log.Level
 var logFile string
+var logFileHandle *os.File
 var verboseFlag bool
 var testFlag bool
 
@@ -65,13 +66,13 @@ func initFlags() {
 	}
 }
 
-func getLogFileWriter(logFile string) *bufio.Writer {
+func getLogFileWriter(logFile string) *os.File {
 	f, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return bufio.NewWriter(f)
+	return f
 }
 
 func initLogs() {
@@ -87,7 +88,15 @@ func initLogs() {
 
 	log.SetOutput(os.Stdout)
 	if logFile != "" {
-		log.SetOutput(getLogFileWriter(logFile))
+		logFileHandle = getLogFileWriter(logFile)
+		log.SetOutput(io.MultiWriter(logFileHandle))
+		log.RegisterExitHandler(closeLogFile)
+	}
+}
+
+func closeLogFile() {
+	if logFileHandle != nil {
+		logFileHandle.Close()
 	}
 }
 

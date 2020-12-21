@@ -57,14 +57,17 @@ func Run(configFile string) {
 
 	// Wait for an interrupt
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, os.Kill)
 	<-c
+
+	log.Error("SIGKILL or SIGINT caught, shutting down...")
 
 	// Attempt a graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	servers.shutdownServers(ctx)
+	log.Error("all listeners shut down.")
 }
 
 // InitServer - Generates the http.Server configuration.
