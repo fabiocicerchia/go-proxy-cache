@@ -1,0 +1,575 @@
+################################################################################
+### GO PROXY CACHE #############################################################
+################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    meta.service: go-proxy-cache
+  name: go-proxy-cache
+spec:
+  ports:
+  - name: "50080"
+    port: 50080
+    targetPort: 50080
+  - name: "50443"
+    port: 50443
+    targetPort: 50443
+  selector:
+    meta.service: go-proxy-cache
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - hostname: localhost
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: go-proxy-cache
+  name: go-proxy-cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      meta.service: go-proxy-cache
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.21.0 (992df58d8)
+      creationTimestamp: null
+      labels:
+        meta.service: go-proxy-cache
+    spec:
+      containers:
+      - args:
+        - go-proxy-cache
+        - -debug
+        image: fabiocicerchia/go-proxy-cache:latest
+        name: go-proxy-cache
+        ports:
+        - containerPort: 50080
+        - containerPort: 50443
+        volumeMounts:
+        - mountPath: /app/config.yml
+          name: go-proxy-cache-config-yml
+        - mountPath: /app/certs
+          name: go-proxy-cache-certs
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: go-proxy-cache-config-yml
+        hostPath:
+          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/config.yml
+      - name: go-proxy-cache-certs
+        hostPath:
+          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/certs
+status: {}
+---
+################################################################################
+### NGINX ######################################################################
+################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    meta.service: nginx
+  name: nginx
+spec:
+  ports:
+  - name: "40080"
+    port: 40080
+    targetPort: 40080
+  - name: "40081"
+    port: 40081
+    targetPort: 40081
+  - name: "40082"
+    port: 40082
+    targetPort: 40082
+  - name: "40443"
+    port: 40443
+    targetPort: 40443
+  selector:
+    meta.service: nginx
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - hostname: localhost
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: nginx
+  name: nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      meta.service: nginx
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        meta.service: nginx
+    spec:
+      containers:
+      - image: nginx:1.19.5-alpine
+        name: nginx
+        ports:
+        - containerPort: 40080
+        - containerPort: 40081
+        - containerPort: 40082
+        - containerPort: 40443
+        volumeMounts:
+        - mountPath: /etc/nginx/conf.d/default.conf
+          name: nginx-default-conf
+        - mountPath: /certs
+          name: nginx-certs
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: nginx-default-conf
+        hostPath:
+          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/nginx/compose.conf
+      - name: nginx-certs
+        hostPath:
+          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/certs
+status: {}
+---
+################################################################################
+### NODE #######################################################################
+################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    meta.service: node
+  name: node
+spec:
+  ports:
+  - name: "9001"
+    port: 9001
+    targetPort: 9001
+  - name: "9002"
+    port: 9002
+    targetPort: 9002
+  selector:
+    meta.service: node
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: node
+  name: node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      meta.service: node
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        meta.service: node
+    spec:
+      containers:
+      - args:
+        - npm
+        - start
+        image: node:15.4.0-alpine3.10
+        name: node
+        ports:
+        - containerPort: 9001
+        - containerPort: 9002
+        volumeMounts:
+        - mountPath: /home/node/app
+          name: node-app
+        workingDir: /home/node/app
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+      - name: node-app
+        hostPath:
+          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples
+status: {}
+---
+################################################################################
+### REDIS ######################################################################
+################################################################################
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    meta.service: redis
+  name: redis
+spec:
+  ports:
+  - name: "6379"
+    port: 6379
+    targetPort: 6379
+  selector:
+    meta.service: redis
+  type: LoadBalancer
+status:
+  loadBalancer:
+    ingress:
+    - hostname: localhost
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: redis
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      meta.service: redis
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        meta.service: redis
+    spec:
+      containers:
+      - image: redis:6.0.8-alpine3.12
+        name: redis
+        ports:
+        - containerPort: 6379
+      restartPolicy: Always
+      serviceAccountName: ""
+status: {}
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: redis-config
+data:
+  redis.conf: |
+    bind 0.0.0.0
+
+# apiVersion: v1
+# kind: List
+# items:
+# ################################################################################
+# # Pod - gpc-example
+# ################################################################################
+# - kind: Pod
+#   apiVersion: v1
+#   metadata:
+#     name: gpc-example
+#   spec:
+#     restartPolicy: Always
+#     volumes:
+#       - name: certs-files
+#         emptyDir: {}
+#       - name: vhosts-files
+#         configMap:
+#           name: vhosts-config
+#       - name: gpc-config-volume
+#         configMap:
+#           name: gpc-config
+#     containers:
+#       - name: gpc
+#         image: fabiocicerchia/go-proxy-cache:latest
+#         volumeMounts:
+#           - name: certs-files
+#             mountPath: /app/certs/server.key
+#             subPath: server.key
+#           - name: certs-files
+#             mountPath: /app/certs/server.pem
+#             subPath: server.pem
+#           - name: gpc-config-volume
+#             mountPath: /app/config.yml
+#             subPath: config.yml
+#         lifecycle:
+#           postStart:
+#             exec:
+#               command: ["go-proxy-cache", "-debug"]
+#       - name: redis
+#         image: redis:6.0.8-alpine3.12
+#       - name: nginx
+#         image: nginx:1.19.5-alpine
+#         volumeMounts:
+#           - name: certs-files
+#             mountPath: /certs/server.key
+#             subPath: server.key
+#           - name: certs-files
+#             mountPath: /certs/server.pem
+#             subPath: server.pem
+#           - name: vhosts-files
+#             mountPath: /etc/nginx/conf.d/default.conf
+#             subPath: default.conf
+#       - name: node
+#         image: node:15.4.0-alpine3.10
+#         lifecycle:
+#           postStart:
+#             exec:
+#               command: ["npm", "start"]
+#         # working_dir: /home/node/app
+#         # volumes:
+#         # - ./:/home/node/app
+
+# ################################################################################
+# # ConfigMap - gpc-config
+# ################################################################################
+# - kind: ConfigMap
+#   apiVersion: v1
+#   metadata:
+#     name: gpc-config
+#   data:
+#     config.yml: |
+#       # TESTING PURPOSES ONLY
+#       # for more details check `config.yml`
+#       ################################################################################
+#       server:
+#         port:
+#           http: "50080"
+#           https: "50443"
+#         tls:
+#           cert_file: certs/server.pem
+#           key_file: certs/server.key
+#         timeout:
+#           read: 5s
+#           read_header: 2s
+#           write: 5s
+#           idle: 20s
+#           handler: -1
+
+#       cache:
+#         host: redis
+
+#       domains:
+#         example_com:
+#           server:
+#             upstream:
+#               host: example.com
+
+#         example_org:
+#           server:
+#             upstream:
+#               host: example.org
+
+#         www_w3_org:
+#           server:
+#             upstream:
+#               host: www.w3.org
+#               endpoints:
+#               - www.w3.org
+
+#         www_testing_local:
+#           server:
+#             upstream:
+#               host: www.testing.local
+#               scheme: http
+#               endpoints:
+#               - nginx:40080
+
+#         testing_local:
+#           server:
+#             upstream:
+#               host: testing.local
+#               scheme: http
+#               endpoints:
+#               - nginx:40080
+
+#         testing_local_ws:
+#           server:
+#             upstream:
+#               host: testing.local
+#               scheme: ws
+#               endpoints:
+#               - nginx:40081
+
+#         testing_local_wss:
+#           server:
+#             upstream:
+#               host: testing.local
+#               scheme: wss
+#               insecure_bridge: true
+#               endpoints:
+#               - nginx:40082
+
+# ################################################################################
+# # ConfigMap - certs-config
+# ################################################################################
+# - kind: ConfigMap
+#   apiVersion: v1
+#   metadata:
+#     name: certs-config
+#   data:
+#     server.key: |
+#       -----BEGIN RSA PRIVATE KEY-----
+#       MIIJKAIBAAKCAgEAwDsOriRDU/MbSCy1obKqtEgS37QgiDzHJACCDM89hJVSDZqa
+#       7av022U708BIYPcmO9x3sWMWXtCFr3nD7Spvpo88tGd7HmAm/07e2T4ebwdpvVMI
+#       esGt4phPeW9DszsvnyL0Sm3nly5iwDnD/0KQl8bu59m1arLmG7rW2ujRv/T7IJBk
+#       dj6ZcO6wrgMc2Ua31yKBId5tJ/CvygcYovYuGbUUnqIrqwbYlAa/fc9hr0RFP/Yc
+#       4uBhcAVj0xvmL3P5BPXlXzdsOI7nEZZS+lTObp9uyMY0wKHT+RuFCJRWrBJ+02af
+#       pctyHagTkoVbB4k4avNuKsrWz3MCcjl+obCsiJevtaqScZS6zkSjlTrWibC0dg5c
+#       1c9ZqyCOUW23HKc8uusxYQn3YGEYteJf4/60+4Ui86yVgyyOG5Y4PF8EgJX8U/UQ
+#       rdBTMAd6u6vWTOns8RXlkdfKrR0Edf5couUIOyQWBnAT4o+Gqde5CZZz39+rcqWH
+#       rN4DsKMVENH/5ZiQtYM5wnlWoQLUFZxzIKQLQ9L9kVVFgimGFa9KTwyga8f9g1qy
+#       yFGmfLmrLnGONAswawJoG1B3oGG1JQLhqka98GAp4gIBT46UxbYylOPSepmjN7im
+#       ViMUzf8hEd3kvidP6vGOxGh4OwlQZH4qrUONYKDnstw7X3Nl5A/D9798LhUCAwEA
+#       AQKCAgAAv3oUJWH5rqV5h2sBgQ92+hzQsAO8Y/gmZLYc1KWZoXcbRHG74QJn5CHy
+#       dfoSHoQQkZAJqagJoGgUwbWIc7TRghcrYIezG46rSaRGVh6KMg4wRWVwDNbfXdZZ
+#       U5yA0wchaGJo87qF9RE/TDo+AQVNAeImFsvE6YNJslVprqQ6Sfq8KrOpXh78uIEJ
+#       fEudcNAAT0sPVa05DY+xiouG/sw5H2JAJ8Nhu/oVwVz3YVow82QNlqiQHW1joTG9
+#       PYuMvbfHVCmbUDzkj3HIuLwD61aOSaKFt3e3FCod+wRufx1DOCM0MV8Hpx3/jYrd
+#       9BThl6AXknDoS7fAQONOjHi4qlZRg/8hqdfkdUrhyNh8a5JsR+JAGU/EQLByEMI8
+#       cJ0WLJLZsAbulzv01mQaBVjDHr/7NWG6WegohAB59d1ziiJ8uudMCOXKwO+7H6r5
+#       4C8ohxV9y9sHFCm94agcn+VKNuGc1CM9QYZFUmZ6xNqIa+HMklMvyM0JaDjH5GCI
+#       HqHvo5J1pZNxfH+NosdOm1A6W83G+ooakGxNxhDVIlkD1LR7/3Vxcg0DTUbB13LO
+#       +bY2JBUUxIAjTFzKJPH9SDl6YRBHy763OBTnM6SNEsGIP/gWGmOrMnBc23ty659v
+#       lJu8B2cNRhyjx2VivTTD2WxJbw/LmTPB5bTi4ijtDVOh6xbIVQKCAQEA/93WOT+Y
+#       a+HQBm1iSidLKCiQtlEduf9rtHpSc9XYoYvQk1NKqZShcmHadkaSH90n+7rK/6j2
+#       EwzIYrtGC659avFv0pwexwyMJTcMGpVQTvBfG/qDMhQtI3WtD5Pt+2FrOtYxCv3d
+#       0cGt4Tcq/tlB2d1QzJPE5Gnco5ACfMDTLwPGMpGrNd/F16ZsyLmuxCX7SpbbIMLH
+#       RFY2+mywEJVZjJLz8lRS3o7ij/UE+Ry+xUd22WuRyvTE37G1e/vQQ4G90HW/b8Ms
+#       LilWhYaQYjP2IqolH8h47yjC7zS+Ylx18ZiWGUL0+zX6VcA9Z3Kcf1ZcOI4XsFZl
+#       axWHJSd3YtbDCwKCAQEAwFS5UaTd/ldo7qFaCO+koBt5XDJONsjs5T/4GXoTK9DH
+#       VDvV9Wu1jGQfPSHi7MvSKxofAL3yVb+bJAQV3NiobEUuOrks7K371Bv8tVxhwh7S
+#       4gA0mtmXq0I0WEgYIQp91xxNGUNZZqCsUY+l9L9OlpzUjteWZdXy9g8ZNhGfdH6p
+#       AUGg3AVHQlNr+AgUelz35q/k3ExSHc1I8POHK+o9dTNwy0wIvFG2EPb9x5C6P6nb
+#       e2cno4phS6rcvVmzUeH8UvRsD5w46jSA89QrJ+7COvd65ZtOzTbu4WKVsm6LVcKz
+#       DJY1ynVRLIgQ0E7MJl6C532lv7AuMKl/zM90mC2HXwKCAQAWh+dUVThLz6+s0TcF
+#       hp5EpAXSOCRg+4/1bYwTLTKNTy2Hu57offEVjG5bWe2GJshdj15O0wcQOGDw6MLL
+#       Ros+vpH1PtArAPzaThWfxaQzv1DwuseQwlwTMkqSA5nCOBrkLHZXHHHLBb4VBfGg
+#       TWtSDv4Ndbmxz2yhbo35hFVUX4W1cEReUx0t1zbfGhK8rQeK0uvq35wCdYET3jxG
+#       yZAAI/SdUzWU6Yoj2RSeBxz5bEiX7rQA5jrr488yYsM9HpCjaar44XvjeLpouae/
+#       LgovlUH9oX6cuL8pp0BYkwHDy4b0JIREFsW7hVki4eHMCMPIKyME4Sa/Hj8vU2Fc
+#       78JvAoIBAAEIc3ZczFRxY77kXvdtUhUKELzOCF2C9sLEdTCt1yyFEo0BRUTsLy1x
+#       3DkX1YAwGBDjMwdt/b84KD0pSHTHNSBfvr/R/svGo3OgMttGg7/nKnrMRXwPbyEc
+#       Weufd4G17LcbD87y7af/dO17OAj4fhORBBNAVS5217c6nYgM0C5v/7hiAdssrBVP
+#       HWVXpcSCe1Jh33jPcCF42Mtyg2dY+ruGazSsU9+vEKtGqFZKELYG04b2JuBZ/evK
+#       HyVlNfFapWBMr8flruiTH54vpYuxXJm0epSBIQs5IE9VmDg9H8J2KUAIDoHn32e9
+#       01lLEw2htFJJ+nntGFJqlqUi+B1ZIUECggEBAKwwPQe8NJknEulspzAdgbcU92Jf
+#       UkpN+PKF0/hh82jN93SYMSP1et3rd+EUbEnFsT/nn7CPp2kiV638uTC958tmibeL
+#       uhh/CHCMvTZ4Adwp9JLXkWLn/5eIXAjsyHwBx+4jBcJnwYoriHd8MSCNqTnedSWU
+#       MDPcMvxP9wG41tutO/loTRKrujaSBj6fH7Fb5AKX+pJYqpS92U3/gRGw3n6VyJBM
+#       TkOwcxZH2rMzQ6JPCHGBD2xs79U8s0wc1CEjiMb8WKQkd6Hn2DUtx3qlfA5w84w7
+#       bxZpfq50vFRMxdBe/o2VbOe8k9JcJAm1vjjlHDwC9Jr9N4Rrzz/LrLsGu48=
+#       -----END RSA PRIVATE KEY-----
+
+#     server.pem: |
+#       -----BEGIN CERTIFICATE-----
+#       MIIEpjCCAo6gAwIBAgIJAI/y04uyOig1MA0GCSqGSIb3DQEBBQUAMA0xCzAJBgNV
+#       BAMMAmNhMB4XDTIwMTIxNjE3MDM0M1oXDTMwMTIxNDE3MDM0M1owGDEWMBQGA1UE
+#       AwwNdGVzdGluZy5sb2NhbDCCAiIwDQYJKoZIhvcNAQEBBQADggIPADCCAgoCggIB
+#       AMA7Dq4kQ1PzG0gstaGyqrRIEt+0IIg8xyQAggzPPYSVUg2amu2r9NtlO9PASGD3
+#       Jjvcd7FjFl7Qha95w+0qb6aPPLRnex5gJv9O3tk+Hm8Hab1TCHrBreKYT3lvQ7M7
+#       L58i9Ept55cuYsA5w/9CkJfG7ufZtWqy5hu61tro0b/0+yCQZHY+mXDusK4DHNlG
+#       t9cigSHebSfwr8oHGKL2Lhm1FJ6iK6sG2JQGv33PYa9ERT/2HOLgYXAFY9Mb5i9z
+#       +QT15V83bDiO5xGWUvpUzm6fbsjGNMCh0/kbhQiUVqwSftNmn6XLch2oE5KFWweJ
+#       OGrzbirK1s9zAnI5fqGwrIiXr7WqknGUus5Eo5U61omwtHYOXNXPWasgjlFttxyn
+#       PLrrMWEJ92BhGLXiX+P+tPuFIvOslYMsjhuWODxfBICV/FP1EK3QUzAHerur1kzp
+#       7PEV5ZHXyq0dBHX+XKLlCDskFgZwE+KPhqnXuQmWc9/fq3Klh6zeA7CjFRDR/+WY
+#       kLWDOcJ5VqEC1BWccyCkC0PS/ZFVRYIphhWvSk8MoGvH/YNasshRpny5qy5xjjQL
+#       MGsCaBtQd6BhtSUC4apGvfBgKeICAU+OlMW2MpTj0nqZoze4plYjFM3/IRHd5L4n
+#       T+rxjsRoeDsJUGR+Kq1DjWCg57LcO19zZeQPw/e/fC4VAgMBAAEwDQYJKoZIhvcN
+#       AQEFBQADggIBAEWOkBUEyNajolOF4sk+RMpGn+Xt2teZ7/3Ca1JPFry8TfwvQWf4
+#       /DbNTf5Q6eNcF/8SKjQgH336BNTvE8rRL3KL2QgpcbGheelsQaDwDeWsZxalMvi1
+#       jEATYVGLDJPyAb6p3jeYh49+8iwYPsg/bosvOapqDUetjfph3Awdkq4Rpw6wpYcv
+#       Y36lkwidMsuOXJH66SeiNweQDl1PAYuN3/UA4XWy3ghD2e51EBuMNmZNTGYlaG78
+#       /vvD6A3FDSagIjihIEq7pgR0hXTAsmM1YiVfDNdhJJDyWh4b9O/Akl1OhwpUvyCM
+#       PFbq2Mv4BN3996QIzjqMQuRj6+FIzny8y5CcAq086olWClb1PchYJvJYfRx7wfHy
+#       VfJbqibWBWHSZhNKlH2NqTbNsZ+DnEtNUsEPaEGAmICGKt2TnG+ynvhfcXn6giuz
+#       RXmz9QyFIBDFJ332/RcOguR4trEdZJgnXjsEzyOsecIcyxAZytqWKBqxb93E1PPA
+#       I23EV6jMIgZe3Uc89yrR2OglPI2Cl7Gec1Eis71k8X/k2rE9h3CSHYm62YZkQOIp
+#       vRhG3/tqTAgT5L5mgsfDibe7tGmXm9rAxgwJYSfOKFLELAtZjP9ztWdk++BE534o
+#       X42FOnQG4fxwt85BR//I5o7sf2S/zVOL2yJRJI1HB5wAdF8l/YyTWHXq
+#       -----END CERTIFICATE-----
+
+
+# ################################################################################
+# # ConfigMap - vhosts-config
+# ################################################################################
+# - kind: ConfigMap
+#   apiVersion: v1
+#   metadata:
+#     name: vhosts-config
+#   data:
+#     default.conf: |
+#       map $http_upgrade $connection_upgrade {
+#           default upgrade;
+#           '' close;
+#       }
+
+#       server {
+#           listen 40080;
+#           server_name www.testing.local;
+#           return 301 https://testing.local$request_uri;
+#       }
+#       server {
+#           listen 40443 ssl;
+#           server_name www.testing.local;
+#           ssl_certificate /certs/server.pem;
+#           ssl_certificate_key /certs/server.key;
+#           return 301 https://testing.local$request_uri;
+#       }
+
+#       # HTTP(S)
+#       server {
+#           listen 40080;
+#           listen 443 ssl;
+#           server_name testing.local;
+#           ssl_certificate /certs/server.pem;
+#           ssl_certificate_key /certs/server.key;
+
+#           add_header Cache-Control: max-age=3600;
+#           location / {
+#               root   /usr/share/nginx/html;
+#               index  index.html index.htm;
+#           }
+
+#           location = /etag {
+#               add_header Content-Type text/plain;
+#               add_header Last-Modified "Thu, 01 Jan 1970 00:00:00 GMT";
+#               default_type text/plain;
+#               etag off;
+
+#               return 200 "etag";
+#           }
+#       }
+
+#       # WS
+#       server {
+#           listen 40081;
+#           server_name testing.local;
+
+#           location / {
+#             proxy_pass http://node:9001;
+#             proxy_http_version 1.1;
+#             proxy_set_header Upgrade $http_upgrade;
+#             proxy_set_header Connection $connection_upgrade;
+#             proxy_set_header Host $host;
+#           }
+#       }
+
+#       # WSS
+#       server {
+#           listen 40082 ssl;
+#           server_name testing.local;
+#           ssl_certificate /certs/server.pem;
+#           ssl_certificate_key /certs/server.key;
+
+#           location / {
+#             proxy_pass https://node:9002;
+#             proxy_http_version 1.1;
+#             proxy_set_header Upgrade $http_upgrade;
+#             proxy_set_header Connection $connection_upgrade;
+#             proxy_set_header Host $host;
+#           }
+#       }
