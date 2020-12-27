@@ -19,6 +19,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-http-utils/etag"
 	log "github.com/sirupsen/logrus"
+	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -70,6 +71,18 @@ func Run(configFile string) {
 	log.Error("all listeners shut down.")
 }
 
+func ConditionalETag(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		// ETag wrapper doesn't work well with WebSocket.
+		if !wsutil.IsWebSocketRequest(req) {
+			etagHandler := etag.Handler(h, false)
+			etagHandler.ServeHTTP(res, req)
+		} else {
+			h.ServeHTTP(res, req)
+		}
+	})
+}
+
 // InitServer - Generates the http.Server configuration.
 func InitServer(domain string) *http.Server {
 	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
@@ -89,7 +102,7 @@ func InitServer(domain string) *http.Server {
 	muxWithMiddlewares = mux
 
 	// etag middleware
-	muxWithMiddlewares = etag.Handler(muxWithMiddlewares, false)
+	muxWithMiddlewares = ConditionalETag(muxWithMiddlewares)
 
 	// gzip middleware
 	if gzip {

@@ -56,5 +56,5 @@ services:
     volumes:
       - ./:/home/node/app
     ports:
-      - 9001 # ws
-      - 9002 # wss
+      - "9001:9001" # ws
+      - "9002:9002" # wss

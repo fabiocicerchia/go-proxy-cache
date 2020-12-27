@@ -23,14 +23,19 @@ jobs:
         options: >-
           --entrypoint redis-server
       nginx:
-        image: fabiocicerchia/go-proxy-cache-test:latest
+        image: fabiocicerchia/go-proxy-cache-test:nginx
         ports:
-          - "40080:80" # http
-          - "40081:81" # ws
-          - "40082:82" # wss
-          - "40443:443" # https
+          - "40080:40080" # http
+          - "40081:40081" # ws
+          - "40082:40082" # wss
+          - "40443:40443" # https
         options: >-
           --link node
+      node:
+        image: fabiocicerchia/go-proxy-cache-test:node
+        ports:
+          - "9001:9001" # ws
+          - "9002:9002" # wss
     steps:
       - uses: actions/checkout@v2
 
@@ -45,10 +50,15 @@ jobs:
         with:
           args: docker logs "${{ job.services.nginx.id }}"
 
+      - name: Service Logs - node
+        uses: docker://docker
+        with:
+          args: docker logs "${{ job.services.node.id }}"
+
       - name: Install Dependencies
         run: |
           apk update
-          apk add make gcc libc-dev redis curl bash
+          apk add make gcc libc-dev redis curl bash nodejs npm
 
       - name: Build
         run: make build-race
@@ -58,6 +68,8 @@ jobs:
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
           ./go-proxy-cache -debug -config=examples/config.yml &
           make test
+          npm install examples
+          node examples/ws_client.js
         env:
           REDIS_HOST: redis
           NGINX_HOST_80: nginx:40080

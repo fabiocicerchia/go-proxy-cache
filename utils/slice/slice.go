@@ -2,6 +2,7 @@ package slice
 
 import (
 	"net/http"
+	"sort"
 	"strings"
 )
 
@@ -37,9 +38,16 @@ func ContainsString(items []string, value string) bool {
 // GetByKeyCaseInsensitive - Retrieves value by key matched case-insensitively.
 func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
 	keyLower := strings.ToLower(key)
-	for k, v := range items {
+
+	keys := make([]string, 0)
+	for k, _ := range items {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
 		if strings.ToLower(k) == keyLower {
-			return v
+			return items[k]
 		}
 	}
 

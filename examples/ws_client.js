@@ -38,9 +38,11 @@ socket2.onopen = function (event) {
 
 socket2.onmessage = function (event) {
   console.log(event.data)
+  console.log("ALL GOOD, EXITING...")
   process.exit(0)
 }
 socket2.on('error', function (event) {
   console.log(event)
+  console.log("ERROR, EXITING...")
   process.exit(1)
 })
