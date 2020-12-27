@@ -82,6 +82,7 @@ func (c CacheObj) handleMetadata(domainID string, targetURL url.URL, expiration 
 // StoreFullPage - Stores the whole page response in cache.
 func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
+		log.Debugf("Not allowed to be stored. Status: %v - Method: %v - Expiration: %v", c.IsStatusAllowed(), c.IsMethodAllowed(), expiration)
 		return false, nil
 	}
 

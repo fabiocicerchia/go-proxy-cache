@@ -341,8 +341,8 @@ func CopyOverWith(base Configuration, overrides Configuration, file *string) Con
 	newConf.Cache.Password = utils.Coalesce(overrides.Cache.Password, newConf.Cache.Password, overrides.Cache.Password == "").(string)
 	newConf.Cache.DB = utils.Coalesce(overrides.Cache.DB, newConf.Cache.DB, overrides.Cache.DB == 0).(int)
 	newConf.Cache.TTL = utils.Coalesce(overrides.Cache.TTL, newConf.Cache.TTL, overrides.Cache.TTL == 0).(int)
-	newConf.Cache.AllowedStatuses = utils.Coalesce(overrides.Cache.AllowedStatuses, newConf.Cache.AllowedStatuses, len(overrides.Cache.AllowedStatuses) == 0).([]int)
-	newConf.Cache.AllowedMethods = utils.Coalesce(overrides.Cache.AllowedMethods, newConf.Cache.AllowedMethods, len(overrides.Cache.AllowedMethods) == 0).([]string)
+	newConf.Cache.AllowedStatuses = utils.Coalesce(overrides.Cache.AllowedStatuses, newConf.Cache.AllowedStatuses, len(overrides.Cache.AllowedStatuses) == 0 || overrides.Cache.AllowedStatuses[0] == 0).([]int)
+	newConf.Cache.AllowedMethods = utils.Coalesce(overrides.Cache.AllowedMethods, newConf.Cache.AllowedMethods, len(overrides.Cache.AllowedMethods) == 0 || overrides.Cache.AllowedMethods[0] == "").([]string)
 
 	newConf.Cache.AllowedMethods = append(newConf.Cache.AllowedMethods, "HEAD", "GET")
 	newConf.Cache.AllowedMethods = slice.Unique(newConf.Cache.AllowedMethods)

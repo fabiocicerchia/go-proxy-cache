@@ -21,10 +21,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestETag(t *testing.T) {
+func TestETagValidResponse(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://localhost:50080/", nil)
+	req, err := http.NewRequest("GET", "http://testing.local:50080/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
@@ -50,4 +50,162 @@ func TestETag(t *testing.T) {
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, string(body), "</body>\n</html>\n")
+}
+
+func TestETagIfModifiedSinceWhenChanged(t *testing.T) {
+	client := &http.Client{}
+
+	today := "Thu, 01 Jan 1970 00:00:00 GMT"
+
+	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	assert.Nil(t, err)
+	req.Host = "testing.local"
+	req.Header = http.Header{
+		"If-Modified-Since": []string{today},
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Body.Close()
+
+	assert.Equal(t, "HTTP/1.1", res.Proto)
+	assert.Equal(t, 1, res.ProtoMajor)
+	assert.Equal(t, 1, res.ProtoMinor)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotEqual(t, []byte{}, body)
+}
+
+func TestETagIfModifiedSinceWhenNotChanged(t *testing.T) {
+	client := &http.Client{}
+
+	today := "Thu, 01 Jan 1970 00:00:01 GMT"
+
+	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	assert.Nil(t, err)
+	req.Host = "testing.local"
+	req.Header = http.Header{
+		"If-Modified-Since": []string{today},
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Body.Close()
+
+	assert.Equal(t, "HTTP/1.1", res.Proto)
+	assert.Equal(t, 1, res.ProtoMajor)
+	assert.Equal(t, 1, res.ProtoMinor)
+
+	assert.Equal(t, http.StatusNotModified, res.StatusCode)
+	assert.Equal(t, []byte{}, body)
+}
+
+func TestETagIfUnmodifiedSince(t *testing.T) {
+	t.Skip("Need to be implemented.")
+}
+
+func TestETagIfNoneMatchAsMatch(t *testing.T) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	assert.Nil(t, err)
+	req.Host = "testing.local"
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Body.Close()
+
+	etag := res.Header.Get("Etag")
+
+	assert.Equal(t, "HTTP/1.1", res.Proto)
+	assert.Equal(t, 1, res.ProtoMajor)
+	assert.Equal(t, 1, res.ProtoMinor)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotNil(t, body)
+
+	// -------------------------------------------------------------------------
+
+	req, err = http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	assert.Nil(t, err)
+	req.Host = "testing.local"
+	req.Header = http.Header{
+		"If-None-Match": []string{etag},
+	}
+	res, err = client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Body.Close()
+
+	assert.Equal(t, "HTTP/1.1", res.Proto)
+	assert.Equal(t, 1, res.ProtoMajor)
+	assert.Equal(t, 1, res.ProtoMinor)
+
+	assert.Equal(t, http.StatusNotModified, res.StatusCode)
+	assert.Equal(t, []byte{}, body)
+}
+
+func TestETagIfNoneMatchAsNotMatch(t *testing.T) {
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	assert.Nil(t, err)
+	req.Host = "testing.local"
+	req.Header = http.Header{
+		"If-None-Match": []string{"12345-qwerty"},
+	}
+	res, err := client.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	res.Body.Close()
+
+	assert.Equal(t, "HTTP/1.1", res.Proto)
+	assert.Equal(t, 1, res.ProtoMajor)
+	assert.Equal(t, 1, res.ProtoMinor)
+
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotNil(t, body)
+}
+
+func TestETagIfMatchAsMatch(t *testing.T) {
+	t.Skip("Need to be implemented.")
+}
+
+func TestETagIfMatchAsNotMatch(t *testing.T) {
+	t.Skip("Need to be implemented.")
 }

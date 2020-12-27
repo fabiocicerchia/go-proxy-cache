@@ -56,12 +56,12 @@ jobs:
       - name: Test
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
-          ./go-proxy-cache -debug -config=examples/config.no-docker.yml &
+          ./go-proxy-cache -debug -config=examples/config.yml &
           make test
         env:
           REDIS_HOST: redis
-          NGINX_HOST_80: nginx:80
-          NGINX_HOST_443: nginx:443
+          NGINX_HOST_80: nginx:40080
+          NGINX_HOST_443: nginx:40443
 
       - name: Coverage
         run: |
@@ -70,8 +70,8 @@ jobs:
           make codecov
         env:
           REDIS_HOST: redis
-          NGINX_HOST_80: nginx:80
-          NGINX_HOST_443: nginx:443
+          NGINX_HOST_80: nginx:40080
+          NGINX_HOST_443: nginx:40443
 
       - name: CodeCov
         run: make codecov
