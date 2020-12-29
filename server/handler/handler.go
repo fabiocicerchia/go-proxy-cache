@@ -35,6 +35,8 @@ type RequestCall struct {
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
+	cleanedHost := strings.Split(rc.Request.Host, ":")[0] // TODO: HACK
+
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
 		Request:  *rc.Request,
@@ -43,7 +45,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 			// TODO: convert to use domainConfigCache
 			AllowedStatuses: config.Config.Cache.AllowedStatuses,
 			AllowedMethods:  config.Config.Cache.AllowedMethods,
-			DomainID:        rc.Request.Host + utils.StringSeparatorOne + rc.GetScheme(),
+			DomainID:        cleanedHost + utils.StringSeparatorOne + rc.GetScheme(),
 		},
 	}
 }

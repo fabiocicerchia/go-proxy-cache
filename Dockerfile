@@ -29,6 +29,6 @@ FROM alpine:3.12.3
 WORKDIR /app
 
 COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/go-proxy-cache /usr/local/bin/
-COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/config.yml /app/
+COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/config.yml.dist /app/config.yml
 
 CMD ["go-proxy-cache"]

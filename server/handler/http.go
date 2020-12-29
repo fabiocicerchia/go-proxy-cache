@@ -82,11 +82,9 @@ func (rc RequestCall) serveCachedContent() bool {
 		return false
 	}
 
-	PushProxiedResources(rc.Response)
-
 	ctx := rc.Request.Context()
-	transport.ServeCachedResponse(ctx, rc.Response, uriobj)
 	rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
+	transport.ServeCachedResponse(ctx, rc.Response, uriobj)
 
 	return true
 }

@@ -89,6 +89,9 @@ func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter
 	}
 
 	announcedTrailers := handleHeaders(lwr, res)
+
+	PushProxiedResources(lwr, &uriobj)
+
 	handleBody(ctx, lwr, uriobj.Content)
 	handleTrailer(announcedTrailers, lwr, res)
 }
@@ -98,6 +101,7 @@ func handleHeaders(lwr *response.LoggedResponseWriter, res http.Response) int {
 	for _, h := range HopHeaders {
 		res.Header.Del(h)
 	}
+	res.Header.Del(response.CacheStatusHeader)
 	lwr.CopyHeaders(res.Header)
 
 	// The "Trailer" header isn't included in the Transport's response,

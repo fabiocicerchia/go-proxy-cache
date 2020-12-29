@@ -64,10 +64,10 @@ spec:
       volumes:
       - name: go-proxy-cache-config-yml
         hostPath:
-          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/config.yml
+          path: /var/opt/go-proxy-cache/test/full-setup/config.yml
       - name: go-proxy-cache-certs
         hostPath:
-          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/certs
+          path: /var/opt/go-proxy-cache/test/full-setup/certs
 status: {}
 ---
 ################################################################################
@@ -137,10 +137,10 @@ spec:
       volumes:
       - name: nginx-default-conf
         hostPath:
-          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/nginx/compose.conf
+          path: /var/opt/go-proxy-cache/test/full-setup/nginx/compose.conf
       - name: nginx-certs
         hostPath:
-          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples/certs
+          path: /var/opt/go-proxy-cache/test/full-setup/certs
 status: {}
 ---
 ################################################################################
@@ -201,7 +201,7 @@ spec:
       volumes:
       - name: node-app
         hostPath:
-          path: /Users/fabio/Documents/Personal/go-proxy-cache/examples
+          path: /var/opt/go-proxy-cache/test/full-setup
 status: {}
 ---
 ################################################################################

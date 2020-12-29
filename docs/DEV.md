@@ -9,10 +9,10 @@
 ## Setup
 
 ```console
-$ docker build -t fabiocicerchia/go-proxy-cache-test:nginx -f examples/Dockerfile.nginx examples
-$ docker build -t fabiocicerchia/go-proxy-cache-test:node -f examples/Dockerfile.node examples
+$ docker build -t fabiocicerchia/go-proxy-cache-test:nginx -f test/full-setup/Dockerfile.nginx test/full-setup
+$ docker build -t fabiocicerchia/go-proxy-cache-test:node -f test/full-setup/Dockerfile.node test/full-setup
 $ echo "127.0.0.1 testing.local www.testing.local" >> /etc/hosts
-$ cd examples
+$ cd test/full-setup
 $ ./gen-selfsigned-cert.sh
 $ docker-compose up
 ```
@@ -24,7 +24,7 @@ $ docker-compose up
 ```console
 $ make test
 [...]
-$ cd examples && node ws_client.js
+$ cd test/full-setup && node ws_client.js
 launched plain
 launched secure
 Sending plain message

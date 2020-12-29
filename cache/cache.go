@@ -35,6 +35,7 @@ type CacheObj struct {
 type URIObj struct {
 	URL             url.URL
 	Host            string
+	Scheme          string
 	Method          string
 	StatusCode      int
 	RequestHeaders  http.Header
@@ -87,6 +88,7 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 	}
 
 	targetURL := c.CurrentObj.URL
+	targetURL.Scheme = c.CurrentObj.Scheme
 	targetURL.Host = c.CurrentObj.Host
 
 	meta, err := c.handleMetadata(c.DomainID, targetURL, expiration)
@@ -173,8 +175,7 @@ func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
 func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Header) string {
 	key := []string{"DATA", method, url.String()}
 
-	vary := meta
-	for _, k := range vary {
+	for _, k := range meta {
 		if val, ok := reqHeaders[k]; ok {
 			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
 		}
@@ -238,18 +239,15 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 
 // GetVary - Returns the content from the Vary HTTP header.
 func GetVary(headers http.Header) ([]string, error) {
-	var varyList []string
 	vary := headers.Get("Vary")
 
 	if vary == "*" {
-		return varyList, errors.New("vary: *")
+		return []string{}, errors.New("vary: *")
 	}
 
-	varyList = strings.Split(vary, ",")
-
+	varyList := strings.Split(vary, ",")
 	for k, v := range varyList {
-		v = strings.Trim(v, " ")
-		varyList[k] = v
+		varyList[k] = strings.Trim(v, " ")
 	}
 
 	return varyList, nil

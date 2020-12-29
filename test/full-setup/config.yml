@@ -52,6 +52,15 @@ domains:
         endpoints:
         - nginx:40080
 
+  testing_local_https:
+    server:
+      upstream:
+        host: testing.local
+        scheme: https
+        insecure_bridge: true
+        endpoints:
+        - nginx:40443
+
   testing_local_ws:
     server:
       upstream:

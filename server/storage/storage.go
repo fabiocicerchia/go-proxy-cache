@@ -11,6 +11,7 @@ package storage
 
 import (
 	"net/http"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -35,7 +36,8 @@ func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
 	reqHeaders := rc.Request.Header
 
 	url := *rc.Request.URL
-	url.Host = rc.Request.Host
+	url.Scheme = rc.Scheme
+	url.Host = strings.Split(rc.Request.Host, ":")[0] // TODO: HACK
 
 	err := rc.CacheObj.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
@@ -57,6 +59,7 @@ func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool
 	rc.CacheObj.CurrentObj = cache.URIObj{
 		URL:             *rc.Request.URL,
 		Host:            rc.Request.Host,
+		Scheme:          rc.Scheme,
 		Method:          rc.Request.Method,
 		StatusCode:      rc.Response.StatusCode,
 		RequestHeaders:  rc.Request.Header,

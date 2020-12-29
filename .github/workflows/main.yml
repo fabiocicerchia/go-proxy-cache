@@ -58,7 +58,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apk update
-          apk add make gcc libc-dev redis curl bash nodejs npm
+          apk add bash curl gcc libc-dev make nghttp2 nodejs npm redis
 
       - name: Build
         run: make build-race
@@ -66,10 +66,9 @@ jobs:
       - name: Test
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
-          ./go-proxy-cache -debug -config=examples/config.yml &
+          ./go-proxy-cache -debug -config=test/full-setup/config.yml &
+          npm install test/full-setup
           make test
-          npm install examples
-          node examples/ws_client.js
         env:
           REDIS_HOST: redis
           NGINX_HOST_80: nginx:40080

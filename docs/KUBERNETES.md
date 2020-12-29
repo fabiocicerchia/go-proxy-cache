@@ -1,7 +1,7 @@
 # Kubernets
 
 ```console
-$ kubectl apply -f examples/k8s.yml
+$ kubectl apply -f test/full-setup/k8s.yml
 service/go-proxy-cache created
 deployment.apps/go-proxy-cache created
 service/nginx created

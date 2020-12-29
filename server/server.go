@@ -41,6 +41,8 @@ type Servers struct {
 
 // Run - Starts the GoProxyCache servers' listeners.
 func Run(configFile string) {
+	log.Infof("Starting...\n")
+
 	// Init configs
 	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
@@ -55,6 +57,8 @@ func Run(configFile string) {
 
 	// start server http & https
 	servers.startListeners()
+
+	log.Infof("Waiting for incoming connections...\n")
 
 	// Wait for an interrupt
 	c := make(chan os.Signal, 1)
@@ -73,8 +77,8 @@ func Run(configFile string) {
 
 func ConditionalETag(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		// ETag wrapper doesn't work well with WebSocket.
-		if !wsutil.IsWebSocketRequest(req) {
+		// ETag wrapper doesn't work well with WebSocket and HTTP/2.
+		if !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2 {
 			etagHandler := etag.Handler(h, false)
 			etagHandler.ServeHTTP(res, req)
 		} else {

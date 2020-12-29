@@ -2,7 +2,7 @@
 
 <center>
 
-![Logo](https://github.com/fabiocicerchia/go-proxy-cache/raw/main/logo_small.png)
+![Logo](https://github.com/fabiocicerchia/go-proxy-cache/raw/main/docs/assets/logo_small.png)
 
 Simple Reverse Proxy with Caching, written in Go, using Redis.  
     >>> **(semi) production-ready** <<<
@@ -82,7 +82,8 @@ you --->|---->----|--->---|---'     |       |     |   |
 - **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI.
 - **Support Chunking**, by replicating exactly the same original amount.
 - **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
-- **ETag Support**, generating non-weak tags, handling `304 Not Modified`, managing HTTP headers `If-Modified-Since`, `If-Unmodified-Since`, `If-None-Match`, `If-Match`.
+- **ETag Support**, generating non-weak tags, handling `304 Not Modified`, managing HTTP headers `If-Modified-Since`, `If-Unmodified-Since`, `If-None-Match`, `If-Match`.  
+  ETag wrapper doesn't work well with WebSocket and HTTP/2.
 
 ### Load Balancing
 
@@ -98,7 +99,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 ### Reliability
 
 - **Healthcheck Endpoint**, exposes the route `/healthcheck` (optional).
-- **Respecting HTTP Cache Headers**, `Vary`, `Cache-Control` and `Expires`.
+- **Respecting HTTP Cache Headers**, `Vary`, `ETag`, `Cache-Control` and `Expires`.
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
 - **Cache Circuit Breaker**, bypassing Redis when not available.
 
@@ -211,6 +212,9 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [A step by step guide to mTLS in Go](https://venilnoronha.io/a-step-by-step-guide-to-mtls-in-go)
 - [Learning HTTP caching in Go](https://www.sanarias.com/blog/115LearningHTTPcachinginGo)
 - [Nginx HTTP2 Server Push](https://ops.tips/blog/nginx-http2-server-push/)
+- [Introducing HTTP/2 Server Push with NGINX 1.13.9](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push)
+- [Preload - W3C Editor's Draft 20 August 2020](https://w3c.github.io/preload/#server-push)
+- [Web Linking](https://tools.ietf.org/html/rfc5988)
 
 ## License
 

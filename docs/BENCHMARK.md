@@ -2,7 +2,7 @@
 
 ## Configuration
 
-Check config files `docker-compose.yml` and `config.benchmark.yml` in [`benchmark`](benchmark) folder.
+Check config files `docker-compose.yml` and `config.benchmark.yml` in [`benchmark`](test/benchmark) folder.
 
 ## Proxied vs Direct
 

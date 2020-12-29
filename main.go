@@ -106,5 +106,19 @@ func main() {
 	initFlags()
 	initLogs()
 
+	log.Debugf("                                                                        __")
+	log.Debugf(".-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.")
+	log.Debugf("|  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|")
+	log.Debugf("|___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|")
+	log.Debugf("|_____|            |__|                   |_____|\n\n")
+	log.Debugf("Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License")
+	log.Debugf("Repo: https://github.com/fabiocicerchia/go-proxy-cache\n\n")
+
+	log.Debugf("Version: %s\n", AppVersion)
+	log.Debugf("Go: %s\n", runtime.Version())
+	log.Debugf("Threads: %d\n", runtime.NumCPU())
+	log.Debugf("OS: %s\n", runtime.GOOS)
+	log.Debugf("Arch: %s\n\n", runtime.GOARCH)
+
 	server.Run(configFile)
 }

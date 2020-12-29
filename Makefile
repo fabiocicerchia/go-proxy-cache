@@ -82,7 +82,7 @@ tlsfuzzer: ## tlsfuzzer
 ##@ TEST
 ################################################################################
 
-test: test-unit test-functional test-endtoend ## test
+test: test-unit test-functional test-endtoend test-ws test-http2 ## test
 
 test-unit: ## test unit
 	go test -race -count=1 --tags=unit ./...
@@ -92,6 +92,16 @@ test-functional: ## test functional
 
 test-endtoend: ## test endtoend
 	go test -race -count=1 --tags=endtoend ./...
+
+test-ws: ## test websocket
+	node test/full-setup/ws_client.js
+
+test-http2: ## test HTTP2
+	MATCHING=$(shell nghttp -ans https://testing.local:50443/push | grep 200 | wc -l | xargs); \
+	if [ "$$MATCHING" != "2" ]; then \
+		nghttp -ans https://testing.local:50443/push \
+		exit 1; \
+	fi
 
 cover:  ## coverage
 	go test -race -count=1 --tags=unit,functional -coverprofile coverage.txt ./...

@@ -389,8 +389,6 @@ func GetDomains() []DomainSet {
 
 // DomainConf - Returns the configuration for the requested domain.
 func DomainConf(domain string, scheme string) *Configuration {
-	cleanedDomain := utils.StripPort(domain)
-
 	// Memoization
 	if domainsCache == nil {
 		domainsCache = make(map[string]*Configuration)
@@ -401,10 +399,16 @@ func DomainConf(domain string, scheme string) *Configuration {
 		return val
 	}
 
+	domainsCache[keyCache] = domainConfLookup(domain, scheme)
+	return domainsCache[keyCache]
+}
+
+func domainConfLookup(domain string, scheme string) *Configuration {
+	cleanedDomain := utils.StripPort(domain)
+
 	// First round: host & scheme
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain && v.Server.Upstream.Scheme == scheme {
-			domainsCache[keyCache] = &v
 			return &v
 		}
 	}
@@ -412,14 +416,12 @@ func DomainConf(domain string, scheme string) *Configuration {
 	// Second round: host
 	for _, v := range Config.Domains {
 		if v.Server.Upstream.Host == cleanedDomain {
-			domainsCache[keyCache] = &v
 			return &v
 		}
 	}
 
 	// Third round: global
 	if Config.Server.Upstream.Host == cleanedDomain {
-		domainsCache[keyCache] = &Config
 		return &Config
 	}
 

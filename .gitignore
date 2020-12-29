@@ -46,5 +46,7 @@
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,go,dotenv
-
-examples/node_modules
+__debug_bin
+coverage.txt
+dump.rdb
+test/full-setup/node_modules

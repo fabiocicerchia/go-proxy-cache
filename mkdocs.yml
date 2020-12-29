@@ -5,3 +5,19 @@ copyright: Copyright (c) 2020 Fabio Cicerchia info@fabiocicerchia.it
 theme:
   name: readthedocs
   highlightjs: true
+nav:
+  - Home: README.md
+  - CONFIGURATION.md
+  - TLS.md
+  - DEV.md
+  - BENCHMARK.md
+  - Examples:
+    - 'Docker': 'DOCKER.md'
+    - 'Misc': 'EXAMPLES.md'
+    - 'HTTP/2': 'HTTP2.md'
+    - 'Kubernetes': 'KUBERNETES.md'
+    - 'Real Use Case': 'REAL-CASE.md'
+  - About:
+    - LICENSE.md
+    - CONTRIBUTING.md
+    - CODE_OF_CONDUCT.md
