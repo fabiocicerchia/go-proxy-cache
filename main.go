@@ -31,7 +31,7 @@ var verboseFlag bool
 var testFlag bool
 
 // AppVersion - The go-proxy-cache's version
-const AppVersion = "0.1.0"
+const AppVersion = "0.3.0"
 
 func initFlags() {
 	var debug, version bool

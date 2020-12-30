@@ -121,6 +121,19 @@ codecov: ## codecov
 ##@ UTILITY
 ################################################################################
 
-changelog: ## generate a changelog
+.install-changelog:
+	pip3 install gitchangelog pystache
+
+changelog: .install-changelog ## generate a changelog
 	which gitchangelog || curl -sSL https://raw.githubusercontent.com/vaab/gitchangelog/master/src/gitchangelog/gitchangelog.py > /usr/local/bin/gitchangelog && chmod +x /usr/local/bin/gitchangelog
 	gitchangelog > CHANGELOG.md
+	cat CHANGELOG.md | awk 'BEGIN {RS=""}{gsub(/^\*/,"-")}1' | tee CHANGELOG.md
+	markdownlint --fix CHANGELOG.md || true
+
+release: ## release
+	cat main.go | sed "s/const AppVersion = .*/const AppVersion = \"$$VER\"/" | tee main.go
+	git tag -a v$$VER -m "Release v$$VER"
+	make changelog
+	git add CHANGELOG.md
+	git commit -m "updated changelog for v$$VER"
+	git tag -af v$$VER -m "Release v$$VER"
