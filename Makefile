@@ -97,7 +97,7 @@ test-ws: ## test websocket
 	node test/full-setup/ws_client.js
 
 test-http2: ## test HTTP2
-	MATCHING=$(shell nghttp -ans https://testing.local:50443/push | grep 200 | wc -l | xargs); \
+	MATCHING=$(shell nghttp -ans https://testing.local:50443/push 2> /dev/null | grep 200 | wc -l | xargs); \
 	if [ "$$MATCHING" != "2" ]; then \
 		nghttp -ans https://testing.local:50443/push \
 		exit 1; \

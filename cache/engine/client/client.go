@@ -11,32 +11,45 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"time"
+
+	goredislib "github.com/go-redis/redis/v8"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
-	"github.com/go-redis/redis/v8"
 )
 
 var ctx = context.Background()
 
 // RedisClient - Redis Client structure
 type RedisClient struct {
-	*redis.Client
-	Name string
+	*goredislib.Client
+	*redsync.Redsync
+	Name  string
+	Mutex map[string]*redsync.Mutex
 }
 
 // Connect - Connects to DB.
 func Connect(connName string, config config.Cache) *RedisClient {
+	client := goredislib.NewClient(&goredislib.Options{
+		Addr:     config.Host + ":" + config.Port,
+		Password: config.Password,
+		DB:       config.DB,
+	})
+	pool := goredis.NewPool(client)
+	rs := redsync.New(pool)
+
 	rdb := &RedisClient{
-		Name: connName,
-		Client: redis.NewClient(&redis.Options{
-			Addr:     config.Host + ":" + config.Port,
-			Password: config.Password,
-			DB:       config.DB,
-		}),
+		Name:    connName,
+		Client:  client,
+		Redsync: rs,
+		Mutex:   make(map[string]*redsync.Mutex),
 	}
 
 	return rdb
@@ -70,7 +83,23 @@ func (rdb *RedisClient) Ping() bool {
 // Set - Sets a key, with certain value, with TTL for expiring.
 func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) (bool, error) {
 	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+		mutexname := fmt.Sprintf("mutex-%s", key)
+		if _, ok := rdb.Mutex[mutexname]; !ok {
+			rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
+		}
+
+		if err := rdb.Mutex[mutexname].Lock(); err != nil {
+			log.Errorf("Lock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		err := rdb.Client.Set(ctx, key, value, expiration).Err()
+
+		if ok, err := rdb.Mutex[mutexname].Unlock(); !ok || err != nil {
+			log.Errorf("Unlock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		return nil, err
 	})
 
@@ -98,7 +127,23 @@ func (rdb *RedisClient) Get(key string) (string, error) {
 // Del - Removes a key.
 func (rdb *RedisClient) Del(key string) error {
 	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+		mutexname := fmt.Sprintf("mutex-%s", key)
+		if _, ok := rdb.Mutex[mutexname]; !ok {
+			rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
+		}
+
+		if err := rdb.Mutex[mutexname].Lock(); err != nil {
+			log.Errorf("Lock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		err := rdb.Client.Del(ctx, key).Err()
+
+		if ok, err := rdb.Mutex[mutexname].Unlock(); !ok || err != nil {
+			log.Errorf("Unlock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		return nil, err
 	})
 
@@ -120,7 +165,23 @@ func (rdb *RedisClient) DelWildcard(key string) (int, error) {
 	}
 
 	_, errDel := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+		mutexname := fmt.Sprintf("mutex-%s", key)
+		if _, ok := rdb.Mutex[mutexname]; !ok {
+			rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
+		}
+
+		if err := rdb.Mutex[mutexname].Lock(); err != nil {
+			log.Errorf("Lock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		err := rdb.Client.Del(ctx, keys...).Err()
+
+		if ok, err := rdb.Mutex[mutexname].Unlock(); !ok || err != nil {
+			log.Errorf("Unlock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		return nil, err
 	})
 
@@ -144,7 +205,23 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 // Push - Append values to a list.
 func (rdb *RedisClient) Push(key string, values []string) error {
 	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+		mutexname := fmt.Sprintf("mutex-%s", key)
+		if _, ok := rdb.Mutex[mutexname]; !ok {
+			rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
+		}
+
+		if err := rdb.Mutex[mutexname].Lock(); err != nil {
+			log.Errorf("Lock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		err := rdb.Client.RPush(ctx, key, values).Err()
+
+		if ok, err := rdb.Mutex[mutexname].Unlock(); !ok || err != nil {
+			log.Errorf("Unlock Error on %s: %s", mutexname, err)
+			return nil, err
+		}
+
 		return nil, err
 	})
 
