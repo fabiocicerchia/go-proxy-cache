@@ -9,6 +9,7 @@ require (
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a // indirect
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/go-redsync/redsync/v4 v4.0.4
+	github.com/gorilla/websocket v1.4.2
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/sirupsen/logrus v1.3.0
 	github.com/sony/gobreaker v0.4.1

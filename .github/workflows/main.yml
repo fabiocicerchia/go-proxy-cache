@@ -73,6 +73,8 @@ jobs:
           REDIS_HOST: redis
           NGINX_HOST_80: nginx:40080
           NGINX_HOST_443: nginx:40443
+          NGINX_HOST_WS: nginx:40081
+          NGINX_HOST_WSS: nginx:40082
 
       - name: Coverage
         run: |
@@ -83,6 +85,8 @@ jobs:
           REDIS_HOST: redis
           NGINX_HOST_80: nginx:40080
           NGINX_HOST_443: nginx:40443
+          NGINX_HOST_WS: nginx:40081
+          NGINX_HOST_WSS: nginx:40082
 
       - name: CodeCov
         run: make codecov

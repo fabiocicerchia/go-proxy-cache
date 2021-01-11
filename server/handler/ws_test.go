@@ -27,70 +27,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEndToEndCallPurgeDoNothing(t *testing.T) {
+func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
-			},
-		},
-		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
-			DB:              0,
-			AllowedStatuses: []int{200, 301, 302},
-			AllowedMethods:  []string{"HEAD", "GET"},
-		},
-		CircuitBreaker: circuit_breaker.CircuitBreaker{
-			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
-			FailureRate: 0.5,              // 1 out of 2 fails, or more
-			Interval:    time.Duration(1), // clears counts immediately
-			Timeout:     time.Duration(1), // clears state immediately
-		},
-	}
-
-	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
-
-	// --- PURGE
-
-	req, err := http.NewRequest("PURGE", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	assert.Nil(t, err)
-
-	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest)
-
-	_, err = engine.GetConn(domainID).PurgeAll()
-	assert.Nil(t, err)
-
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusNotFound, rr.Code)
-
-	body := rr.Body.String()
-
-	assert.Equal(t, body, "KO")
-
-	time.Sleep(1 * time.Second)
-}
-
-func TestEndToEndCallPurge(t *testing.T) {
-	initLogs()
-
-	config.Config = config.Configuration{
-		Server: config.Server{
-			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
+				Host:      "testing.local",
+				Scheme:    "ws",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_WS", "localhost:40081")},
 			},
 		},
 		Cache: config.Cache{
@@ -113,13 +58,16 @@ func TestEndToEndCallPurge(t *testing.T) {
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache)
 
-	// --- MISS
+	// --- WEBSOCKET
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
-	req.TLS = &tls.ConnectionState{} // mock a fake https
+	req.Header = http.Header{
+		"Connection": []string{"upgrade"},
+		"Upgrade":    []string{"websocket"},
+	}
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -134,74 +82,64 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+	assert.Equal(t, "", body)
+}
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
+	initLogs()
 
-	// --- HIT
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "testing.local",
+				Scheme:    "ws",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_WSS", "localhost:40082")},
+			},
+		},
+		Cache: config.Cache{
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
+			Port:            "6379",
+			DB:              0,
+			AllowedStatuses: []int{200, 301, 302},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5,              // 1 out of 2 fails, or more
+			Interval:    time.Duration(1), // clears counts immediately
+			Timeout:     time.Duration(1), // clears state immediately
+		},
+	}
 
-	req, err = http.NewRequest("GET", "/", nil)
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
+
+	// --- WEBSOCKET
+
+	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
 	req.TLS = &tls.ConnectionState{} // mock a fake https
+	req.Header = http.Header{
+		"Connection": []string{"upgrade"},
+		"Upgrade":    []string{"websocket"},
+	}
 	assert.Nil(t, err)
 
-	rr = httptest.NewRecorder()
-	h = http.HandlerFunc(handler.HandleRequest)
+	rr := httptest.NewRecorder()
+	h := http.HandlerFunc(handler.HandleRequest)
+
+	_, err = engine.GetConn(domainID).PurgeAll()
+	assert.Nil(t, err)
+
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	assert.Equal(t, "HIT", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+	body := rr.Body.String()
 
-	body = rr.Body.String()
-
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
-
-	// --- PURGE
-
-	req, err = http.NewRequest("PURGE", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	req.TLS = &tls.ConnectionState{} // mock a fake https
-	assert.Nil(t, err)
-
-	rr = httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	body = rr.Body.String()
-
-	assert.Equal(t, "OK", body)
-
-	time.Sleep(1 * time.Second)
-
-	// --- MISS
-
-	req, err = http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	req.TLS = &tls.ConnectionState{} // mock a fake https
-	assert.Nil(t, err)
-
-	rr = httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
-
-	body = rr.Body.String()
-
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Equal(t, "", body)
 }

@@ -249,7 +249,7 @@ func getYamlConfig(file string) (Configuration, error) {
 // InitConfigFromFileOrEnv - Init the configuration in sequence: from a YAML file, from environment variables,
 // then defaults.
 func InitConfigFromFileOrEnv(file string) {
-	Config = CopyOverWith(Config, getEnvConfig(), nil)
+	Config.CopyOverWith(getEnvConfig(), nil)
 
 	var YamlConfig Configuration
 	_, err := os.Stat(file)
@@ -258,7 +258,7 @@ func InitConfigFromFileOrEnv(file string) {
 		if err != nil {
 			log.Fatalf("Cannot unmarshal YAML: %s\n", err)
 		}
-		Config = CopyOverWith(Config, YamlConfig, &file)
+		Config.CopyOverWith(YamlConfig, &file)
 	}
 
 	// allow only the config file to specify overrides per domain
@@ -268,8 +268,8 @@ func InitConfigFromFileOrEnv(file string) {
 	if Config.Domains != nil {
 		domains := Config.Domains
 		for k, v := range domains {
-			baseConf := Config
-			domain := CopyOverWith(baseConf, v, &file)
+			domain := Config
+			domain.CopyOverWith(v, &file)
 			domain.Domains = Domains{}
 			domains[k] = domain
 		}
@@ -301,53 +301,65 @@ func patchAbsFilePath(filePath string, relativeTo *string) string {
 }
 
 // CopyOverWith - Copies the Configuration over another (preserving not defined settings).
-func CopyOverWith(base Configuration, overrides Configuration, file *string) Configuration {
-	newConf := base
+func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
+	c.copyOverWithServer(overrides, file)
+	c.copyOverWithTLS(overrides, file)
+	c.copyOverWithTimeout(overrides, file)
+	c.copyOverWithUpstream(overrides, file)
+	c.copyOverWithCache(overrides, file)
+}
 
-	// --- SERVER
-	newConf.Server.Port.HTTP = utils.Coalesce(overrides.Server.Port.HTTP, newConf.Server.Port.HTTP, overrides.Server.Port.HTTP == "").(string)
-	newConf.Server.Port.HTTPS = utils.Coalesce(overrides.Server.Port.HTTPS, newConf.Server.Port.HTTPS, overrides.Server.Port.HTTPS == "").(string)
-	newConf.Server.GZip = utils.Coalesce(overrides.Server.GZip, newConf.Server.GZip, !overrides.Server.GZip).(bool)
+// --- SERVER
+func (c *Configuration) copyOverWithServer(overrides Configuration, file *string) {
+	c.Server.Port.HTTP = utils.Coalesce(overrides.Server.Port.HTTP, c.Server.Port.HTTP, overrides.Server.Port.HTTP == "").(string)
+	c.Server.Port.HTTPS = utils.Coalesce(overrides.Server.Port.HTTPS, c.Server.Port.HTTPS, overrides.Server.Port.HTTPS == "").(string)
+	c.Server.GZip = utils.Coalesce(overrides.Server.GZip, c.Server.GZip, !overrides.Server.GZip).(bool)
+}
 
-	// --- TLS
-	newConf.Server.TLS.Auto = utils.Coalesce(overrides.Server.TLS.Auto, newConf.Server.TLS.Auto, !overrides.Server.TLS.Auto).(bool)
-	newConf.Server.TLS.Email = utils.Coalesce(overrides.Server.TLS.Email, newConf.Server.TLS.Email, overrides.Server.TLS.Email == "").(string)
-	newConf.Server.TLS.CertFile = utils.Coalesce(overrides.Server.TLS.CertFile, newConf.Server.TLS.CertFile, overrides.Server.TLS.CertFile == "").(string)
-	newConf.Server.TLS.KeyFile = utils.Coalesce(overrides.Server.TLS.KeyFile, newConf.Server.TLS.KeyFile, overrides.Server.TLS.KeyFile == "").(string)
-	newConf.Server.TLS.Override = utils.Coalesce(overrides.Server.TLS.Override, newConf.Server.TLS.Override, overrides.Server.TLS.Override == nil).(*tls.Config)
+// --- TLS
+func (c *Configuration) copyOverWithTLS(overrides Configuration, file *string) {
+	c.Server.TLS.Auto = utils.Coalesce(overrides.Server.TLS.Auto, c.Server.TLS.Auto, !overrides.Server.TLS.Auto).(bool)
+	c.Server.TLS.Email = utils.Coalesce(overrides.Server.TLS.Email, c.Server.TLS.Email, overrides.Server.TLS.Email == "").(string)
+	c.Server.TLS.CertFile = utils.Coalesce(overrides.Server.TLS.CertFile, c.Server.TLS.CertFile, overrides.Server.TLS.CertFile == "").(string)
+	c.Server.TLS.KeyFile = utils.Coalesce(overrides.Server.TLS.KeyFile, c.Server.TLS.KeyFile, overrides.Server.TLS.KeyFile == "").(string)
+	c.Server.TLS.Override = utils.Coalesce(overrides.Server.TLS.Override, c.Server.TLS.Override, overrides.Server.TLS.Override == nil).(*tls.Config)
 
-	newConf.Server.TLS.CertFile = patchAbsFilePath(newConf.Server.TLS.CertFile, file)
-	newConf.Server.TLS.KeyFile = patchAbsFilePath(newConf.Server.TLS.KeyFile, file)
+	c.Server.TLS.CertFile = patchAbsFilePath(c.Server.TLS.CertFile, file)
+	c.Server.TLS.KeyFile = patchAbsFilePath(c.Server.TLS.KeyFile, file)
+}
 
-	// --- Timeout
-	newConf.Server.Timeout.Read = utils.Coalesce(overrides.Server.Timeout.Read, newConf.Server.Timeout.Read, overrides.Server.Timeout.Read == 0).(time.Duration)
-	newConf.Server.Timeout.ReadHeader = utils.Coalesce(overrides.Server.Timeout.ReadHeader, newConf.Server.Timeout.ReadHeader, overrides.Server.Timeout.ReadHeader == 0).(time.Duration)
-	newConf.Server.Timeout.Write = utils.Coalesce(overrides.Server.Timeout.Write, newConf.Server.Timeout.Write, overrides.Server.Timeout.Write == 0).(time.Duration)
-	newConf.Server.Timeout.Idle = utils.Coalesce(overrides.Server.Timeout.Idle, newConf.Server.Timeout.Idle, overrides.Server.Timeout.Idle == 0).(time.Duration)
-	newConf.Server.Timeout.Handler = utils.Coalesce(overrides.Server.Timeout.Handler, newConf.Server.Timeout.Handler, overrides.Server.Timeout.Handler == 0).(time.Duration)
+// --- TIMEOUT
+func (c *Configuration) copyOverWithTimeout(overrides Configuration, file *string) {
+	c.Server.Timeout.Read = utils.Coalesce(overrides.Server.Timeout.Read, c.Server.Timeout.Read, overrides.Server.Timeout.Read == 0).(time.Duration)
+	c.Server.Timeout.ReadHeader = utils.Coalesce(overrides.Server.Timeout.ReadHeader, c.Server.Timeout.ReadHeader, overrides.Server.Timeout.ReadHeader == 0).(time.Duration)
+	c.Server.Timeout.Write = utils.Coalesce(overrides.Server.Timeout.Write, c.Server.Timeout.Write, overrides.Server.Timeout.Write == 0).(time.Duration)
+	c.Server.Timeout.Idle = utils.Coalesce(overrides.Server.Timeout.Idle, c.Server.Timeout.Idle, overrides.Server.Timeout.Idle == 0).(time.Duration)
+	c.Server.Timeout.Handler = utils.Coalesce(overrides.Server.Timeout.Handler, c.Server.Timeout.Handler, overrides.Server.Timeout.Handler == 0).(time.Duration)
+}
 
-	// --- Upstream
-	newConf.Server.Upstream.Host = utils.Coalesce(overrides.Server.Upstream.Host, newConf.Server.Upstream.Host, overrides.Server.Upstream.Host == "").(string)
-	newConf.Server.Upstream.Port = utils.Coalesce(overrides.Server.Upstream.Port, newConf.Server.Upstream.Port, overrides.Server.Upstream.Port == "").(string)
-	newConf.Server.Upstream.Scheme = utils.Coalesce(overrides.Server.Upstream.Scheme, newConf.Server.Upstream.Scheme, overrides.Server.Upstream.Scheme == "").(string)
-	newConf.Server.Upstream.Endpoints = utils.Coalesce(overrides.Server.Upstream.Endpoints, newConf.Server.Upstream.Endpoints, len(overrides.Server.Upstream.Endpoints) == 0).([]string)
-	newConf.Server.Upstream.HTTP2HTTPS = utils.Coalesce(overrides.Server.Upstream.HTTP2HTTPS, newConf.Server.Upstream.HTTP2HTTPS, !overrides.Server.Upstream.HTTP2HTTPS).(bool)
-	newConf.Server.Upstream.InsecureBridge = utils.Coalesce(overrides.Server.Upstream.InsecureBridge, newConf.Server.Upstream.InsecureBridge, !overrides.Server.Upstream.InsecureBridge).(bool)
-	newConf.Server.Upstream.RedirectStatusCode = utils.Coalesce(overrides.Server.Upstream.RedirectStatusCode, newConf.Server.Upstream.RedirectStatusCode, overrides.Server.Upstream.RedirectStatusCode == 0).(int)
+// --- UPSTREAM
+func (c *Configuration) copyOverWithUpstream(overrides Configuration, file *string) {
+	c.Server.Upstream.Host = utils.Coalesce(overrides.Server.Upstream.Host, c.Server.Upstream.Host, overrides.Server.Upstream.Host == "").(string)
+	c.Server.Upstream.Port = utils.Coalesce(overrides.Server.Upstream.Port, c.Server.Upstream.Port, overrides.Server.Upstream.Port == "").(string)
+	c.Server.Upstream.Scheme = utils.Coalesce(overrides.Server.Upstream.Scheme, c.Server.Upstream.Scheme, overrides.Server.Upstream.Scheme == "").(string)
+	c.Server.Upstream.Endpoints = utils.Coalesce(overrides.Server.Upstream.Endpoints, c.Server.Upstream.Endpoints, len(overrides.Server.Upstream.Endpoints) == 0).([]string)
+	c.Server.Upstream.HTTP2HTTPS = utils.Coalesce(overrides.Server.Upstream.HTTP2HTTPS, c.Server.Upstream.HTTP2HTTPS, !overrides.Server.Upstream.HTTP2HTTPS).(bool)
+	c.Server.Upstream.InsecureBridge = utils.Coalesce(overrides.Server.Upstream.InsecureBridge, c.Server.Upstream.InsecureBridge, !overrides.Server.Upstream.InsecureBridge).(bool)
+	c.Server.Upstream.RedirectStatusCode = utils.Coalesce(overrides.Server.Upstream.RedirectStatusCode, c.Server.Upstream.RedirectStatusCode, overrides.Server.Upstream.RedirectStatusCode == 0).(int)
+}
 
-	// --- Cache
-	newConf.Cache.Host = utils.Coalesce(overrides.Cache.Host, newConf.Cache.Host, overrides.Cache.Host == "").(string)
-	newConf.Cache.Port = utils.Coalesce(overrides.Cache.Port, newConf.Cache.Port, overrides.Cache.Port == "").(string)
-	newConf.Cache.Password = utils.Coalesce(overrides.Cache.Password, newConf.Cache.Password, overrides.Cache.Password == "").(string)
-	newConf.Cache.DB = utils.Coalesce(overrides.Cache.DB, newConf.Cache.DB, overrides.Cache.DB == 0).(int)
-	newConf.Cache.TTL = utils.Coalesce(overrides.Cache.TTL, newConf.Cache.TTL, overrides.Cache.TTL == 0).(int)
-	newConf.Cache.AllowedStatuses = utils.Coalesce(overrides.Cache.AllowedStatuses, newConf.Cache.AllowedStatuses, len(overrides.Cache.AllowedStatuses) == 0 || overrides.Cache.AllowedStatuses[0] == 0).([]int)
-	newConf.Cache.AllowedMethods = utils.Coalesce(overrides.Cache.AllowedMethods, newConf.Cache.AllowedMethods, len(overrides.Cache.AllowedMethods) == 0 || overrides.Cache.AllowedMethods[0] == "").([]string)
+// --- CACHE
+func (c *Configuration) copyOverWithCache(overrides Configuration, file *string) {
+	c.Cache.Host = utils.Coalesce(overrides.Cache.Host, c.Cache.Host, overrides.Cache.Host == "").(string)
+	c.Cache.Port = utils.Coalesce(overrides.Cache.Port, c.Cache.Port, overrides.Cache.Port == "").(string)
+	c.Cache.Password = utils.Coalesce(overrides.Cache.Password, c.Cache.Password, overrides.Cache.Password == "").(string)
+	c.Cache.DB = utils.Coalesce(overrides.Cache.DB, c.Cache.DB, overrides.Cache.DB == 0).(int)
+	c.Cache.TTL = utils.Coalesce(overrides.Cache.TTL, c.Cache.TTL, overrides.Cache.TTL == 0).(int)
+	c.Cache.AllowedStatuses = utils.Coalesce(overrides.Cache.AllowedStatuses, c.Cache.AllowedStatuses, len(overrides.Cache.AllowedStatuses) == 0 || overrides.Cache.AllowedStatuses[0] == 0).([]int)
+	c.Cache.AllowedMethods = utils.Coalesce(overrides.Cache.AllowedMethods, c.Cache.AllowedMethods, len(overrides.Cache.AllowedMethods) == 0 || overrides.Cache.AllowedMethods[0] == "").([]string)
 
-	newConf.Cache.AllowedMethods = append(newConf.Cache.AllowedMethods, "HEAD", "GET")
-	newConf.Cache.AllowedMethods = slice.Unique(newConf.Cache.AllowedMethods)
-
-	return newConf
+	c.Cache.AllowedMethods = append(c.Cache.AllowedMethods, "HEAD", "GET")
+	c.Cache.AllowedMethods = slice.Unique(c.Cache.AllowedMethods)
 }
 
 // Print - Shows the current configuration.

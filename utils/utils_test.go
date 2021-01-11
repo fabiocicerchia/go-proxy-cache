@@ -88,6 +88,32 @@ func TestCoalesceFalse(t *testing.T) {
 	tearDown()
 }
 
+// --- StripPort
+
+func TestStripPortEmpty(t *testing.T) {
+	value := utils.StripPort("")
+
+	assert.Equal(t, "", value)
+
+	tearDown()
+}
+
+func TestStripPortHostnameOnly(t *testing.T) {
+	value := utils.StripPort("hostname.local")
+
+	assert.Equal(t, "hostname.local", value)
+
+	tearDown()
+}
+
+func TestStripPortHostnameAndPort(t *testing.T) {
+	value := utils.StripPort("hostname.local:1234")
+
+	assert.Equal(t, "hostname.local", value)
+
+	tearDown()
+}
+
 func tearDown() {
 	config.Config = config.Configuration{}
 	os.Unsetenv("testing")

@@ -63,6 +63,33 @@ func getListeningPort(ctx context.Context) string {
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
+	rc, domainConfig := initRequestParams(res, req)
+	if domainConfig == nil {
+		return
+	}
+
+	if rc.GetScheme() == "http" && domainConfig.Server.Upstream.HTTP2HTTPS {
+		rc.RedirectToHTTPS(domainConfig.Server.Upstream.RedirectStatusCode)
+		return
+	}
+
+	if rc.Request.Method == "PURGE" {
+		rc.HandlePurge(domainConfig)
+		return
+	}
+
+	if rc.Request.Method == http.MethodConnect {
+		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
+	} else {
+		if rc.IsWebSocket() {
+			rc.HandleWSRequestAndProxy(domainConfig)
+		} else {
+			rc.HandleHTTPRequestAndProxy(domainConfig)
+		}
+	}
+}
+
+func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, *config.Configuration) {
 	rc := RequestCall{
 		Response: response.NewLoggedResponseWriter(res),
 		Request:  req,
@@ -78,28 +105,10 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		rc.Response.WriteHeader(http.StatusNotImplemented)
 		logger.LogRequest(*rc.Request, *rc.Response, false)
 		log.Errorf("Missing configuration in HandleRequest for %s (listening on :%s).", rc.Request.Host, listeningPort)
-		return
+		return rc, nil
 	}
 
-	if rc.GetScheme() == "http" && domainConfig.Server.Upstream.HTTP2HTTPS {
-		rc.RedirectToHTTPS(domainConfig.Server.Upstream.RedirectStatusCode)
-		return
-	}
-
-	if rc.Request.Method == "PURGE" {
-		rc.HandlePurge(domainConfig)
-		return
-	}
-
-	if req.Method == http.MethodConnect {
-		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
-	} else {
-		if rc.IsWebSocket() {
-			rc.HandleWSRequestAndProxy(domainConfig)
-		} else {
-			rc.HandleHTTPRequestAndProxy(domainConfig)
-		}
-	}
+	return rc, domainConfig
 }
 
 // GetScheme - Returns current request scheme.

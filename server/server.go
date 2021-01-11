@@ -102,24 +102,19 @@ func InitServer(domain string) *http.Server {
 	mux.HandleFunc("/", handler.HandleRequest)
 
 	// basic
-	var muxWithMiddlewares http.Handler
-	muxWithMiddlewares = mux
+	var muxMiddleware http.Handler = mux
 
 	// etag middleware
-	muxWithMiddlewares = ConditionalETag(muxWithMiddlewares)
+	muxMiddleware = ConditionalETag(muxMiddleware)
 
 	// gzip middleware
 	if gzip {
-		muxWithMiddlewares = gziphandler.GzipHandler(muxWithMiddlewares)
+		muxMiddleware = gziphandler.GzipHandler(muxMiddleware)
 	}
 
 	// timeout middleware
 	if enableTimeoutHandler && timeout.Handler > 0 {
-		muxWithMiddlewares = http.TimeoutHandler(
-			muxWithMiddlewares,
-			timeout.Handler,
-			"Timed Out\n",
-		)
+		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}
 
 	server := &http.Server{
@@ -127,7 +122,7 @@ func InitServer(domain string) *http.Server {
 		WriteTimeout:      time.Duration(timeout.Write) * time.Second,
 		IdleTimeout:       time.Duration(timeout.Idle) * time.Second,
 		ReadHeaderTimeout: time.Duration(timeout.ReadHeader) * time.Second,
-		Handler:           muxWithMiddlewares,
+		Handler:           muxMiddleware,
 	}
 
 	return server
