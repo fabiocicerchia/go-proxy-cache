@@ -24,7 +24,7 @@ RUN apk update \
       make \
     && make $BUILD_CMD
 
-FROM alpine:3.14.0
+FROM alpine:latest
 
 WORKDIR /app
 
