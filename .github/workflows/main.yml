@@ -58,7 +58,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apk update
-          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis
+          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh
 
       - name: Build
         run: make build-race
