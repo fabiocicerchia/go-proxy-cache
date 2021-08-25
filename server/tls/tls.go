@@ -26,27 +26,19 @@ var certificates map[string]*crypto_tls.Certificate
 var tlsConfig *crypto_tls.Config
 
 // ServerOverrides - Overrides the http.Server configuration for TLS.
-func ServerOverrides(domain string, server http.Server, domainConfig config.Server) (http.Server, error) {
-	newServer := server
+func ServerOverrides(domain string, server http.Server, domainConfig config.Server) (newServer http.Server, err error) {
+	newServer = server
 
 	if domainConfig.TLS.Auto {
 		certManager := InitCertManager(domainConfig.Upstream.Host, domainConfig.TLS.Email)
-
 		newServer.TLSConfig = certManager.TLSConfig()
 
 		return newServer, nil
 	}
 
-	if domainConfig.TLS.CertFile == "" || domainConfig.TLS.KeyFile == "" {
-		return newServer, fmt.Errorf("Missing Cert file and/or Key file")
-	}
-
-	var err error
-
 	tlsConfig, err = Config(domain, domainConfig.TLS.CertFile, domainConfig.TLS.KeyFile)
 	if err != nil {
 		log.Fatal(err)
-		return newServer, err
 	}
 	newServer.TLSConfig = tlsConfig
 	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
@@ -56,6 +48,10 @@ func ServerOverrides(domain string, server http.Server, domainConfig config.Serv
 
 // Config - Returns a TLS configuration.
 func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config, error) {
+	if certFile == "" || keyFile != "" {
+		return nil, fmt.Errorf("Missing Cert file and/or Key file")
+	}
+
 	cert, err := crypto_tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
 		return nil, err
