@@ -30,13 +30,11 @@ func TestETagValidResponse(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	res.Body.Close()
@@ -68,13 +66,11 @@ func TestETagIfModifiedSinceWhenChanged(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	res.Body.Close()
@@ -101,13 +97,11 @@ func TestETagIfModifiedSinceWhenNotChanged(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	res.Body.Close()
@@ -133,13 +127,11 @@ func TestETagIfNoneMatchAsMatch(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	res.Body.Close()
@@ -164,13 +156,11 @@ func TestETagIfNoneMatchAsMatch(t *testing.T) {
 	res, err = client.Do(req)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	res.Body.Close()
@@ -195,13 +185,11 @@ func TestETagIfNoneMatchAsNotMatch(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 
 	res.Body.Close()

@@ -192,14 +192,12 @@ func (s Servers) shutdownServers(ctx context.Context) {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
-			return
 		}
 	}
 	for k, v := range s.HTTPS {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
-			return
 		}
 	}
 }
