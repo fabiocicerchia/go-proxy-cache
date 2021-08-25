@@ -5,3 +5,4 @@ linters:
     - interfacer
     - maligned
     - scopelint
+    - typecheck
