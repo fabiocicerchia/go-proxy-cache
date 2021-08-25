@@ -25,16 +25,16 @@ Usage of go-proxy-cache:
 ```console
 $ docker run \
     -it --rm -n goproxycache \
-    --env SERVER_HTTP_PORT=80 \
     --env SERVER_HTTPS_PORT=443 \
+    --env SERVER_HTTP_PORT=80 \
     --env DEFAULT_TTL=0 \
     --env FORWARD_HOST=www.google.com \
     --env FORWARD_SCHEME=https \
     --env LB_ENDPOINT_LIST=www.google.com \
+    --env REDIS_DB=0 \
     --env REDIS_HOST=localhost \
     --env REDIS_PORT=6379 \
     --env REDIS_PASSWORD= \
-    --env REDIS_DB=0 \
     -p 8080:80
     -p 8443:443
     fabiocicerchia/go-proxy-cache

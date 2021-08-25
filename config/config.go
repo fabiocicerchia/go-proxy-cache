@@ -193,8 +193,8 @@ func normalizeScheme(scheme string) string {
 func getEnvConfig() Configuration {
 	EnvConfig := Configuration{}
 
-	EnvConfig.Server.Port.HTTP = utils.GetEnv("SERVER_HTTP_PORT", "")
 	EnvConfig.Server.Port.HTTPS = utils.GetEnv("SERVER_HTTPS_PORT", "")
+	EnvConfig.Server.Port.HTTP = utils.GetEnv("SERVER_HTTP_PORT", "")
 
 	EnvConfig.Server.TLS.Auto = utils.GetEnv("TLS_AUTO_CERT", "") == "1"
 	EnvConfig.Server.TLS.Email = utils.GetEnv("TLS_EMAIL", "")
@@ -216,10 +216,10 @@ func getEnvConfig() Configuration {
 
 	EnvConfig.Server.GZip = utils.GetEnv("GZIP_ENABLED", "") == "1"
 
+	EnvConfig.Cache.DB = convert.ToInt(utils.GetEnv("REDIS_DB", ""))
 	EnvConfig.Cache.Host = utils.GetEnv("REDIS_HOST", "")
 	EnvConfig.Cache.Port = utils.GetEnv("REDIS_PORT", "")
 	EnvConfig.Cache.Password = utils.GetEnv("REDIS_PASSWORD", "")
-	EnvConfig.Cache.DB = convert.ToInt(utils.GetEnv("REDIS_DB", ""))
 	EnvConfig.Cache.TTL = convert.ToInt(utils.GetEnv("DEFAULT_TTL", ""))
 	EnvConfig.Cache.AllowedStatuses = convert.ToIntSlice(strings.Split(utils.GetEnv("CACHE_ALLOWED_STATUSES", ""), ","))
 	EnvConfig.Cache.AllowedMethods = strings.Split(utils.GetEnv("CACHE_ALLOWED_METHODS", ""), ",")

@@ -34,16 +34,12 @@ nghttp -ans https://testing.local:50443/push
 ***** Statistics *****
 
 Request timing:
-  responseEnd: the  time  when  last  byte of  response  was  received
-               relative to connectEnd
- requestStart: the time  just before  first byte  of request  was sent
-               relative  to connectEnd.   If  '*' is  shown, this  was
-               pushed by server.
-      process: responseEnd - requestStart
-         code: HTTP status code
-         size: number  of  bytes  received as  response  body  without
-               inflation.
-          URI: request URI
+responseEnd: the  time  when  last  byte of  response  was  received relative to connectEnd
+requestStart: the time  just before  first byte  of request  was sent relative  to connectEnd.   If  '*' is  shown, this  was pushed by server.
+process: responseEnd - requestStart
+code: HTTP status code
+size: number  of  bytes  received as  response  body  without inflation.
+URI: request URI
 
 see http://www.w3.org/TR/resource-timing/#processing-model
 
