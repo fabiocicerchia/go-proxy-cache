@@ -27,7 +27,7 @@ import (
 
 var ctx = context.Background()
 
-// RedisClient - Redis Client structure
+// RedisClient - Redis Client structure.
 type RedisClient struct {
 	*goredislib.Client
 	*redsync.Redsync
@@ -263,5 +263,6 @@ func (rdb *RedisClient) Decode(encoded string, obj interface{}) error {
 	}
 
 	err = msgpack.Decode(decoded, obj)
+
 	return err
 }

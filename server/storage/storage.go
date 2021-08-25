@@ -24,10 +24,10 @@ import (
 
 // RequestCallDTO - DTO object containing request and response.
 type RequestCallDTO struct {
-	Response response.LoggedResponseWriter
-	Request  http.Request
-	Scheme   string
-	CacheObj cache.CacheObj
+	Response    response.LoggedResponseWriter
+	Request     http.Request
+	Scheme      string
+	CacheObject cache.Object
 }
 
 // RetrieveCachedContent - Retrives the cached response.
@@ -39,24 +39,24 @@ func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
 	url.Scheme = rc.Scheme
 	url.Host = strings.Split(rc.Request.Host, ":")[0] // TODO: HACK
 
-	err := rc.CacheObj.RetrieveFullPage(method, url, reqHeaders)
+	err := rc.CacheObject.RetrieveFullPage(method, url, reqHeaders)
 	if err != nil {
 		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
 	}
 
-	ok, err := rc.CacheObj.IsValid()
+	ok, err := rc.CacheObject.IsValid()
 	if !ok || err != nil {
 		return cache.URIObj{}, err
 	}
 
-	return rc.CacheObj.CurrentObj, nil
+	return rc.CacheObject.CurrentURIObject, nil
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
 	ttl := ttl.GetTTL(rc.Response.Header(), domainConfigCache.TTL)
 
-	rc.CacheObj.CurrentObj = cache.URIObj{
+	rc.CacheObject.CurrentURIObject = cache.URIObj{
 		URL:             *rc.Request.URL,
 		Host:            rc.Request.Host,
 		Scheme:          rc.Scheme,
@@ -67,7 +67,7 @@ func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool
 		Content:         rc.Response.Content,
 	}
 
-	done, err := rc.CacheObj.StoreFullPage(ttl)
+	done, err := rc.CacheObject.StoreFullPage(ttl)
 
 	return done, err
 }
@@ -80,5 +80,5 @@ func PurgeCachedContent(upstream config.Upstream, rc RequestCallDTO) (bool, erro
 	proxyURL.Scheme = scheme
 	proxyURL.Host = upstream.Host
 
-	return rc.CacheObj.PurgeFullPage(rc.Request.Method, proxyURL)
+	return rc.CacheObject.PurgeFullPage(rc.Request.Method, proxyURL)
 }

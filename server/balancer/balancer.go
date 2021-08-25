@@ -27,6 +27,7 @@ func InitRoundRobin(name string, endpoints []string) {
 // GetLBRoundRobin - Returns backend server using RoundRobin algorithm.
 func GetLBRoundRobin(name string, defaultHost string) string {
 	var err error
+
 	endpoint := ""
 
 	if lbDomain, ok := lb[name]; ok {

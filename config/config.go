@@ -1,3 +1,4 @@
+//nolint: lll
 package config
 
 //                                                                         __
@@ -13,6 +14,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +29,18 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
-// Configuration - Defines the server configuration
+var DefaultTimeoutRead time.Duration = 5 * time.Second
+var DefaultTimeoutReadHeader time.Duration = 2 * time.Second
+var DefaultTimeoutWrite time.Duration = 5 * time.Second
+var DefaultTimeoutIdle time.Duration = 20 * time.Second
+var DefaultTimeoutHandler time.Duration = 5 * time.Second
+var DefaultCBThreshold uint32 = 2
+var DefaultCBFailureRate float64 = 0.5
+var DefaultCBInterval time.Duration = 0 * time.Second
+var DefaultCBTimeout time.Duration = 60 * time.Second
+var DefaultCBMaxRequests uint32 = 1
+
+// Configuration - Defines the server configuration.
 type Configuration struct {
 	Server         Server                        `yaml:"server"`
 	Cache          Cache                         `yaml:"cache"`
@@ -36,10 +49,10 @@ type Configuration struct {
 	Log            Log                           `yaml:"log"`
 }
 
-// Domains - Overrides per domain
+// Domains - Overrides per domain.
 type Domains map[string]Configuration
 
-// Server - Defines basic info for the server
+// Server - Defines basic info for the server.
 type Server struct {
 	Port        Port     `yaml:"port"`
 	TLS         TLS      `yaml:"tls"`
@@ -49,13 +62,13 @@ type Server struct {
 	Healthcheck bool     `yaml:"healthcheck"`
 }
 
-// Port - Defines the listening ports per protocol
+// Port - Defines the listening ports per protocol.
 type Port struct {
 	HTTP  string `yaml:"http"`
 	HTTPS string `yaml:"https"`
 }
 
-// TLS - Defines the configuration for SSL/TLS
+// TLS - Defines the configuration for SSL/TLS.
 type TLS struct {
 	Auto     bool        `yaml:"auto"`
 	Email    string      `yaml:"email"`
@@ -64,7 +77,7 @@ type TLS struct {
 	Override *tls.Config `yaml:"override"`
 }
 
-// Upstream - Defines the upstream settings
+// Upstream - Defines the upstream settings.
 type Upstream struct {
 	Host               string   `yaml:"host"`
 	Port               string   `yaml:"port"`
@@ -75,7 +88,7 @@ type Upstream struct {
 	RedirectStatusCode int      `yaml:"redirect_status_code"`
 }
 
-// Timeout - Defines the server timeouts
+// Timeout - Defines the server timeouts.
 type Timeout struct {
 	Read       time.Duration `yaml:"read"`
 	ReadHeader time.Duration `yaml:"read_header"`
@@ -84,7 +97,7 @@ type Timeout struct {
 	Handler    time.Duration `yaml:"handler"`
 }
 
-// Cache - Defines the config for the cache backend
+// Cache - Defines the config for the cache backend.
 type Cache struct {
 	Host            string   `yaml:"host"`
 	Port            string   `yaml:"port"`
@@ -95,19 +108,19 @@ type Cache struct {
 	AllowedMethods  []string `yaml:"allowed_methods"`
 }
 
-// Log - Defines the config for the logs
+// Log - Defines the config for the logs.
 type Log struct {
 	TimeFormat string `yaml:"time_format"`
 	Format     string `yaml:"format"`
 }
 
-// DomainSet - Holds the uniqueness details of the domain
+// DomainSet - Holds the uniqueness details of the domain.
 type DomainSet struct {
 	Host   string
 	Scheme string
 }
 
-// Config - Holds the server configuration
+// Config - Holds the server configuration.
 var Config Configuration = Configuration{
 	Server: Server{
 		Port: Port{
@@ -144,16 +157,16 @@ var Config Configuration = Configuration{
 			},
 		},
 		Timeout: Timeout{
-			Read:       5 * time.Second,
-			ReadHeader: 2 * time.Second,
-			Write:      5 * time.Second,
-			Idle:       20 * time.Second,
-			Handler:    5 * time.Second,
+			Read:       DefaultTimeoutRead,
+			ReadHeader: DefaultTimeoutReadHeader,
+			Write:      DefaultTimeoutWrite,
+			Idle:       DefaultTimeoutIdle,
+			Handler:    DefaultTimeoutHandler,
 		},
 		Upstream: Upstream{
 			HTTP2HTTPS:         false,
 			InsecureBridge:     false,
-			RedirectStatusCode: 301,
+			RedirectStatusCode: http.StatusPermanentRedirect,
 		},
 		GZip:        false,
 		Healthcheck: true,
@@ -166,11 +179,11 @@ var Config Configuration = Configuration{
 		AllowedMethods:  []string{"HEAD", "GET"},
 	},
 	CircuitBreaker: circuitbreaker.CircuitBreaker{
-		Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
-		FailureRate: 0.5,              // 1 out of 2 fails, or more
-		Interval:    0,                // doesn't clears counts
-		Timeout:     60 * time.Second, // clears state after 60s
-		MaxRequests: 1,
+		Threshold:   DefaultCBThreshold,   // after 2nd request, if meet FailureRate goes open.
+		FailureRate: DefaultCBFailureRate, // 1 out of 2 fails, or more
+		Interval:    DefaultCBInterval,    // doesn't clears counts
+		Timeout:     DefaultCBTimeout,     // clears state after 60s
+		MaxRequests: DefaultCBMaxRequests,
 	},
 	Log: Log{
 		TimeFormat: "2006/01/02 15:04:05",
@@ -235,7 +248,7 @@ func getYamlConfig(file string) (Configuration, error) {
 		return YamlConfig, err
 	}
 
-	err = yaml.UnmarshalStrict([]byte(data), &YamlConfig)
+	err = yaml.UnmarshalStrict(data, &YamlConfig)
 
 	if err != nil {
 		return YamlConfig, err
@@ -252,12 +265,14 @@ func InitConfigFromFileOrEnv(file string) {
 	Config.CopyOverWith(getEnvConfig(), nil)
 
 	var YamlConfig Configuration
+
 	_, err := os.Stat(file)
 	if !os.IsNotExist(err) {
 		YamlConfig, err = getYamlConfig(file)
 		if err != nil {
 			log.Fatalf("Cannot unmarshal YAML: %s\n", err)
 		}
+
 		Config.CopyOverWith(YamlConfig, &file)
 	}
 
@@ -273,6 +288,7 @@ func InitConfigFromFileOrEnv(file string) {
 			domain.Domains = Domains{}
 			domains[k] = domain
 		}
+
 		Config.Domains = domains
 	}
 }
@@ -302,21 +318,21 @@ func patchAbsFilePath(filePath string, relativeTo *string) string {
 
 // CopyOverWith - Copies the Configuration over another (preserving not defined settings).
 func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
-	c.copyOverWithServer(overrides, file)
+	c.copyOverWithServer(overrides)
 	c.copyOverWithTLS(overrides, file)
-	c.copyOverWithTimeout(overrides, file)
-	c.copyOverWithUpstream(overrides, file)
-	c.copyOverWithCache(overrides, file)
+	c.copyOverWithTimeout(overrides)
+	c.copyOverWithUpstream(overrides)
+	c.copyOverWithCache(overrides)
 }
 
-// --- SERVER
-func (c *Configuration) copyOverWithServer(overrides Configuration, file *string) {
+// --- SERVER.
+func (c *Configuration) copyOverWithServer(overrides Configuration) {
 	c.Server.Port.HTTP = utils.Coalesce(overrides.Server.Port.HTTP, c.Server.Port.HTTP, overrides.Server.Port.HTTP == "").(string)
 	c.Server.Port.HTTPS = utils.Coalesce(overrides.Server.Port.HTTPS, c.Server.Port.HTTPS, overrides.Server.Port.HTTPS == "").(string)
 	c.Server.GZip = utils.Coalesce(overrides.Server.GZip, c.Server.GZip, !overrides.Server.GZip).(bool)
 }
 
-// --- TLS
+// --- TLS.
 func (c *Configuration) copyOverWithTLS(overrides Configuration, file *string) {
 	c.Server.TLS.Auto = utils.Coalesce(overrides.Server.TLS.Auto, c.Server.TLS.Auto, !overrides.Server.TLS.Auto).(bool)
 	c.Server.TLS.Email = utils.Coalesce(overrides.Server.TLS.Email, c.Server.TLS.Email, overrides.Server.TLS.Email == "").(string)
@@ -328,8 +344,8 @@ func (c *Configuration) copyOverWithTLS(overrides Configuration, file *string) {
 	c.Server.TLS.KeyFile = patchAbsFilePath(c.Server.TLS.KeyFile, file)
 }
 
-// --- TIMEOUT
-func (c *Configuration) copyOverWithTimeout(overrides Configuration, file *string) {
+// --- TIMEOUT.
+func (c *Configuration) copyOverWithTimeout(overrides Configuration) {
 	c.Server.Timeout.Read = utils.Coalesce(overrides.Server.Timeout.Read, c.Server.Timeout.Read, overrides.Server.Timeout.Read == 0).(time.Duration)
 	c.Server.Timeout.ReadHeader = utils.Coalesce(overrides.Server.Timeout.ReadHeader, c.Server.Timeout.ReadHeader, overrides.Server.Timeout.ReadHeader == 0).(time.Duration)
 	c.Server.Timeout.Write = utils.Coalesce(overrides.Server.Timeout.Write, c.Server.Timeout.Write, overrides.Server.Timeout.Write == 0).(time.Duration)
@@ -337,8 +353,8 @@ func (c *Configuration) copyOverWithTimeout(overrides Configuration, file *strin
 	c.Server.Timeout.Handler = utils.Coalesce(overrides.Server.Timeout.Handler, c.Server.Timeout.Handler, overrides.Server.Timeout.Handler == 0).(time.Duration)
 }
 
-// --- UPSTREAM
-func (c *Configuration) copyOverWithUpstream(overrides Configuration, file *string) {
+// --- UPSTREAM.
+func (c *Configuration) copyOverWithUpstream(overrides Configuration) {
 	c.Server.Upstream.Host = utils.Coalesce(overrides.Server.Upstream.Host, c.Server.Upstream.Host, overrides.Server.Upstream.Host == "").(string)
 	c.Server.Upstream.Port = utils.Coalesce(overrides.Server.Upstream.Port, c.Server.Upstream.Port, overrides.Server.Upstream.Port == "").(string)
 	c.Server.Upstream.Scheme = utils.Coalesce(overrides.Server.Upstream.Scheme, c.Server.Upstream.Scheme, overrides.Server.Upstream.Scheme == "").(string)
@@ -348,8 +364,8 @@ func (c *Configuration) copyOverWithUpstream(overrides Configuration, file *stri
 	c.Server.Upstream.RedirectStatusCode = utils.Coalesce(overrides.Server.Upstream.RedirectStatusCode, c.Server.Upstream.RedirectStatusCode, overrides.Server.Upstream.RedirectStatusCode == 0).(int)
 }
 
-// --- CACHE
-func (c *Configuration) copyOverWithCache(overrides Configuration, file *string) {
+// --- CACHE.
+func (c *Configuration) copyOverWithCache(overrides Configuration) {
 	c.Cache.Host = utils.Coalesce(overrides.Cache.Host, c.Cache.Host, overrides.Cache.Host == "").(string)
 	c.Cache.Port = utils.Coalesce(overrides.Cache.Port, c.Cache.Port, overrides.Cache.Port == "").(string)
 	c.Cache.Password = utils.Coalesce(overrides.Cache.Password, c.Cache.Password, overrides.Cache.Password == "").(string)
@@ -366,10 +382,12 @@ func (c *Configuration) copyOverWithCache(overrides Configuration, file *string)
 func Print() {
 	ObfuscatedConfig := Config
 	ObfuscatedConfig.Cache.Password = ""
+
 	for k, v := range ObfuscatedConfig.Domains {
 		v.Cache.Password = ""
 		ObfuscatedConfig.Domains[k] = v
 	}
+
 	log.Debug("Config Settings:\n")
 	log.Debugf("%+v\n", ObfuscatedConfig)
 }
@@ -405,6 +423,7 @@ func DomainConf(domain string, scheme string) *Configuration {
 	if domainsCache == nil {
 		domainsCache = make(map[string]*Configuration)
 	}
+
 	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
 	if val, ok := domainsCache[keyCache]; ok {
 		log.Debugf("Cached configuration for %s", keyCache)
@@ -412,6 +431,7 @@ func DomainConf(domain string, scheme string) *Configuration {
 	}
 
 	domainsCache[keyCache] = domainConfLookup(domain, scheme)
+
 	return domainsCache[keyCache]
 }
 

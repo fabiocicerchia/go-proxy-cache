@@ -1,4 +1,6 @@
 linters:
   enable-all: true
   disable:
+    - gochecknoglobals
     - maligned
+    - interfacer

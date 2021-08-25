@@ -10,12 +10,12 @@ package cache
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
@@ -23,15 +23,22 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// CacheObj - Contains cache settings and current cached/cacheable object.
-type CacheObj struct {
-	AllowedStatuses []int
-	AllowedMethods  []string
-	CurrentObj      URIObj
-	DomainID        string
+var errMissingRedisConnection = errors.New("missing redis connection")
+var errNotAllowed = errors.New("not allowed")
+var errCannotFetchMetadata = errors.New("cannot fetch metadata")
+var errCannotGetKey = errors.New("cannot get key")
+var errCannotDecode = errors.New("cannot decode")
+var errVaryWildcard = errors.New("vary: *")
+
+// Object - Contains cache settings and current cached/cacheable object.
+type Object struct {
+	AllowedStatuses  []int
+	AllowedMethods   []string
+	CurrentURIObject URIObj
+	DomainID         string
 }
 
-// URIObj - Holds details about the response
+// URIObj - Holds details about the response.
 type URIObj struct {
 	URL             url.URL
 	Host            string
@@ -44,35 +51,34 @@ type URIObj struct {
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
-func (c CacheObj) IsStatusAllowed() bool {
-	return slice.ContainsInt(c.AllowedStatuses, c.CurrentObj.StatusCode)
+func (c Object) IsStatusAllowed() bool {
+	return slice.ContainsInt(c.AllowedStatuses, c.CurrentURIObject.StatusCode)
 }
 
 // IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
-func (c CacheObj) IsMethodAllowed() bool {
-	return slice.ContainsString(c.AllowedMethods, c.CurrentObj.Method)
+func (c Object) IsMethodAllowed() bool {
+	return slice.ContainsString(c.AllowedMethods, c.CurrentURIObject.Method)
 }
 
 // IsValid - Verifies the validity of a cacheable object.
-func (c CacheObj) IsValid() (bool, error) {
-	if !c.IsStatusAllowed() || slice.LenSliceBytes(c.CurrentObj.Content) == 0 {
-		return false, fmt.Errorf(
-			"not allowed. status %d - content length %d",
-			c.CurrentObj.StatusCode,
-			slice.LenSliceBytes(c.CurrentObj.Content),
-		)
+func (c Object) IsValid() (bool, error) {
+	if !c.IsStatusAllowed() || slice.LenSliceBytes(c.CurrentURIObject.Content) == 0 {
+		return false, errors.Wrapf(errNotAllowed,
+			"status %d - content length %d",
+			c.CurrentURIObject.StatusCode,
+			slice.LenSliceBytes(c.CurrentURIObject.Content))
 	}
 
 	return true, nil
 }
 
-func (c CacheObj) handleMetadata(domainID string, targetURL url.URL, expiration time.Duration) ([]string, error) {
-	meta, err := GetVary(c.CurrentObj.ResponseHeaders)
+func (c Object) handleMetadata(domainID string, targetURL url.URL, expiration time.Duration) ([]string, error) {
+	meta, err := GetVary(c.CurrentURIObject.ResponseHeaders)
 	if err != nil {
 		return []string{}, err
 	}
 
-	_, err = StoreMetadata(domainID, c.CurrentObj.Method, targetURL, meta, expiration)
+	_, err = StoreMetadata(domainID, c.CurrentURIObject.Method, targetURL, meta, expiration)
 	if err != nil {
 		return []string{}, err
 	}
@@ -81,15 +87,21 @@ func (c CacheObj) handleMetadata(domainID string, targetURL url.URL, expiration 
 }
 
 // StoreFullPage - Stores the whole page response in cache.
-func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
+func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
-		log.Debugf("Not allowed to be stored. Status: %v - Method: %v - Expiration: %v", c.IsStatusAllowed(), c.IsMethodAllowed(), expiration)
+		log.Debugf(
+			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v",
+			c.IsStatusAllowed(),
+			c.IsMethodAllowed(),
+			expiration,
+		)
+
 		return false, nil
 	}
 
-	targetURL := c.CurrentObj.URL
-	targetURL.Scheme = c.CurrentObj.Scheme
-	targetURL.Host = c.CurrentObj.Host
+	targetURL := c.CurrentURIObject.URL
+	targetURL.Scheme = c.CurrentURIObject.Scheme
+	targetURL.Host = c.CurrentURIObject.Host
 
 	meta, err := c.handleMetadata(c.DomainID, targetURL, expiration)
 	if err != nil {
@@ -98,31 +110,31 @@ func (c CacheObj) StoreFullPage(expiration time.Duration) (bool, error) {
 
 	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
-		return false, fmt.Errorf("missing redis connection for %s", c.DomainID)
+		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	encoded, err := conn.Encode(c.CurrentObj)
+	encoded, err := conn.Encode(c.CurrentURIObject)
 	if err != nil {
 		return false, err
 	}
 
-	key := StorageKey(c.CurrentObj.Method, targetURL, meta, c.CurrentObj.RequestHeaders)
+	key := StorageKey(c.CurrentURIObject.Method, targetURL, meta, c.CurrentURIObject.RequestHeaders)
 
 	return conn.Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) error {
+func (c *Object) RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) error {
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(c.DomainID, method, url)
 	if err != nil {
-		return fmt.Errorf("cannot fetch metadata: %s", err)
+		return errors.Wrap(errCannotFetchMetadata, err.Error())
 	}
 
 	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
-		return fmt.Errorf("missing redis connection for %s", c.DomainID)
+		return errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
 	key := StorageKey(method, url, meta, reqHeaders)
@@ -130,21 +142,21 @@ func (c *CacheObj) RetrieveFullPage(method string, url url.URL, reqHeaders http.
 
 	encoded, err := conn.Get(key)
 	if err != nil {
-		return fmt.Errorf("cannot get key: %s", err)
+		return errors.Wrap(errCannotGetKey, err.Error())
 	}
 
 	err = conn.Decode(encoded, obj)
 	if err != nil {
-		return fmt.Errorf("cannot decode: %s", err)
+		return errors.Wrap(errCannotDecode, err.Error())
 	}
 
-	c.CurrentObj = *obj
+	c.CurrentURIObject = *obj
 
 	return nil
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
-func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
+func (c Object) PurgeFullPage(method string, url url.URL) (bool, error) {
 	err := PurgeMetadata(c.DomainID, url)
 	if err != nil {
 		return false, err
@@ -152,7 +164,7 @@ func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
 
 	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
-		return false, fmt.Errorf("missing redis connection for %s", c.DomainID)
+		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
 	var meta []string
@@ -161,6 +173,7 @@ func (c CacheObj) PurgeFullPage(method string, url url.URL) (bool, error) {
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
 	keyPattern := strings.Replace(key, match, replace, 1) + "*"
+
 	affected, err := conn.DelWildcard(keyPattern)
 	if err != nil {
 		return false, err
@@ -192,7 +205,7 @@ func FetchMetadata(domainID string, method string, url url.URL) ([]string, error
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
-		return []string{}, fmt.Errorf("missing redis connection for %s", domainID)
+		return []string{}, errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
 	return conn.List(key)
@@ -204,10 +217,11 @@ func PurgeMetadata(domainID string, url url.URL) error {
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
-		return fmt.Errorf("missing redis connection for %s", domainID)
+		return errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
 	_, err := conn.DelWildcard(keyPattern)
+
 	return err
 }
 
@@ -217,10 +231,11 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
-		return false, fmt.Errorf("missing redis connection for %s", domainID)
+		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
-	_ = conn.Del(key) //nolint:golint,errcheck
+	_ = conn.Del(key)
+
 	err := conn.Push(key, meta)
 	if err != nil {
 		return false, err
@@ -242,7 +257,7 @@ func GetVary(headers http.Header) ([]string, error) {
 	vary := headers.Get("Vary")
 
 	if vary == "*" {
-		return []string{}, errors.New("vary: *")
+		return []string{}, errVaryWildcard
 	}
 
 	varyList := strings.Split(vary, ",")

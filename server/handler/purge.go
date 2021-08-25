@@ -27,6 +27,7 @@ func (rc RequestCall) HandlePurge(domainConfig *config.Configuration) {
 		_ = rc.Response.WriteBody("KO")
 
 		log.Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
+
 		return
 	}
 

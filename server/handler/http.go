@@ -33,6 +33,11 @@ var enableStoringResponse = true
 var enableCachedResponse = true
 var enableLoggingRequest = true
 
+var DefaultTransportMaxIdleConns int = 1000
+var DefaultTransportMaxIdleConnsPerHost int = 1000
+var DefaultTransportMaxConnsPerHost int = 1000
+var DefaultTransportDialTimeout time.Duration = 15 * time.Second
+
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy(domainConfig *config.Configuration) {
 	cached := false
@@ -79,6 +84,7 @@ func (rc RequestCall) serveCachedContent() bool {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 
 		log.Warnf("Error on serving cached content: %s", err)
+
 		return false
 	}
 
@@ -93,11 +99,11 @@ func (rc RequestCall) patchProxyTransport(domainConfig *config.Configuration) *h
 	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
 	// It can be ignored as it is customisable, but the default is false.
 	return &http.Transport{
-		MaxIdleConns:        1000,
-		MaxIdleConnsPerHost: 1000,
-		MaxConnsPerHost:     1000,
+		MaxIdleConns:        DefaultTransportMaxIdleConns,
+		MaxIdleConnsPerHost: DefaultTransportMaxIdleConnsPerHost,
+		MaxConnsPerHost:     DefaultTransportMaxConnsPerHost,
 		Dial: func(network, addr string) (net.Conn, error) {
-			conn, err := net.DialTimeout(network, addr, 15*time.Second)
+			conn, err := net.DialTimeout(network, addr, DefaultTransportDialTimeout)
 			if err != nil {
 				return conn, err
 			}
@@ -123,6 +129,7 @@ func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) 
 	proxy.Transport = rc.patchProxyTransport(domainConfig)
 
 	director := proxy.Director
+
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.
@@ -162,10 +169,12 @@ func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
 
 	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
 	clientIP := utils.StripPort(rc.Request.RemoteAddr)
+
 	xForwardedFor := net.ParseIP(clientIP).String()
 	if previousXForwardedFor != "" {
 		xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
 	}
+
 	rc.Request.Header.Set("X-Forwarded-For", xForwardedFor)
 
 	rc.Request.URL.Host = balancedHost + overridePort

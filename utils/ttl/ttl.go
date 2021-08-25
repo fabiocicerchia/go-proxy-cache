@@ -58,6 +58,7 @@ func GetTTL(headers http.Header, defaultTTL int) time.Duration {
 	if expires != nil {
 		expiresValue := expires.([]string)[0]
 		expiresTTL := ttlFromExpires(expiresValue)
+
 		if expiresTTL != nil {
 			ttl = *expiresTTL
 		}
@@ -68,6 +69,7 @@ func GetTTL(headers http.Header, defaultTTL int) time.Duration {
 	if cacheControl != nil {
 		cacheControlValue := strings.ToLower(cacheControl.([]string)[0])
 		cacheControlTTL := ttlFromCacheControlChain(cacheControlValue)
+
 		if cacheControlTTL != nil {
 			ttl = *cacheControlTTL
 		}
@@ -89,6 +91,7 @@ func GetTTLFromCacheControl(cacheType string, cacheControl string) time.Duration
 		if err != nil {
 			ageTTL = 0
 		}
+
 		ttl = time.Duration(ageTTL) * time.Second
 	}
 

@@ -58,5 +58,6 @@ func CB(name string) *gobreaker.CircuitBreaker {
 	}
 
 	log.Warnf("Missing circuit breaker for %s", name)
+
 	return nil
 }

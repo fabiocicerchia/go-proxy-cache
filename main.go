@@ -30,7 +30,7 @@ var logFileHandle *os.File
 var verboseFlag bool
 var testFlag bool
 
-// AppVersion - The go-proxy-cache's version
+// AppVersion - The go-proxy-cache's version.
 const AppVersion = "0.3.0"
 
 func initFlags() {
@@ -56,6 +56,7 @@ func initFlags() {
 			fmt.Println(err)
 			os.Exit(1)
 		}
+
 		fmt.Println("Configuration file valid.")
 		os.Exit(0)
 	}
@@ -85,8 +86,8 @@ func initLogs() {
 
 	log.SetReportCaller(verboseFlag)
 	log.SetLevel(logLevel)
-
 	log.SetOutput(os.Stdout)
+
 	if logFile != "" {
 		logFileHandle = getLogFileWriter(logFile)
 		log.SetOutput(io.MultiWriter(logFileHandle))

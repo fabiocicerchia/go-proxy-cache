@@ -67,7 +67,6 @@ jobs:
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
           ./go-proxy-cache -debug -config=test/full-setup/config.yml &
-          npm install test/full-setup
           make test
         env:
           REDIS_HOST: redis

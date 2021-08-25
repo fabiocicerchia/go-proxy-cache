@@ -46,8 +46,8 @@ see http://www.w3.org/TR/resource-timing/#processing-model
 sorted by 'complete'
 
 id  responseEnd requestStart  process code size request path
- 13    +41.68ms       +134us  41.54ms  200    4 /push
-  2    +86.95ms *   +37.31ms  49.64ms  200    4 /etag
+  13    +41.68ms       +134us  41.54ms  200    4 /push
+  2     +86.95ms *   +37.31ms  49.64ms  200    4 /etag
 ```
 
 In the output, the asterisk (`*`) marks resources that were pushed by the server.

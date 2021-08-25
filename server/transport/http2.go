@@ -17,6 +17,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
+var ItemsKeyValueCount int = 2
+
 // LinkItem - A URL item contained in a Link HTTP Header.
 type LinkItem struct {
 	URL    string
@@ -80,11 +82,12 @@ func Parse(value string) (links []LinkItem) {
 			}
 
 			// RFC5988 Standard params: rel, anchor, rev, hreflang, media, title, title*, type.
-			if strings.ToLower(key) == "rel" {
+			switch strings.ToLower(key) {
+			case "rel":
 				link.Rel = val
-			} else if strings.ToLower(key) == "nopush" {
+			case "nopush":
 				link.NoPush = true
-			} else {
+			default:
 				link.Params[key] = strings.Trim(val, `"`)
 			}
 		}
@@ -98,12 +101,12 @@ func Parse(value string) (links []LinkItem) {
 }
 
 func extractParam(param string) (key, val string) {
-	parts := strings.SplitN(param, "=", 2)
+	parts := strings.SplitN(param, "=", ItemsKeyValueCount)
 	if len(parts) == 1 {
 		return parts[0], ""
 	}
 
-	if len(parts) != 2 {
+	if len(parts) != ItemsKeyValueCount {
 		return "", ""
 	}
 

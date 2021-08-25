@@ -27,6 +27,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var SchemeHTTP string = "http"
+var SchemeHTTPS string = "https"
+var SchemeWS string = "ws"
+var SchemeWSS string = "wss"
+
 // RequestCall - Main object containing request and response.
 type RequestCall struct {
 	Response *response.LoggedResponseWriter
@@ -41,7 +46,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 		Response: *rc.Response,
 		Request:  *rc.Request,
 		Scheme:   rc.GetScheme(),
-		CacheObj: cache.CacheObj{
+		CacheObject: cache.Object{
 			// TODO: convert to use domainConfigCache
 			AllowedStatuses: config.Config.Cache.AllowedStatuses,
 			AllowedMethods:  config.Config.Cache.AllowedMethods,
@@ -51,8 +56,9 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 }
 
 func getListeningPort(ctx context.Context) string {
-	localAddrContextKey := ctx.Value(http.LocalAddrContextKey)
 	listeningPort := ""
+
+	localAddrContextKey := ctx.Value(http.LocalAddrContextKey)
 	if localAddrContextKey != nil {
 		srvAddr := localAddrContextKey.(*net.TCPAddr)
 		listeningPort = strconv.Itoa(srvAddr.Port)
@@ -68,7 +74,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if rc.GetScheme() == "http" && domainConfig.Server.Upstream.HTTP2HTTPS {
+	if rc.GetScheme() == SchemeHTTP && domainConfig.Server.Upstream.HTTP2HTTPS {
 		rc.RedirectToHTTPS(domainConfig.Server.Upstream.RedirectStatusCode)
 		return
 	}
@@ -98,6 +104,7 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 	listeningPort := getListeningPort(req.Context())
 
 	host := strings.Split(req.Host, ":")[0] // TODO: HACK
+
 	domainConfig := config.DomainConf(host, rc.GetScheme())
 	if domainConfig == nil ||
 		(domainConfig.Server.Port.HTTP != listeningPort &&
@@ -105,6 +112,7 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 		rc.Response.WriteHeader(http.StatusNotImplemented)
 		logger.LogRequest(*rc.Request, *rc.Response, false)
 		log.Errorf("Missing configuration in HandleRequest for %s (listening on :%s).", rc.Request.Host, listeningPort)
+
 		return rc, nil
 	}
 
@@ -118,18 +126,18 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
 	if rc.IsWebSocket() && rc.Request.TLS != nil {
-		return "wss"
+		return SchemeWSS
 	}
 
 	if rc.IsWebSocket() {
-		return "ws"
+		return SchemeWS
 	}
 
 	if rc.Request.TLS != nil {
-		return "https"
+		return SchemeHTTPS
 	}
 
-	return "http"
+	return SchemeHTTP
 }
 
 // IsWebSocket - Checks whether a request is a websocket.

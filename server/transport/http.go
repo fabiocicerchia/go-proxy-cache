@@ -17,7 +17,6 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	log "github.com/sirupsen/logrus"
 )
 
 // HopHeaders - List of Ho-by-hop headers.
@@ -39,7 +38,7 @@ var HopHeaders = []string{
 }
 
 // removeConnectionHeaders removes hop-by-hop headers listed in the "Connection" header of h.
-// See RFC 7230, section 6.1
+// See RFC 7230, section 6.1.
 func removeConnectionHeaders(h http.Header) {
 	for _, f := range h["Connection"] {
 		for _, sf := range strings.Split(f, ",") {
@@ -50,31 +49,21 @@ func removeConnectionHeaders(h http.Header) {
 	}
 }
 
-func copyResponse(dst io.Writer, chunks [][]byte) error {
+func copyResponse(dst io.Writer, chunks [][]byte) {
 	for _, chunk := range chunks {
 		_, _ = dst.Write(chunk)
+
 		if fl, ok := dst.(http.Flusher); ok {
 			fl.Flush()
 		}
 	}
-	return nil
-}
-
-// shouldPanicOnCopyError reports whether the reverse proxy should
-// panic with http.ErrAbortHandler. This is the right thing to do by
-// default, but Go 1.10 and earlier did not, so existing unit tests
-// weren't expecting panics. Only panic in our own tests, or when
-// running under the HTTP server.
-func shouldPanicOnCopyError(ctx context.Context) bool {
-	// If true: We seem to be running under an HTTP server, so it'll recover the panic.
-	// Otherwise act like Go 1.10 and earlier to not break existing tests.
-	return ctx.Value(http.ServerContextKey) != nil
 }
 
 // ServeCachedResponse - Serve a cached response.
 func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter, uriobj cache.URIObj) {
 	ctxWC, cancel := context.WithCancel(ctx)
 	defer cancel()
+
 	go func() {
 		select {
 		case <-ctx.Done():
@@ -92,15 +81,17 @@ func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter
 
 	PushProxiedResources(lwr, &uriobj)
 
-	handleBody(ctx, lwr, uriobj.Content)
+	handleBody(lwr, uriobj.Content)
 	handleTrailer(announcedTrailers, lwr, res)
 }
 
 func handleHeaders(lwr *response.LoggedResponseWriter, res http.Response) int {
 	removeConnectionHeaders(res.Header)
+
 	for _, h := range HopHeaders {
 		res.Header.Del(h)
 	}
+
 	res.Header.Del(response.CacheStatusHeader)
 	lwr.CopyHeaders(res.Header)
 
@@ -109,9 +100,11 @@ func handleHeaders(lwr *response.LoggedResponseWriter, res http.Response) int {
 	announcedTrailers := len(res.Trailer)
 	if announcedTrailers > 0 {
 		trailerKeys := make([]string, 0, len(res.Trailer))
+
 		for k := range res.Trailer {
 			trailerKeys = append(trailerKeys, k)
 		}
+
 		lwr.Header().Add("Trailer", strings.Join(trailerKeys, ", "))
 	}
 
@@ -120,18 +113,8 @@ func handleHeaders(lwr *response.LoggedResponseWriter, res http.Response) int {
 	return announcedTrailers
 }
 
-func handleBody(ctx context.Context, lwr *response.LoggedResponseWriter, content [][]byte) {
-	err := copyResponse(lwr, content)
-	if err != nil {
-		// Since we're streaming the response, if we run into an error all we can do
-		// is abort the request. Issue 23643: ReverseProxy should use ErrAbortHandler
-		// on read error while copying body.
-		if !shouldPanicOnCopyError(ctx) {
-			log.Errorf("suppressing panic for copyResponse error in test; copy error: %v", err)
-			return
-		}
-		panic(http.ErrAbortHandler)
-	}
+func handleBody(lwr *response.LoggedResponseWriter, content [][]byte) {
+	copyResponse(lwr, content)
 }
 
 func handleTrailer(announcedTrailers int, lwr *response.LoggedResponseWriter, res http.Response) {
@@ -151,6 +134,7 @@ func handleTrailer(announcedTrailers int, lwr *response.LoggedResponseWriter, re
 
 	for k, vv := range res.Trailer {
 		k = http.TrailerPrefix + k
+
 		for _, v := range vv {
 			lwr.Header().Add(k, v)
 		}

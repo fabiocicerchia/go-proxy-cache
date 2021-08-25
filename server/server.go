@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/NYTimes/gziphandler"
@@ -33,6 +34,8 @@ import (
 
 const enableTimeoutHandler = true
 
+var DefaultTimeoutShutdown time.Duration = 5 * time.Second
+
 // Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {
 	HTTP  map[string]*http.Server
@@ -51,6 +54,7 @@ func Run(configFile string) {
 		HTTP:  make(map[string]*http.Server),
 		HTTPS: make(map[string]*http.Server),
 	}
+
 	for _, domain := range config.GetDomains() {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
@@ -62,13 +66,13 @@ func Run(configFile string) {
 
 	// Wait for an interrupt
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, os.Kill)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
 	log.Error("SIGKILL or SIGINT caught, shutting down...")
 
 	// Attempt a graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeoutShutdown)
 	defer cancel()
 
 	servers.shutdownServers(ctx)
@@ -99,6 +103,7 @@ func InitServer(domain string) *http.Server {
 	if config.Config.Server.Healthcheck {
 		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
 	}
+
 	mux.HandleFunc("/", handler.HandleRequest)
 
 	// basic
@@ -118,10 +123,10 @@ func InitServer(domain string) *http.Server {
 	}
 
 	server := &http.Server{
-		ReadTimeout:       time.Duration(timeout.Read) * time.Second,
-		WriteTimeout:      time.Duration(timeout.Write) * time.Second,
-		IdleTimeout:       time.Duration(timeout.Idle) * time.Second,
-		ReadHeaderTimeout: time.Duration(timeout.ReadHeader) * time.Second,
+		ReadTimeout:       timeout.Read * time.Second,
+		WriteTimeout:      timeout.Write * time.Second,
+		IdleTimeout:       timeout.Idle * time.Second,
+		ReadHeaderTimeout: timeout.ReadHeader * time.Second,
 		Handler:           muxMiddleware,
 	}
 
@@ -145,13 +150,17 @@ func (s *Servers) InitServers(domain string, domainConfig config.Server) {
 	srv := InitServer(domain)
 	s.AttachPlain(domainConfig.Port.HTTP, srv)
 
-	srvHTTPS, err := srvtls.ServerOverrides(domain, *srv, domainConfig)
+	srvHTTPS := InitServer(domain)
+
+	err := srvtls.ServerOverrides(domain, srvHTTPS, domainConfig)
 	if err != nil {
-		log.Errorf("Skipping %s TLS server configuration: %s", domain, err)
-		log.Errorf("No HTTPS server will be listening on %s", domain)
+		log.Errorf("Skipping '%s' TLS server configuration: %s", domain, err)
+		log.Errorf("No HTTPS server will be listening on '%s'", domain)
+
 		return
 	}
-	s.AttachSecure(domainConfig.Port.HTTPS, &srvHTTPS)
+
+	s.AttachSecure(domainConfig.Port.HTTPS, srvHTTPS)
 }
 
 // StartDomainServer - Configures and start listening for a particular domain.
@@ -182,6 +191,7 @@ func (s Servers) startListeners() {
 	for _, srvHTTP := range s.HTTP {
 		go func(srv *http.Server) { log.Fatal(srv.ListenAndServe()) }(srvHTTP)
 	}
+
 	for _, srvHTTPS := range s.HTTPS {
 		go func(srv *http.Server) { log.Fatal(srv.ListenAndServeTLS("", "")) }(srvHTTPS)
 	}
@@ -194,6 +204,7 @@ func (s Servers) shutdownServers(ctx context.Context) {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
+
 	for k, v := range s.HTTPS {
 		err := v.Shutdown(ctx)
 		if err != nil {
