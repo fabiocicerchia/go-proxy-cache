@@ -145,7 +145,12 @@ func (s *Servers) InitServers(domain string, domainConfig config.Server) {
 	srv := InitServer(domain)
 	s.AttachPlain(domainConfig.Port.HTTP, srv)
 
-	srvHTTPS := srvtls.ServerOverrides(domain, *srv, domainConfig)
+	srvHTTPS, err := srvtls.ServerOverrides(domain, *srv, domainConfig)
+	if err != nil {
+		log.Errorf("Skipping %s TLS server configuration: %s", domain, err)
+		log.Errorf("No HTTPS server will be listening on %s", domain)
+		return
+	}
 	s.AttachSecure(domainConfig.Port.HTTPS, &srvHTTPS)
 }
 
@@ -187,12 +192,14 @@ func (s Servers) shutdownServers(ctx context.Context) {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+			return
 		}
 	}
 	for k, v := range s.HTTPS {
 		err := v.Shutdown(ctx)
 		if err != nil {
 			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+			return
 		}
 	}
 }

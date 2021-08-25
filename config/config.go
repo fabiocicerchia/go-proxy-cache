@@ -257,6 +257,7 @@ func InitConfigFromFileOrEnv(file string) {
 		YamlConfig, err = getYamlConfig(file)
 		if err != nil {
 			log.Fatalf("Cannot unmarshal YAML: %s\n", err)
+			return
 		}
 		Config.CopyOverWith(YamlConfig, &file)
 	}

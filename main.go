@@ -70,6 +70,7 @@ func getLogFileWriter(logFile string) *os.File {
 	f, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
 		log.Fatal(err)
+		return nil
 	}
 
 	return f

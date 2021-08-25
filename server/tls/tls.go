@@ -26,25 +26,32 @@ var certificates map[string]*crypto_tls.Certificate
 var tlsConfig *crypto_tls.Config
 
 // ServerOverrides - Overrides the http.Server configuration for TLS.
-func ServerOverrides(domain string, server http.Server, domainConfig config.Server) http.Server {
+func ServerOverrides(domain string, server http.Server, domainConfig config.Server) (http.Server, error) {
 	newServer := server
-	var err error
-
-	tlsConfig, err = Config(domain, domainConfig.TLS.CertFile, domainConfig.TLS.KeyFile)
-	if err != nil {
-		log.Fatal(err)
-		return newServer
-	}
-	newServer.TLSConfig = tlsConfig
-	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
 
 	if domainConfig.TLS.Auto {
 		certManager := InitCertManager(domainConfig.Upstream.Host, domainConfig.TLS.Email)
 
 		newServer.TLSConfig = certManager.TLSConfig()
+
+		return newServer, nil
 	}
 
-	return newServer
+	if domainConfig.TLS.CertFile == "" || domainConfig.TLS.KeyFile == "" {
+		return newServer, fmt.Errorf("Missing Cert file and/or Key file")
+	}
+
+	var err error
+
+	tlsConfig, err = Config(domain, domainConfig.TLS.CertFile, domainConfig.TLS.KeyFile)
+	if err != nil {
+		log.Fatal(err)
+		return newServer, err
+	}
+	newServer.TLSConfig = tlsConfig
+	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+
+	return newServer, nil
 }
 
 // Config - Returns a TLS configuration.

@@ -29,11 +29,13 @@ func TestHTTPClientCall(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	res.Body.Close()
@@ -59,6 +61,7 @@ func TestHTTPClientCallToMissingDomain(t *testing.T) {
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	assert.Equal(t, "HTTP/1.1", res.Proto)
