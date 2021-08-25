@@ -1,5 +1,5 @@
 'use strict'
-var WebSocket = require('ws')
+const WebSocket = require('ws')
 
 // WS --------------------------------------------------------------------------
 
@@ -22,7 +22,7 @@ socket.on('error', function (event) {
 
 // WSS -------------------------------------------------------------------------
 
-var opts = {
+const opts = {
   rejectUnauthorized: false
 }
 
@@ -38,11 +38,11 @@ socket2.onopen = function (event) {
 
 socket2.onmessage = function (event) {
   console.log(event.data)
-  console.log("ALL GOOD, EXITING...")
+  console.log('ALL GOOD, EXITING...')
   process.exit(0)
 }
 socket2.on('error', function (event) {
   console.log(event)
-  console.log("ERROR, EXITING...")
+  console.log('ERROR, EXITING...')
   process.exit(1)
 })

@@ -5,4 +5,9 @@ linters:
     - interfacer
     - maligned
     - scopelint
-    - typecheck
+    - wrapcheck
+
+issues:
+  exclude-rules:
+    - text: could not import C (cgo preprocessing failed)
+      linters: [typecheck]

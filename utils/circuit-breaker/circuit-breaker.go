@@ -37,6 +37,7 @@ func InitCircuitBreaker(name string, config CircuitBreaker) {
 		Timeout:     config.Timeout,
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+
 			return counts.Requests >= config.Threshold && failureRatio >= config.FailureRate
 		},
 		OnStateChange: func(name string, from gobreaker.State, to gobreaker.State) {

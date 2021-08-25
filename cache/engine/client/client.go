@@ -111,7 +111,13 @@ func (rdb *RedisClient) Ping() bool {
 
 // Set - Sets a key, with certain value, with TTL for expiring.
 func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) (bool, error) {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(rdb.doSet(key, value, expiration))
+
+	return err == nil, err
+}
+
+func (rdb *RedisClient) doSet(key string, value string, expiration time.Duration) func() (interface{}, error) {
+	return func() (interface{}, error) {
 		mutex, errLock := rdb.lock(key)
 		if errLock != nil {
 			return nil, errLock
@@ -124,9 +130,7 @@ func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) 
 		}
 
 		return nil, err
-	})
-
-	return err == nil, err
+	}
 }
 
 // Get - Gets a key.
@@ -149,20 +153,7 @@ func (rdb *RedisClient) Get(key string) (string, error) {
 
 // Del - Removes a key.
 func (rdb *RedisClient) Del(key string) error {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
-		mutex, errLock := rdb.lock(key)
-		if errLock != nil {
-			return nil, errLock
-		}
-
-		err := rdb.Client.Del(ctx, key).Err()
-
-		if errUnlock := rdb.unlock(mutex, key); errUnlock != nil {
-			return nil, errUnlock
-		}
-
-		return nil, err
-	})
+	_, err := rdb.deleteKeys(key, []string{key})
 
 	return err
 }
@@ -174,29 +165,41 @@ func (rdb *RedisClient) DelWildcard(key string) (int, error) {
 		return keys, err
 	})
 
-	keys := k.([]string)
-	l := len(keys)
-
-	if err != nil || l == 0 {
-		return l, nil
+	if err != nil {
+		return 0, nil
 	}
 
-	_, errDel := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
-		mutex, errLock := rdb.lock(key)
+	return rdb.deleteKeys(key, k.([]string))
+}
+
+// DelWildcard - Removes the matching keys based on a pattern.
+func (rdb *RedisClient) deleteKeys(keyID string, keys []string) (int, error) {
+	l := len(keys)
+
+	if l == 0 {
+		return 0, nil
+	}
+
+	_, errDel := circuitbreaker.CB(rdb.Name).Execute(rdb.doDeleteKeys(keyID, keys))
+
+	return l, errDel
+}
+
+func (rdb *RedisClient) doDeleteKeys(keyID string, keys []string) func() (interface{}, error) {
+	return func() (interface{}, error) {
+		mutex, errLock := rdb.lock(keyID)
 		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Del(ctx, keys...).Err()
 
-		if errUnlock := rdb.unlock(mutex, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(mutex, keyID); errUnlock != nil {
 			return nil, errUnlock
 		}
 
 		return nil, err
-	})
-
-	return l, errDel
+	}
 }
 
 // List - Returns the values in a list.
@@ -215,7 +218,13 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 
 // Push - Append values to a list.
 func (rdb *RedisClient) Push(key string, values []string) error {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name).Execute(rdb.doPushKey(key, values))
+
+	return err
+}
+
+func (rdb *RedisClient) doPushKey(key string, values []string) func() (interface{}, error) {
+	return func() (interface{}, error) {
 		mutex, errLock := rdb.lock(key)
 		if errLock != nil {
 			return nil, errLock
@@ -228,9 +237,7 @@ func (rdb *RedisClient) Push(key string, values []string) error {
 		}
 
 		return nil, err
-	})
-
-	return err
+	}
 }
 
 // Expire - Sets a TTL on a key.

@@ -25,6 +25,16 @@ import (
 var httpsDomains []string
 var certificates map[string]*crypto_tls.Certificate
 var tlsConfig *crypto_tls.Config
+var defaultTlsConfig = &crypto_tls.Config{
+	// Causes servers to use Go's default ciphersuite preferences,
+	// which are tuned to avoid attacks. Does nothing on clients.
+	PreferServerCipherSuites: true,
+	CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
+	MinVersion:               config.Config.Server.TLS.Override.MinVersion,
+	MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
+	CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
+	GetCertificate:           returnCert,
+} // #nosec
 
 var errMissingCertificate = errors.New("missing certificate")
 var errMissingCertificateOrKey = errors.New("missing certificate file and/or key file")
@@ -62,16 +72,7 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 
 	// G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
 	// It can be ignored as it is customisable, but the default is TLSv1.2.
-	tlsConfig := &crypto_tls.Config{
-		// Causes servers to use Go's default ciphersuite preferences,
-		// which are tuned to avoid attacks. Does nothing on clients.
-		PreferServerCipherSuites: true,
-		CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
-		MinVersion:               config.Config.Server.TLS.Override.MinVersion,
-		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
-		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
-		GetCertificate:           returnCert,
-	} // #nosec
+	tlsConfig := defaultTlsConfig
 
 	if len(certificates) == 0 {
 		certificates = make(map[string]*crypto_tls.Certificate)

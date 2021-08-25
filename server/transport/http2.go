@@ -63,34 +63,7 @@ func ParseMultiple(headers []string) []LinkItem {
 // Parse - Processes and extracts the URLs contained in a Link HTTP Header.
 func Parse(value string) (links []LinkItem) {
 	for _, item := range strings.Split(value, ",") {
-		link := LinkItem{Params: make(map[string]string)}
-
-		for _, subpart := range strings.Split(item, ";") {
-			subpart = strings.Trim(subpart, " ")
-			if subpart == "" {
-				continue
-			}
-
-			if strings.HasPrefix(subpart, "<") && strings.HasSuffix(subpart, ">") {
-				link.URL = strings.Trim(subpart, "<>")
-				continue
-			}
-
-			key, val := extractParam(subpart)
-			if key == "" {
-				continue
-			}
-
-			// RFC5988 Standard params: rel, anchor, rev, hreflang, media, title, title*, type.
-			switch strings.ToLower(key) {
-			case "rel":
-				link.Rel = val
-			case "nopush":
-				link.NoPush = true
-			default:
-				link.Params[key] = strings.Trim(val, `"`)
-			}
-		}
+		link := parseItem(item)
 
 		if link.URL != "" {
 			links = append(links, link)
@@ -98,6 +71,42 @@ func Parse(value string) (links []LinkItem) {
 	}
 
 	return links
+}
+
+func parseItem(item string) LinkItem {
+	link := LinkItem{Params: make(map[string]string)}
+	for _, subpart := range strings.Split(item, ";") {
+		fillLinkItem(&link, subpart)
+	}
+
+	return link
+}
+
+func fillLinkItem(link *LinkItem, subpart string) {
+	subpart = strings.Trim(subpart, " ")
+	if subpart == "" {
+		return
+	}
+
+	if strings.HasPrefix(subpart, "<") && strings.HasSuffix(subpart, ">") {
+		link.URL = strings.Trim(subpart, "<>")
+		return
+	}
+
+	key, val := extractParam(subpart)
+	if key == "" {
+		return
+	}
+
+	// RFC5988 Standard params: rel, anchor, rev, hreflang, media, title, title*, type.
+	switch strings.ToLower(key) {
+	case "rel":
+		link.Rel = val
+	case "nopush":
+		link.NoPush = true
+	default:
+		link.Params[key] = strings.Trim(val, `"`)
+	}
 }
 
 func extractParam(param string) (key, val string) {
