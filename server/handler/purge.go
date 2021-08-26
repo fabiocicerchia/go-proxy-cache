@@ -12,16 +12,15 @@ package handler
 import (
 	"net/http"
 
-	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	log "github.com/sirupsen/logrus"
 )
 
 // HandlePurge - Purges the cache for the requested URI.
-func (rc RequestCall) HandlePurge(domainConfig *config.Configuration) {
+func (rc RequestCall) HandlePurge() {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	status, err := storage.PurgeCachedContent(domainConfig.Server.Upstream, rcDTO)
+	status, err := storage.PurgeCachedContent(rc.DomainConfig.Server.Upstream, rcDTO)
 	if !status || err != nil {
 		rc.Response.WriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")

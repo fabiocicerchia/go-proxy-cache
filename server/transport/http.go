@@ -133,10 +133,8 @@ func handleTrailer(announcedTrailers int, lwr *response.LoggedResponseWriter, re
 	}
 
 	for k, vv := range res.Trailer {
-		k = http.TrailerPrefix + k
-
 		for _, v := range vv {
-			lwr.Header().Add(k, v)
+			lwr.Header().Add(http.TrailerPrefix+k, v)
 		}
 	}
 }

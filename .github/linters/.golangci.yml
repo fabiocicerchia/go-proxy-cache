@@ -9,5 +9,9 @@ linters:
 
 issues:
   exclude-rules:
-    - text: could not import C (cgo preprocessing failed)
+    - text: could not import C
+      linters: [typecheck]
+    - text: undefined
+      linters: [typecheck]
+    - text: undeclared name
       linters: [typecheck]

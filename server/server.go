@@ -18,9 +18,7 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/go-http-utils/etag"
 	log "github.com/sirupsen/logrus"
-	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -69,7 +67,7 @@ func Run(configFile string) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	log.Error("SIGKILL or SIGINT caught, shutting down...")
+	log.Error("SIGTERM or SIGINT caught, shutting down...")
 
 	// Attempt a graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeoutShutdown)
@@ -77,18 +75,6 @@ func Run(configFile string) {
 
 	servers.shutdownServers(ctx)
 	log.Error("all listeners shut down.")
-}
-
-func ConditionalETag(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		// ETag wrapper doesn't work well with WebSocket and HTTP/2.
-		if !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2 {
-			etagHandler := etag.Handler(h, false)
-			etagHandler.ServeHTTP(res, req)
-		} else {
-			h.ServeHTTP(res, req)
-		}
-	})
 }
 
 // InitServer - Generates the http.Server configuration.

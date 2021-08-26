@@ -11,7 +11,6 @@ package storage
 
 import (
 	"net/http"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -26,20 +25,18 @@ import (
 type RequestCallDTO struct {
 	Response    response.LoggedResponseWriter
 	Request     http.Request
+	Hostname    string
 	Scheme      string
 	CacheObject cache.Object
 }
 
 // RetrieveCachedContent - Retrives the cached response.
 func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
-	method := rc.Request.Method
-	reqHeaders := rc.Request.Header
-
 	url := *rc.Request.URL
 	url.Scheme = rc.Scheme
-	url.Host = strings.Split(rc.Request.Host, ":")[0] // TODO: HACK
+	url.Host = rc.Hostname
 
-	err := rc.CacheObject.RetrieveFullPage(method, url, reqHeaders)
+	err := rc.CacheObject.RetrieveFullPage(rc.Request.Method, url, rc.Request.Header)
 	if err != nil {
 		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
 	}

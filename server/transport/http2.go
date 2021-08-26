@@ -34,9 +34,7 @@ func PushProxiedResources(lwr *response.LoggedResponseWriter, uriobj *cache.URIO
 		return
 	}
 
-	links := uriobj.ResponseHeaders.Values("Link")
-
-	for _, link := range ParseMultiple(links) {
+	for _, link := range ParseMultiple(uriobj.ResponseHeaders.Values("Link")) {
 		if link.Rel != "preload" || link.NoPush {
 			continue
 		}

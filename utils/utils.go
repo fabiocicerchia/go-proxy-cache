@@ -12,6 +12,7 @@ package utils
 import (
 	"os"
 	"strings"
+	"time"
 )
 
 // StringSeparatorOne - Main text separator, used for joins.
@@ -39,12 +40,32 @@ func IfEmpty(val string, fallback string) string {
 }
 
 // Coalesce - Returns the original value if the conditions is not met, fallback value otherwise.
-func Coalesce(value interface{}, fallback interface{}, condition bool) interface{} {
-	if condition {
+func Coalesce(value interface{}, fallback interface{}) interface{} {
+	if IsEmpty(value) {
 		value = fallback
 	}
 
 	return value
+}
+
+// IsEmpty - Checks whether a value is empty.
+func IsEmpty(value interface{}) bool {
+	switch t := value.(type) {
+	case int:
+		return t == 0
+	case string:
+		return t == ""
+	case bool:
+		return !t
+	case []int:
+		return len(t) == 0 || IsEmpty(t[0])
+	case []string:
+		return len(t) == 0 || IsEmpty(t[0])
+	case time.Duration:
+		return t == 0
+	default:
+		return value == nil
+	}
 }
 
 // StripPort - Removes the port from a string like hostname:port.

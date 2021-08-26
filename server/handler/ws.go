@@ -10,23 +10,22 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.
-func (rc RequestCall) HandleWSRequestAndProxy(domainConfig *config.Configuration) {
-	rc.serveReverseProxyWS(domainConfig)
+func (rc RequestCall) HandleWSRequestAndProxy() {
+	rc.serveReverseProxyWS()
 
 	if enableLoggingRequest {
 		logger.LogRequest(*rc.Request, *rc.Response, false)
 	}
 }
 
-func (rc RequestCall) serveReverseProxyWS(domainConfig *config.Configuration) {
-	upstream := domainConfig.Server.Upstream
+func (rc RequestCall) serveReverseProxyWS() {
+	upstream := rc.DomainConfig.Server.Upstream
 	proxyURL := rc.patchRequestForReverseProxy(upstream)
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
@@ -35,7 +34,7 @@ func (rc RequestCall) serveReverseProxyWS(domainConfig *config.Configuration) {
 
 	proxy := wsutil.NewSingleHostReverseProxy(proxyURL)
 
-	transport := rc.patchProxyTransport(domainConfig)
+	transport := rc.patchProxyTransport()
 	proxy.Dial = transport.Dial
 	proxy.TLSClientConfig = transport.TLSClientConfig
 

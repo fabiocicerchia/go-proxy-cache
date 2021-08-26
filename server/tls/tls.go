@@ -23,8 +23,11 @@ import (
 )
 
 var httpsDomains []string
-var certificates map[string]*crypto_tls.Certificate
+var certificates map[string]*crypto_tls.Certificate = make(map[string]*crypto_tls.Certificate)
 var tlsConfig *crypto_tls.Config
+
+// G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
+// It can be ignored as it is customisable, but the default is TLSv1.2.
 var defaultTlsConfig = &crypto_tls.Config{
 	// Causes servers to use Go's default ciphersuite preferences,
 	// which are tuned to avoid attacks. Does nothing on clients.
@@ -48,7 +51,7 @@ func ServerOverrides(domain string, server *http.Server, domainConfig config.Ser
 		return nil
 	}
 
-	tlsConfig, err = Config(domain, domainConfig.TLS.CertFile, domainConfig.TLS.KeyFile)
+	tlsConfig, err = Config(domain, domainConfig.TLS)
 	if err != nil {
 		return err
 	}
@@ -60,25 +63,19 @@ func ServerOverrides(domain string, server *http.Server, domainConfig config.Ser
 }
 
 // Config - Returns a TLS configuration.
-func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config, error) {
-	if certFile == "" || keyFile == "" {
+func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, error) {
+	if domainConfigTLS.CertFile == "" || domainConfigTLS.KeyFile == "" {
 		return nil, errMissingCertificateOrKey
 	}
 
-	cert, err := crypto_tls.LoadX509KeyPair(certFile, keyFile)
+	cert, err := crypto_tls.LoadX509KeyPair(domainConfigTLS.CertFile, domainConfigTLS.KeyFile)
 	if err != nil {
 		return nil, err
 	}
 
-	// G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
-	// It can be ignored as it is customisable, but the default is TLSv1.2.
-	tlsConfig := defaultTlsConfig
-
-	if len(certificates) == 0 {
-		certificates = make(map[string]*crypto_tls.Certificate)
-	}
-
 	certificates[domain] = &cert
+
+	tlsConfig := defaultTlsConfig
 
 	// If GetCertificate is nil or returns nil, then the certificate is
 	// retrieved from NameToCertificate. If NameToCertificate is nil, the
@@ -86,6 +83,13 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 	// Ref: https://golang.org/pkg/crypto/tls/#Config.GetCertificate
 	for _, c := range certificates {
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
+	}
+
+	if domainConfigTLS.Override != nil {
+		tlsConfig.CurvePreferences = domainConfigTLS.Override.CurvePreferences
+		tlsConfig.MinVersion = domainConfigTLS.Override.MinVersion
+		tlsConfig.MaxVersion = domainConfigTLS.Override.MaxVersion
+		tlsConfig.CipherSuites = domainConfigTLS.Override.CipherSuites
 	}
 
 	return tlsConfig, nil

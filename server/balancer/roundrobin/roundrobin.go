@@ -14,10 +14,8 @@ import (
 	"sync"
 )
 
-var (
-	// ErrNoAvailableItem no item is available.
-	ErrNoAvailableItem = errors.New("no item is available")
-)
+// ErrNoAvailableItem no item is available.
+var ErrNoAvailableItem = errors.New("no item is available")
 
 // Balancer roundrobin instance.
 type Balancer struct {

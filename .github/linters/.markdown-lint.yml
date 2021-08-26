@@ -1,10 +1,12 @@
 line-length: false
-MD024: false
-MD026:
+MD014: false # Dollar signs used before commands without showing output
+MD024: false # Multiple headings with the same content
+MD026: # Trailing punctuation in heading
   punctuation: ".,;:!。，；：！？"
-MD033:
+MD029: false # Ordered list item prefix
+MD033: # Inline HTML
   allowed_elements:
     - center
     - details
     - summary
-MD038: false
+MD038: false # Spaces inside code span elements

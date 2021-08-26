@@ -10,13 +10,11 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -39,7 +37,7 @@ var DefaultTransportMaxConnsPerHost int = 1000
 var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
-func (rc RequestCall) HandleHTTPRequestAndProxy(domainConfig *config.Configuration) {
+func (rc RequestCall) HandleHTTPRequestAndProxy() {
 	cached := false
 
 	if enableCachedResponse {
@@ -47,33 +45,12 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(domainConfig *config.Configurati
 	}
 
 	if !cached {
-		rc.serveReverseProxyHTTP(domainConfig)
+		rc.serveReverseProxyHTTP()
 	}
 
 	if enableLoggingRequest {
 		logger.LogRequest(*rc.Request, *rc.Response, cached)
 	}
-}
-
-func getOverridePort(host string, port string, scheme string) string {
-	// if there's already a port it must have priority
-	if strings.Contains(host, ":") {
-		return ""
-	}
-
-	portOverride := port
-
-	if portOverride == "" && scheme == "http" {
-		portOverride = "80"
-	} else if portOverride == "" && scheme == "https" {
-		portOverride = "443"
-	}
-
-	if portOverride != "" {
-		portOverride = ":" + portOverride
-	}
-
-	return portOverride
 }
 
 func (rc RequestCall) serveCachedContent() bool {
@@ -95,30 +72,8 @@ func (rc RequestCall) serveCachedContent() bool {
 	return true
 }
 
-func (rc RequestCall) patchProxyTransport(domainConfig *config.Configuration) *http.Transport {
-	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
-	// It can be ignored as it is customisable, but the default is false.
-	return &http.Transport{
-		MaxIdleConns:        DefaultTransportMaxIdleConns,
-		MaxIdleConnsPerHost: DefaultTransportMaxIdleConnsPerHost,
-		MaxConnsPerHost:     DefaultTransportMaxConnsPerHost,
-		Dial: func(network, addr string) (net.Conn, error) {
-			conn, err := net.DialTimeout(network, addr, DefaultTransportDialTimeout)
-			if err != nil {
-				return conn, err
-			}
-
-			return conn, err
-		},
-		DisableKeepAlives: false,
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: domainConfig.Server.Upstream.InsecureBridge,
-		},
-	} // #nosec
-}
-
-func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) {
-	upstream := domainConfig.Server.Upstream
+func (rc RequestCall) serveReverseProxyHTTP() {
+	upstream := rc.DomainConfig.Server.Upstream
 	proxyURL := rc.patchRequestForReverseProxy(upstream)
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
@@ -126,7 +81,7 @@ func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) 
 	log.Debugf("Req Host: %s", rc.Request.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
-	proxy.Transport = rc.patchProxyTransport(domainConfig)
+	proxy.Transport = rc.patchProxyTransport()
 
 	director := proxy.Director
 
@@ -140,10 +95,14 @@ func (rc RequestCall) serveReverseProxyHTTP(domainConfig *config.Configuration) 
 
 	proxy.ServeHTTP(rc.Response, rc.Request)
 
+	rc.storeResponse()
+}
+
+func (rc RequestCall) storeResponse() {
 	if enableStoringResponse {
 		rcDTO := ConvertToRequestCallDTO(rc)
 
-		stored, err := storage.StoreGeneratedPage(rcDTO, domainConfig.Cache)
+		stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
 		if !stored || err != nil {
 			logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
 		}
@@ -180,20 +139,4 @@ func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
 	rc.Request.URL.Host = balancedHost + overridePort
 	rc.Request.URL.Scheme = scheme
 	rc.Request.Host = host
-}
-
-func (rc *RequestCall) patchRequestForReverseProxy(upstream config.Upstream) *url.URL {
-	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
-	targetURL := *rc.Request.URL
-	targetURL.Scheme = rc.GetScheme()
-	targetURL.Host = upstream.Host + overridePort
-
-	rc.FixRequest(targetURL, upstream)
-
-	proxyURL := &url.URL{
-		Scheme: rc.Request.URL.Scheme,
-		Host:   rc.Request.URL.Host,
-	}
-
-	return proxyURL
 }

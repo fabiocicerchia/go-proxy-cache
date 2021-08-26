@@ -1,4 +1,4 @@
-package handler
+package server
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -12,18 +12,18 @@ package handler
 import (
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/go-http-utils/etag"
+	"github.com/yhat/wsutil"
 )
 
-// RedirectToHTTPS - Redirects from HTTP to HTTPS.
-func (rc RequestCall) RedirectToHTTPS() {
-	targetURL := rc.Request.URL
-	targetURL.Scheme = "https"
-	targetURL.Host = rc.Request.Host
-
-	target := targetURL.String()
-
-	log.Infof("Redirect to: %s", target)
-
-	http.Redirect(rc.Response, rc.Request, target, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+func ConditionalETag(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		// ETag wrapper doesn't work well with WebSocket and HTTP/2.
+		if !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2 {
+			etagHandler := etag.Handler(h, false)
+			etagHandler.ServeHTTP(res, req)
+		} else {
+			h.ServeHTTP(res, req)
+		}
+	})
 }

@@ -69,19 +69,17 @@ func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
 	return rdb.Mutex[mutexname]
 }
 
-func (rdb *RedisClient) lock(key string) (*redsync.Mutex, error) {
-	mutex := rdb.getMutex(key)
-
-	if err := mutex.Lock(); err != nil {
+func (rdb *RedisClient) lock(key string) error {
+	if err := rdb.getMutex(key).Lock(); err != nil {
 		log.Errorf("Lock Error on %s: %s", key, err)
-		return nil, err
+		return err
 	}
 
-	return mutex, nil
+	return nil
 }
 
-func (rdb *RedisClient) unlock(mutex *redsync.Mutex, key string) error {
-	if ok, err := mutex.Unlock(); !ok || err != nil {
+func (rdb *RedisClient) unlock(key string) error {
+	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
 		log.Errorf("Unlock Error on %s: %s", key, err)
 		return err
 	}
@@ -118,14 +116,13 @@ func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) 
 
 func (rdb *RedisClient) doSet(key string, value string, expiration time.Duration) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		mutex, errLock := rdb.lock(key)
-		if errLock != nil {
+		if errLock := rdb.lock(key); errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Set(ctx, key, value, expiration).Err()
 
-		if errUnlock := rdb.unlock(mutex, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(key); errUnlock != nil {
 			return nil, errUnlock
 		}
 
@@ -187,14 +184,13 @@ func (rdb *RedisClient) deleteKeys(keyID string, keys []string) (int, error) {
 
 func (rdb *RedisClient) doDeleteKeys(keyID string, keys []string) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		mutex, errLock := rdb.lock(keyID)
-		if errLock != nil {
+		if errLock := rdb.lock(keyID); errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Del(ctx, keys...).Err()
 
-		if errUnlock := rdb.unlock(mutex, keyID); errUnlock != nil {
+		if errUnlock := rdb.unlock(keyID); errUnlock != nil {
 			return nil, errUnlock
 		}
 
@@ -225,14 +221,13 @@ func (rdb *RedisClient) Push(key string, values []string) error {
 
 func (rdb *RedisClient) doPushKey(key string, values []string) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		mutex, errLock := rdb.lock(key)
-		if errLock != nil {
+		if errLock := rdb.lock(key); errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.RPush(ctx, key, values).Err()
 
-		if errUnlock := rdb.unlock(mutex, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(key); errUnlock != nil {
 			return nil, errUnlock
 		}
 
