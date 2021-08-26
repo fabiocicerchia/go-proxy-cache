@@ -17,7 +17,7 @@ jobs:
     container: golang:alpine
     services:
       redis:
-        image: redis:6.0.8-alpine3.12
+        image: redis:6.2.5-alpine3.14
         ports:
           - 6379/tcp
         options: >-
@@ -58,7 +58,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apk update
-          apk add bash curl gcc libc-dev make nghttp2 nodejs npm redis
+          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev
 
       - name: Build
         run: make build-race
@@ -67,7 +67,6 @@ jobs:
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
           ./go-proxy-cache -debug -config=test/full-setup/config.yml &
-          npm install test/full-setup
           make test
         env:
           REDIS_HOST: redis

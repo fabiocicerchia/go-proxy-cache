@@ -94,6 +94,7 @@ test-endtoend: ## test endtoend
 	go test -race -count=1 --tags=endtoend ./...
 
 test-ws: ## test websocket
+	cd test/full-setup && npm install
 	node test/full-setup/ws_client.js
 
 test-http2: ## test HTTP2

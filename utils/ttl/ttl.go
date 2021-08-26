@@ -54,22 +54,34 @@ func GetTTL(headers http.Header, defaultTTL int) time.Duration {
 	ttl := time.Duration(defaultTTL) * time.Second
 
 	expires := slice.GetByKeyCaseInsensitive(headers, "Expires")
+	ttl = overrideWithExpires(ttl, expires)
 
+	cacheControl := slice.GetByKeyCaseInsensitive(headers, "Cache-Control")
+	ttl = overrideWithCacheControl(ttl, cacheControl)
+
+	return ttl
+}
+
+func overrideWithExpires(ttl time.Duration, expires interface{}) time.Duration {
 	if expires != nil {
 		expiresValue := expires.([]string)[0]
 		expiresTTL := ttlFromExpires(expiresValue)
+
 		if expiresTTL != nil {
-			ttl = *expiresTTL
+			return *expiresTTL
 		}
 	}
 
-	cacheControl := slice.GetByKeyCaseInsensitive(headers, "Cache-Control")
+	return ttl
+}
 
+func overrideWithCacheControl(ttl time.Duration, cacheControl interface{}) time.Duration {
 	if cacheControl != nil {
 		cacheControlValue := strings.ToLower(cacheControl.([]string)[0])
 		cacheControlTTL := ttlFromCacheControlChain(cacheControlValue)
+
 		if cacheControlTTL != nil {
-			ttl = *cacheControlTTL
+			return *cacheControlTTL
 		}
 	}
 
@@ -85,10 +97,7 @@ func GetTTLFromCacheControl(cacheType string, cacheControl string) time.Duration
 	age := ageRegex.FindStringSubmatch(cacheControl)
 
 	if len(age) > 0 {
-		ageTTL, err := strconv.ParseInt(age[1], 10, 64)
-		if err != nil {
-			ageTTL = 0
-		}
+		ageTTL, _ := strconv.ParseInt(age[1], 10, 64) // it fallbacks on 0
 		ttl = time.Duration(ageTTL) * time.Second
 	}
 

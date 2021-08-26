@@ -11,9 +11,10 @@ package tls
 
 import (
 	crypto_tls "crypto/tls"
-	"fmt"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/pkg/errors"
 
 	log "github.com/sirupsen/logrus"
 
@@ -22,55 +23,59 @@ import (
 )
 
 var httpsDomains []string
-var certificates map[string]*crypto_tls.Certificate
+var certificates map[string]*crypto_tls.Certificate = make(map[string]*crypto_tls.Certificate)
 var tlsConfig *crypto_tls.Config
 
+// G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
+// It can be ignored as it is customisable, but the default is TLSv1.2.
+var defaultTlsConfig = &crypto_tls.Config{
+	// Causes servers to use Go's default ciphersuite preferences,
+	// which are tuned to avoid attacks. Does nothing on clients.
+	PreferServerCipherSuites: true,
+	CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
+	MinVersion:               config.Config.Server.TLS.Override.MinVersion,
+	MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
+	CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
+	GetCertificate:           returnCert,
+} // #nosec
+
+var errMissingCertificate = errors.New("missing certificate")
+var errMissingCertificateOrKey = errors.New("missing certificate file and/or key file")
+
 // ServerOverrides - Overrides the http.Server configuration for TLS.
-func ServerOverrides(domain string, server http.Server, domainConfig config.Server) http.Server {
-	newServer := server
-	var err error
-
-	tlsConfig, err = Config(domain, domainConfig.TLS.CertFile, domainConfig.TLS.KeyFile)
-	if err != nil {
-		log.Fatal(err)
-		return newServer
-	}
-	newServer.TLSConfig = tlsConfig
-	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
-
+func ServerOverrides(domain string, server *http.Server, domainConfig config.Server) (err error) {
 	if domainConfig.TLS.Auto {
 		certManager := InitCertManager(domainConfig.Upstream.Host, domainConfig.TLS.Email)
+		server.TLSConfig = certManager.TLSConfig()
 
-		newServer.TLSConfig = certManager.TLSConfig()
+		return nil
 	}
 
-	return newServer
+	tlsConfig, err = Config(domain, domainConfig.TLS)
+	if err != nil {
+		return err
+	}
+
+	server.TLSConfig = tlsConfig
+	// TODO: check this: server.TLSNextProto = make(map[string]func(*http.Server, *tls.Conn, http.Handler), 0),
+
+	return nil
 }
 
 // Config - Returns a TLS configuration.
-func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config, error) {
-	cert, err := crypto_tls.LoadX509KeyPair(certFile, keyFile)
+func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, error) {
+	if domainConfigTLS.CertFile == "" || domainConfigTLS.KeyFile == "" {
+		return nil, errMissingCertificateOrKey
+	}
+
+	cert, err := crypto_tls.LoadX509KeyPair(domainConfigTLS.CertFile, domainConfigTLS.KeyFile)
 	if err != nil {
 		return nil, err
 	}
 
-	// G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
-	// It can be ignored as it is customisable, but the default is TLSv1.2.
-	tlsConfig := &crypto_tls.Config{
-		// Causes servers to use Go's default ciphersuite preferences,
-		// which are tuned to avoid attacks. Does nothing on clients.
-		PreferServerCipherSuites: true,
-		CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
-		MinVersion:               config.Config.Server.TLS.Override.MinVersion,
-		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
-		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
-		GetCertificate:           returnCert,
-	} // #nosec
-
-	if len(certificates) == 0 {
-		certificates = make(map[string]*crypto_tls.Certificate)
-	}
 	certificates[domain] = &cert
+
+	tlsConfig := defaultTlsConfig
 
 	// If GetCertificate is nil or returns nil, then the certificate is
 	// retrieved from NameToCertificate. If NameToCertificate is nil, the
@@ -80,15 +85,24 @@ func Config(domain string, certFile string, keyFile string) (*crypto_tls.Config,
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
 	}
 
+	if domainConfigTLS.Override != nil {
+		tlsConfig.CurvePreferences = domainConfigTLS.Override.CurvePreferences
+		tlsConfig.MinVersion = domainConfigTLS.Override.MinVersion
+		tlsConfig.MaxVersion = domainConfigTLS.Override.MaxVersion
+		tlsConfig.CipherSuites = domainConfigTLS.Override.CipherSuites
+	}
+
 	return tlsConfig, nil
 }
 
 func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate, error) {
 	log.Debugf("HelloInfo: %v\n", helloInfo)
+
 	if val, ok := certificates[helloInfo.ServerName]; ok {
 		return val, nil
 	}
-	return nil, fmt.Errorf("missing certificate for %s", helloInfo.ServerName)
+
+	return nil, errors.Wrapf(errMissingCertificate, "ServerName %s", helloInfo.ServerName)
 }
 
 // InitCertManager - Initialise the Certification Manager for auto generation.

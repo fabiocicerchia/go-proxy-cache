@@ -1,4 +1,4 @@
-package handler
+package string
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -10,20 +10,18 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/http"
-
-	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
-// RedirectToHTTPS - Redirects from HTTP to HTTPS.
-func (rc RequestCall) RedirectToHTTPS() {
-	targetURL := rc.Request.URL
-	targetURL.Scheme = "https"
-	targetURL.Host = rc.Request.Host
+const SchemeHTTPS = "https"
+const SchemeHTTP = "http"
 
-	target := targetURL.String()
+var allowedSchemes = map[string]string{"HTTP": SchemeHTTP, "HTTPS": SchemeHTTPS}
 
-	log.Infof("Redirect to: %s", target)
+func NormalizeScheme(scheme string) string {
+	if val, ok := allowedSchemes[strings.ToUpper(scheme)]; ok {
+		return val
+	}
 
-	http.Redirect(rc.Response, rc.Request, target, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	return ""
 }

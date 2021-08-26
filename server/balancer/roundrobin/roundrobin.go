@@ -14,10 +14,8 @@ import (
 	"sync"
 )
 
-var (
-	// ErrNoAvailableItem no item is available
-	ErrNoAvailableItem = errors.New("no item is available")
-)
+// ErrNoAvailableItem no item is available.
+var ErrNoAvailableItem = errors.New("no item is available")
 
 // Balancer roundrobin instance.
 type Balancer struct {
@@ -29,7 +27,11 @@ type Balancer struct {
 
 // New - Creates a new instance.
 func New(items []string) *Balancer {
-	return &Balancer{items: items}
+	return &Balancer{
+		m:     sync.Mutex{},
+		next:  0,
+		items: items,
+	}
 }
 
 // Pick - Chooses next available item.

@@ -22,6 +22,7 @@ func ContainsInt(items []int, value int) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -32,6 +33,7 @@ func ContainsString(items []string, value string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -40,9 +42,10 @@ func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
 	keyLower := strings.ToLower(key)
 
 	keys := make([]string, 0)
-	for k, _ := range items {
+	for k := range items {
 		keys = append(keys, k)
 	}
+
 	sort.Strings(keys)
 
 	for _, k := range keys {
@@ -54,7 +57,7 @@ func GetByKeyCaseInsensitive(items http.Header, key string) interface{} {
 	return nil
 }
 
-// Unique - Returns a slice with unique values
+// Unique - Returns a slice with unique values.
 func Unique(slice []string) []string {
 	keys := make(map[string]bool)
 	list := []string{}
@@ -62,6 +65,7 @@ func Unique(slice []string) []string {
 	for _, entry := range slice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = true
+
 			list = append(list, entry)
 		}
 	}
@@ -69,7 +73,7 @@ func Unique(slice []string) []string {
 	return list
 }
 
-// LenSliceBytes - Returns total length of a slice of bytes
+// LenSliceBytes - Returns total length of a slice of bytes.
 func LenSliceBytes(data [][]byte) int {
 	l := 0
 	for _, v := range data {

@@ -24,20 +24,42 @@ Usage of go-proxy-cache:
 
 ```console
 $ docker run \
-    -it --rm -n goproxycache \
-    --env SERVER_HTTP_PORT=80 \
+    -it --rm --name goproxycache \
     --env SERVER_HTTPS_PORT=443 \
+    --env SERVER_HTTP_PORT=80 \
     --env DEFAULT_TTL=0 \
     --env FORWARD_HOST=www.google.com \
     --env FORWARD_SCHEME=https \
     --env LB_ENDPOINT_LIST=www.google.com \
+    --env REDIS_DB=0 \
     --env REDIS_HOST=localhost \
     --env REDIS_PORT=6379 \
     --env REDIS_PASSWORD= \
-    --env REDIS_DB=0 \
-    -p 8080:80
-    -p 8443:443
+    -p 8080:80 \
+    -p 8443:443 \
     fabiocicerchia/go-proxy-cache
+```
+
+```console
+curl -H"Host: www.google.com" -v http://127.0.0.1:8080/
+*   Trying 127.0.0.1...
+* TCP_NODELAY set
+* Connected to 127.0.0.1 (127.0.0.1) port 8080 (#0)
+> GET / HTTP/1.1
+> Host: www.google.com
+> User-Agent: curl/7.64.1
+> Accept: */*
+>
+< HTTP/1.1 301 Moved Permanently
+< Content-Type: text/html; charset=utf-8
+< Location: https://www.google.com/
+< Date: Wed, 25 Aug 2021 13:30:19 GMT
+< Content-Length: 58
+<
+<a href="https://www.google.com/">Moved Permanently</a>.
+
+* Connection #0 to host 127.0.0.1 left intact
+* Closing connection 0
 ```
 
 ## PURGE

@@ -24,13 +24,13 @@ import (
 )
 
 var configFile string
-var logLevel log.Level
+var logLevel log.Level = log.InfoLevel
 var logFile string
 var logFileHandle *os.File
 var verboseFlag bool
 var testFlag bool
 
-// AppVersion - The go-proxy-cache's version
+// AppVersion - The go-proxy-cache's version.
 const AppVersion = "0.3.0"
 
 func initFlags() {
@@ -46,24 +46,36 @@ func initFlags() {
 	flag.Parse()
 
 	if version {
-		fmt.Println(AppVersion)
-		os.Exit(0)
+		printVersion()
 	}
 
 	if testFlag {
-		if _, err := config.Validate(configFile); err != nil {
-			fmt.Println("Configuration file not valid.")
-			fmt.Println(err)
-			os.Exit(1)
-		}
-		fmt.Println("Configuration file valid.")
-		os.Exit(0)
+		testConfiguration(configFile)
 	}
 
-	logLevel = log.InfoLevel
 	if debug {
-		logLevel = log.DebugLevel
+		setDebugLevel()
 	}
+}
+
+func printVersion() {
+	fmt.Println(AppVersion)
+	os.Exit(0)
+}
+
+func testConfiguration(configFile string) {
+	if _, err := config.Validate(configFile); err != nil {
+		fmt.Println("Configuration file not valid.")
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Configuration file valid.")
+	os.Exit(0)
+}
+
+func setDebugLevel() {
+	logLevel = log.DebugLevel
 }
 
 func getLogFileWriter(logFile string) *os.File {
@@ -78,15 +90,14 @@ func getLogFileWriter(logFile string) *os.File {
 func initLogs() {
 	log.SetFormatter(&log.TextFormatter{
 		ForceColors:     true,
-		DisableColors:   false,
 		FullTimestamp:   true,
 		TimestampFormat: "2006/01/02 15:04:05",
 	})
 
 	log.SetReportCaller(verboseFlag)
 	log.SetLevel(logLevel)
-
 	log.SetOutput(os.Stdout)
+
 	if logFile != "" {
 		logFileHandle = getLogFileWriter(logFile)
 		log.SetOutput(io.MultiWriter(logFileHandle))
@@ -100,12 +111,7 @@ func closeLogFile() {
 	}
 }
 
-func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
-	initFlags()
-	initLogs()
-
+func printBanner() {
 	log.Debugf("                                                                        __")
 	log.Debugf(".-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.")
 	log.Debugf("|  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|")
@@ -113,6 +119,15 @@ func main() {
 	log.Debugf("|_____|            |__|                   |_____|\n\n")
 	log.Debugf("Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License")
 	log.Debugf("Repo: https://github.com/fabiocicerchia/go-proxy-cache\n\n")
+}
+
+func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	initFlags()
+	initLogs()
+
+	printBanner()
 
 	log.Debugf("Version: %s\n", AppVersion)
 	log.Debugf("Go: %s\n", runtime.Version())

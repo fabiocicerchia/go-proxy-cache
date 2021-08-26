@@ -17,6 +17,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
+var ItemsKeyValueCount int = 2
+
 // LinkItem - A URL item contained in a Link HTTP Header.
 type LinkItem struct {
 	URL    string
@@ -32,9 +34,7 @@ func PushProxiedResources(lwr *response.LoggedResponseWriter, uriobj *cache.URIO
 		return
 	}
 
-	links := uriobj.ResponseHeaders.Values("Link")
-
-	for _, link := range ParseMultiple(links) {
+	for _, link := range ParseMultiple(uriobj.ResponseHeaders.Values("Link")) {
 		if link.Rel != "preload" || link.NoPush {
 			continue
 		}
@@ -61,33 +61,7 @@ func ParseMultiple(headers []string) []LinkItem {
 // Parse - Processes and extracts the URLs contained in a Link HTTP Header.
 func Parse(value string) (links []LinkItem) {
 	for _, item := range strings.Split(value, ",") {
-		link := LinkItem{Params: make(map[string]string)}
-
-		for _, subpart := range strings.Split(item, ";") {
-			subpart = strings.Trim(subpart, " ")
-			if subpart == "" {
-				continue
-			}
-
-			if strings.HasPrefix(subpart, "<") && strings.HasSuffix(subpart, ">") {
-				link.URL = strings.Trim(subpart, "<>")
-				continue
-			}
-
-			key, val := extractParam(subpart)
-			if key == "" {
-				continue
-			}
-
-			// RFC5988 Standard params: rel, anchor, rev, hreflang, media, title, title*, type.
-			if strings.ToLower(key) == "rel" {
-				link.Rel = val
-			} else if strings.ToLower(key) == "nopush" {
-				link.NoPush = true
-			} else {
-				link.Params[key] = strings.Trim(val, `"`)
-			}
-		}
+		link := parseItem(item)
 
 		if link.URL != "" {
 			links = append(links, link)
@@ -97,13 +71,49 @@ func Parse(value string) (links []LinkItem) {
 	return links
 }
 
+func parseItem(item string) LinkItem {
+	link := LinkItem{Params: make(map[string]string)}
+	for _, subpart := range strings.Split(item, ";") {
+		fillLinkItem(&link, subpart)
+	}
+
+	return link
+}
+
+func fillLinkItem(link *LinkItem, subpart string) {
+	subpart = strings.Trim(subpart, " ")
+	if subpart == "" {
+		return
+	}
+
+	if strings.HasPrefix(subpart, "<") && strings.HasSuffix(subpart, ">") {
+		link.URL = strings.Trim(subpart, "<>")
+		return
+	}
+
+	key, val := extractParam(subpart)
+	if key == "" {
+		return
+	}
+
+	// RFC5988 Standard params: rel, anchor, rev, hreflang, media, title, title*, type.
+	switch strings.ToLower(key) {
+	case "rel":
+		link.Rel = val
+	case "nopush":
+		link.NoPush = true
+	default:
+		link.Params[key] = strings.Trim(val, `"`)
+	}
+}
+
 func extractParam(param string) (key, val string) {
-	parts := strings.SplitN(param, "=", 2)
+	parts := strings.SplitN(param, "=", ItemsKeyValueCount)
 	if len(parts) == 1 {
 		return parts[0], ""
 	}
 
-	if len(parts) != 2 {
+	if len(parts) != ItemsKeyValueCount {
 		return "", ""
 	}
 

@@ -16,16 +16,18 @@ import (
 	"net/http"
 )
 
-// CacheStatusHeader - HTTP Header for showing cache status
+var errHijackNotSupported = errors.New("hijack not supported")
+
+// CacheStatusHeader - HTTP Header for showing cache status.
 const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
 
-// CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status
+// CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status.
 const CacheStatusHeaderHit = "HIT"
 
-// CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status
+// CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status.
 const CacheStatusHeaderMiss = "MISS"
 
-// LoggedResponseWriter - Decorator for http.ResponseWriter
+// LoggedResponseWriter - Decorator for http.ResponseWriter.
 type LoggedResponseWriter struct {
 	http.ResponseWriter
 	http.Hijacker
@@ -37,6 +39,7 @@ type LoggedResponseWriter struct {
 func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
 	lwr := &LoggedResponseWriter{ResponseWriter: w}
 	lwr.Reset()
+
 	return lwr
 }
 
@@ -44,7 +47,7 @@ func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
 func (lwr *LoggedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	hj, ok := lwr.ResponseWriter.(http.Hijacker)
 	if !ok {
-		return nil, nil, errors.New("hijack not supported")
+		return nil, nil, errHijackNotSupported
 	}
 
 	return hj.Hijack()

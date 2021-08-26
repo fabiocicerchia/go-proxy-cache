@@ -1,0 +1,17 @@
+linters:
+  enable-all: true
+  disable:
+    - gochecknoglobals
+    - interfacer
+    - maligned
+    - scopelint
+    - wrapcheck
+
+issues:
+  exclude-rules:
+    - text: could not import C
+      linters: [typecheck]
+    - text: undefined
+      linters: [typecheck]
+    - text: undeclared name
+      linters: [typecheck]

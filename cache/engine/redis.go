@@ -18,17 +18,18 @@ import (
 
 var rdb map[string]*client.RedisClient
 
-// GetConn - Retrieves the Redis connection
+// GetConn - Retrieves the Redis connection.
 func GetConn(connName string) *client.RedisClient {
 	if conn, ok := rdb[connName]; ok {
 		return conn
 	}
 
 	log.Errorf("Missing connection for %s", connName)
+
 	return nil
 }
 
-// InitConn - Initialises the Redis connection
+// InitConn - Initialises the Redis connection.
 func InitConn(connName string, config config.Cache) {
 	if rdb == nil {
 		rdb = make(map[string]*client.RedisClient)

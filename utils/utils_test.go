@@ -14,6 +14,7 @@ package utils_test
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
@@ -71,8 +72,7 @@ func TestIfEmptyWithoutValue(t *testing.T) {
 // --- Coalesce
 
 func TestCoalesceTrue(t *testing.T) {
-	value := "text"
-	value = utils.Coalesce(value, "override", value == "").(string)
+	value := utils.Coalesce("text", "override").(string)
 
 	assert.Equal(t, "text", value)
 
@@ -80,10 +80,34 @@ func TestCoalesceTrue(t *testing.T) {
 }
 
 func TestCoalesceFalse(t *testing.T) {
-	value := ""
-	value = utils.Coalesce(value, "override", value == "").(string)
+	value := utils.Coalesce("", "override").(string)
 
 	assert.Equal(t, "override", value)
+
+	tearDown()
+}
+
+// --- IsEmpty
+
+func TestIsEmptyTrue(t *testing.T) {
+	assert.True(t, utils.IsEmpty(""))
+	assert.True(t, utils.IsEmpty(0))
+	assert.True(t, utils.IsEmpty(false))
+	assert.True(t, utils.IsEmpty([]int{}))
+	assert.True(t, utils.IsEmpty([]string{}))
+	assert.True(t, utils.IsEmpty(time.Duration(0)))
+	assert.True(t, utils.IsEmpty(nil))
+
+	tearDown()
+}
+
+func TestIsEmptyFalse(t *testing.T) {
+	assert.False(t, utils.IsEmpty("qwerty"))
+	assert.False(t, utils.IsEmpty(1))
+	assert.False(t, utils.IsEmpty(true))
+	assert.False(t, utils.IsEmpty([]int{1, 2, 3}))
+	assert.False(t, utils.IsEmpty([]string{"a", "b", "c"}))
+	assert.False(t, utils.IsEmpty(time.Duration(1)))
 
 	tearDown()
 }

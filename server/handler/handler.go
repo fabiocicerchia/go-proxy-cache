@@ -10,86 +10,44 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"context"
-	"net"
 	"net/http"
-	"strconv"
-	"strings"
 
-	"github.com/yhat/wsutil"
-
-	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	log "github.com/sirupsen/logrus"
 )
 
-// RequestCall - Main object containing request and response.
-type RequestCall struct {
-	Response *response.LoggedResponseWriter
-	Request  *http.Request
-}
-
-// ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
-func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
-	cleanedHost := strings.Split(rc.Request.Host, ":")[0] // TODO: HACK
-
-	return storage.RequestCallDTO{
-		Response: *rc.Response,
-		Request:  *rc.Request,
-		Scheme:   rc.GetScheme(),
-		CacheObj: cache.CacheObj{
-			// TODO: convert to use domainConfigCache
-			AllowedStatuses: config.Config.Cache.AllowedStatuses,
-			AllowedMethods:  config.Config.Cache.AllowedMethods,
-			DomainID:        cleanedHost + utils.StringSeparatorOne + rc.GetScheme(),
-		},
-	}
-}
-
-func getListeningPort(ctx context.Context) string {
-	localAddrContextKey := ctx.Value(http.LocalAddrContextKey)
-	listeningPort := ""
-	if localAddrContextKey != nil {
-		srvAddr := localAddrContextKey.(*net.TCPAddr)
-		listeningPort = strconv.Itoa(srvAddr.Port)
-	}
-
-	return listeningPort
-}
-
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	rc, domainConfig := initRequestParams(res, req)
-	if domainConfig == nil {
+	rc := initRequestParams(res, req)
+	if rc.DomainConfig == nil {
 		return
 	}
 
-	if rc.GetScheme() == "http" && domainConfig.Server.Upstream.HTTP2HTTPS {
-		rc.RedirectToHTTPS(domainConfig.Server.Upstream.RedirectStatusCode)
+	if rc.GetScheme() == SchemeHTTP && rc.DomainConfig.Server.Upstream.HTTP2HTTPS {
+		rc.RedirectToHTTPS()
 		return
 	}
 
 	if rc.Request.Method == "PURGE" {
-		rc.HandlePurge(domainConfig)
+		rc.HandlePurge()
 		return
 	}
 
 	if rc.Request.Method == http.MethodConnect {
 		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	if rc.IsWebSocket() {
+		rc.HandleWSRequestAndProxy()
 	} else {
-		if rc.IsWebSocket() {
-			rc.HandleWSRequestAndProxy(domainConfig)
-		} else {
-			rc.HandleHTTPRequestAndProxy(domainConfig)
-		}
+		rc.HandleHTTPRequestAndProxy()
 	}
 }
 
-func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, *config.Configuration) {
+func initRequestParams(res http.ResponseWriter, req *http.Request) RequestCall {
 	rc := RequestCall{
 		Response: response.NewLoggedResponseWriter(res),
 		Request:  req,
@@ -97,42 +55,14 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 
 	listeningPort := getListeningPort(req.Context())
 
-	host := strings.Split(req.Host, ":")[0] // TODO: HACK
-	domainConfig := config.DomainConf(host, rc.GetScheme())
-	if domainConfig == nil ||
-		(domainConfig.Server.Port.HTTP != listeningPort &&
-			domainConfig.Server.Port.HTTPS != listeningPort) {
+	rc.DomainConfig = config.DomainConf(rc.GetHostname(), rc.GetScheme())
+	if rc.DomainConfig == nil || !isLegitPort(rc.DomainConfig.Server.Port, listeningPort) {
 		rc.Response.WriteHeader(http.StatusNotImplemented)
 		logger.LogRequest(*rc.Request, *rc.Response, false)
 		log.Errorf("Missing configuration in HandleRequest for %s (listening on :%s).", rc.Request.Host, listeningPort)
-		return rc, nil
+
+		return RequestCall{}
 	}
 
-	return rc, domainConfig
-}
-
-// GetScheme - Returns current request scheme.
-// For server requests the URL is parsed from the URI supplied on the
-// Request-Line as stored in RequestURI. For most requests, fields other than
-// Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
-// Ref: https://github.com/golang/go/issues/28940
-func (rc RequestCall) GetScheme() string {
-	if rc.IsWebSocket() && rc.Request.TLS != nil {
-		return "wss"
-	}
-
-	if rc.IsWebSocket() {
-		return "ws"
-	}
-
-	if rc.Request.TLS != nil {
-		return "https"
-	}
-
-	return "http"
-}
-
-// IsWebSocket - Checks whether a request is a websocket.
-func (rc RequestCall) IsWebSocket() bool {
-	return wsutil.IsWebSocketRequest(rc.Request)
+	return rc
 }
