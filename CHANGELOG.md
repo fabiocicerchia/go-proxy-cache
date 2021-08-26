@@ -2,35 +2,41 @@
 
 ## v1.0.0 (2021-08-26)
 
+### New
+
+- Added tests for CONNECT HTTP method [Fabio Cicerchia]
+- RedirectToHTTPS can use customizable RedirectStatusCode per domain [Fabio Cicerchia]
+- Customize TLS config per domain: CurvePreferences, MinVersion, MaxVersion, and CipherSuites [Fabio Cicerchia]
+- Added more tests and increased coverage [Fabio Cicerchia]
+- Added the required mention in the readme for OpenSSL. [Fabio Cicerchia]
+
 ### Changes
 
 - Refactoring + tests. [Fabio Cicerchia]
-
-### Other
-
-- Fixed missing TLS files + Refactoring (#102) [Fabio Cicerchia]
 - Skipping HTTPS server configuration in case no TLS certificates are provided [Fabio Cicerchia]
-- Linting code using several linters [Fabio Cicerchia]
-- Fixed documentation [Fabio Cicerchia]
 - Upgraded docker images version for redis, node, and nginx [Fabio Cicerchia]
-- Fixed missing depencencies for github action tests [Fabio Cicerchia]
 - Refactored error handling [Fabio Cicerchia]
 - Removed stutter namings [Fabio Cicerchia]
 - Refactored redis mutex locks [Fabio Cicerchia]
 - Refactored redis circuit breaker calls [Fabio Cicerchia]
 - Refactored config to get values automatically from env vars [Fabio Cicerchia]
 - Refactored utils functions [Fabio Cicerchia]
-- Breaking change: CACHE_ALLOWED_STATUSES and CACHE_ALLOWED_METHODS will now support spaces instead of commas [Fabio Cicerchia]
-- Added tests for CONNECT HTTP method [Fabio Cicerchia]
+- **Breaking change**: CACHE_ALLOWED_STATUSES and CACHE_ALLOWED_METHODS will now support spaces instead of commas [Fabio Cicerchia]
 - Refactored domainConfig to be included in RequestCall (reduced coupling with config.go) [Fabio Cicerchia]
-- Resolved some TODOs [Fabio Cicerchia]
-- RedirectToHTTPS can use customizable RedirectStatusCode per domain [Fabio Cicerchia]
 - Replaced SIGKILL handling with SIGTERM [Fabio Cicerchia]
-- Customize TLS config per domain: CurvePreferences, MinVersion, MaxVersion, and CipherSuites [Fabio Cicerchia]
 - Refactored transport.handleBody as there was no real error (removed also shouldPanicOnCopyError and ctx) [Fabio Cicerchia]
+
+### Fix
+
+- Fixed missing TLS files + Refactoring (#102) [Fabio Cicerchia]
+- Fixed documentation [Fabio Cicerchia]
+- Fixed missing depencencies for github action tests [Fabio Cicerchia]
 - Fixed nginx configuration for ssl settings [Fabio Cicerchia]
-- Added more tests and increased coverage [Fabio Cicerchia]
-- Added the required mention in the readme for OpenSSL. [Fabio Cicerchia]
+
+### Other
+
+- Linting code using several linters [Fabio Cicerchia]
+- Resolved some TODOs [Fabio Cicerchia]
 - Version bump for golang image. [Fabio Cicerchia]
 - Build(deps): bump alpine from 3.14.0 to 3.14.1. [dependabot[bot]]
 - Bump ws from 7.4.1 to 7.4.6 in /test/full-setup. [dependabot[bot]]
