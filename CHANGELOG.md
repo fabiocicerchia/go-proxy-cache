@@ -1,9 +1,51 @@
 # Changelog
 
-## v0.3.0 (2021-01-08)
+## v1.0.0 (2021-08-26)
+
+### Changes
+
+- Refactoring + tests. [Fabio Cicerchia]
+
+### Other
+
+- Fixed missing TLS files + Refactoring (#102) [Fabio Cicerchia]
+- Skipping HTTPS server configuration in case no TLS certificates are provided [Fabio Cicerchia]
+- Linting code using several linters [Fabio Cicerchia]
+- Fixed documentation [Fabio Cicerchia]
+- Upgraded docker images version for redis, node, and nginx [Fabio Cicerchia]
+- Fixed missing depencencies for github action tests [Fabio Cicerchia]
+- Refactored error handling [Fabio Cicerchia]
+- Removed stutter namings [Fabio Cicerchia]
+- Refactored redis mutex locks [Fabio Cicerchia]
+- Refactored redis circuit breaker calls [Fabio Cicerchia]
+- Refactored config to get values automatically from env vars [Fabio Cicerchia]
+- Refactored utils functions [Fabio Cicerchia]
+- Breaking change: CACHE_ALLOWED_STATUSES and CACHE_ALLOWED_METHODS will now support spaces instead of commas [Fabio Cicerchia]
+- Added tests for CONNECT HTTP method [Fabio Cicerchia]
+- Refactored domainConfig to be included in RequestCall (reduced coupling with config.go) [Fabio Cicerchia]
+- Resolved some TODOs [Fabio Cicerchia]
+- RedirectToHTTPS can use customizable RedirectStatusCode per domain [Fabio Cicerchia]
+- Replaced SIGKILL handling with SIGTERM [Fabio Cicerchia]
+- Customize TLS config per domain: CurvePreferences, MinVersion, MaxVersion, and CipherSuites [Fabio Cicerchia]
+- Refactored transport.handleBody as there was no real error (removed also shouldPanicOnCopyError and ctx) [Fabio Cicerchia]
+- Fixed nginx configuration for ssl settings [Fabio Cicerchia]
+- Added more tests and increased coverage [Fabio Cicerchia]
+- Added the required mention in the readme for OpenSSL. [Fabio Cicerchia]
+- Version bump for golang image. [Fabio Cicerchia]
+- Build(deps): bump alpine from 3.14.0 to 3.14.1. [dependabot[bot]]
+- Bump ws from 7.4.1 to 7.4.6 in /test/full-setup. [dependabot[bot]]
+- Bump alpine from 3.13.5 to 3.14.0. [dependabot[bot]]
+- Bump golang from 1.16.1-alpine3.12 to 1.16.3-alpine3.12. [dependabot[bot]]
+- Bump alpine from 3.13.2 to 3.13.5. [dependabot[bot]]
+- Bump alpine from 3.13.0 to 3.13.2. [dependabot[bot]]
+- Bump golang from 1.15.6-alpine3.12 to 1.16.1-alpine3.12. [dependabot[bot]]
+- Bump alpine from 3.12.3 to 3.13.0. [dependabot[bot]]
+
+## v0.3.0 (2021-01-07)
 
 ### New
 
+- Missing locks on write/read on redis, closes #45. [Fabio Cicerchia]
 - Add tests for HTTP2 Push, closes #75. [Fabio Cicerchia]
 - Added tests for websockets. [Fabio Cicerchia]
 - Kubernetes Example, closes #60. [Fabio Cicerchia]
@@ -20,6 +62,8 @@
 
 ### Other
 
+- Updated changelog for v0.3.0. [Fabio Cicerchia]
+- Updated changelog + fixes on makefile. [Fabio Cicerchia]
 - Added missing file for readthedocs.io. [Fabio Cicerchia]
 - Fixed some todos. [Fabio Cicerchia]
 - Refactoring tests. [Fabio Cicerchia]
