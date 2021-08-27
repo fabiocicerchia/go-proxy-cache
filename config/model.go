@@ -176,6 +176,6 @@ var Config Configuration = Configuration{
 	},
 	Log: Log{
 		TimeFormat: "2006/01/02 15:04:05",
-		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status_label`,
 	},
 }

@@ -24,6 +24,11 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
+var CacheStatusLabel = map[bool]string{
+	true:  "HIT",
+	false: "MISS",
+}
+
 // Log - Logs against a requested URL.
 func Log(req http.Request, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
@@ -58,6 +63,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 		`$http_referer`, req.Referer(),
 		`$http_user_agent`, req.UserAgent(),
 		`$cached_status`, fmt.Sprintf("%v", cached),
+		`$cached_status_label`, CacheStatusLabel[cached],
 	)
 
 	logLine = r.Replace(logLine)
