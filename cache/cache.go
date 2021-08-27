@@ -28,6 +28,7 @@ var errNotAllowed = errors.New("not allowed")
 var errCannotFetchMetadata = errors.New("cannot fetch metadata")
 var errCannotGetKey = errors.New("cannot get key")
 var errCannotDecode = errors.New("cannot decode")
+var ErrEmptyValue = errors.New("empty value")
 var errVaryWildcard = errors.New("vary: *")
 
 // Object - Contains cache settings and current cached/cacheable object.
@@ -143,6 +144,10 @@ func (c *Object) RetrieveFullPage(method string, url url.URL, reqHeaders http.He
 	encoded, err := conn.Get(key)
 	if err != nil {
 		return errors.Wrap(errCannotGetKey, err.Error())
+	}
+
+	if encoded == "" {
+		return ErrEmptyValue
 	}
 
 	err = conn.Decode(encoded, obj)

@@ -38,7 +38,13 @@ func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
 
 	err := rc.CacheObject.RetrieveFullPage(rc.Request.Method, url, rc.Request.Header)
 	if err != nil {
-		log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
+		if err == cache.ErrEmptyValue {
+			log.Infof("Cannot retrieve page %s: %s\n", url.String(), err)
+		} else {
+			log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
+		}
+
+		return cache.URIObj{}, err
 	}
 
 	ok, err := rc.CacheObject.IsValid()

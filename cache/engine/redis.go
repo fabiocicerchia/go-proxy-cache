@@ -24,7 +24,7 @@ func GetConn(connName string) *client.RedisClient {
 		return conn
 	}
 
-	log.Errorf("Missing connection for %s", connName)
+	log.Errorf("Missing redis connection for %s", connName)
 
 	return nil
 }

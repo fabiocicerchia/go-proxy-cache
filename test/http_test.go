@@ -23,7 +23,7 @@ import (
 func TestHTTPClientCall(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://testing.local:50080/", nil)
+	req, err := http.NewRequest("GET", "http://testing.local:50080/Consortium/", nil)
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
@@ -46,8 +46,8 @@ func TestHTTPClientCall(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, string(body), `<title>About W3C</title>`)
+	assert.Contains(t, string(body), "</div></body></html>")
 }
 
 func TestHTTPClientCallToMissingDomain(t *testing.T) {

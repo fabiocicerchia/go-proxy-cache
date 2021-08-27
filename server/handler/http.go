@@ -111,7 +111,10 @@ func (rc RequestCall) storeResponse() {
 
 // FixRequest - Fixes the Request in order to use the load balanced host.
 func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
-	scheme := utils.IfEmpty(upstream.Scheme, rc.GetScheme())
+	scheme := upstream.Scheme
+	if scheme == config.SchemeWildcard {
+		scheme = rc.GetScheme()
+	}
 	host := utils.IfEmpty(upstream.Host, url.Host)
 
 	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme
