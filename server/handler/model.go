@@ -56,6 +56,11 @@ func (rc RequestCall) GetScheme() string {
 	return SchemeHTTP
 }
 
+// GetConfiguredScheme - Returns configured request scheme (could be wildcard).
+func (rc RequestCall) GetConfiguredScheme() string {
+	return rc.DomainConfig.Server.Upstream.Scheme
+}
+
 // IsWebSocket - Checks whether a request is a websocket.
 func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(rc.Request)

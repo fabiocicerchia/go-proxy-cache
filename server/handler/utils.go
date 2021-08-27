@@ -34,7 +34,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 		CacheObject: cache.Object{
 			AllowedStatuses: rc.DomainConfig.Cache.AllowedStatuses,
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
-			DomainID:        rc.GetHostname() + utils.StringSeparatorOne + rc.GetScheme(),
+			DomainID:        rc.GetHostname() + utils.StringSeparatorOne + rc.GetConfiguredScheme(),
 		},
 	}
 }

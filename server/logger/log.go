@@ -20,7 +20,6 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -74,7 +73,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 // LogSetup - Logs the env variables required for a reverse proxy.
 func LogSetup(server config.Server) {
 	forwardHost := server.Upstream.Host
-	forwardProto := utils.IfEmpty(server.Upstream.Scheme, "*")
+	forwardProto := server.Upstream.Scheme
 	lbEndpointList := server.Upstream.Endpoints
 
 	log.Infof("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)

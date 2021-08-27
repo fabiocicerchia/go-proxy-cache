@@ -30,6 +30,7 @@ import (
 )
 
 const PasswordOmittedValue = "*** OMITTED ***"
+const SchemeWildcard = "*"
 
 var domainsCache map[string]*Configuration
 
@@ -174,6 +175,8 @@ func (c *Configuration) copyOverWithUpstream(overrides Server) {
 	c.Server.Upstream.HTTP2HTTPS = utils.Coalesce(overrides.Upstream.HTTP2HTTPS, c.Server.Upstream.HTTP2HTTPS).(bool)
 	c.Server.Upstream.InsecureBridge = utils.Coalesce(overrides.Upstream.InsecureBridge, c.Server.Upstream.InsecureBridge).(bool)
 	c.Server.Upstream.RedirectStatusCode = utils.Coalesce(overrides.Upstream.RedirectStatusCode, c.Server.Upstream.RedirectStatusCode).(int)
+
+	c.Server.Upstream.Scheme = utils.IfEmpty(c.Server.Upstream.Scheme, SchemeWildcard)
 }
 
 // --- CACHE.
