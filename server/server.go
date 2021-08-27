@@ -26,7 +26,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
@@ -157,7 +156,7 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 		return
 	}
 
-	domainID := domain + utils.StringSeparatorOne + scheme
+	domainID := domainConfig.Server.Upstream.GetDomainID()
 
 	// redis connect
 	circuitbreaker.InitCircuitBreaker(domainID, domainConfig.CircuitBreaker)

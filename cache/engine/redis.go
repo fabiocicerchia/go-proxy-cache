@@ -35,5 +35,6 @@ func InitConn(connName string, config config.Cache) {
 		rdb = make(map[string]*client.RedisClient)
 	}
 
+	log.Debugf("New redis connection for %s", connName)
 	rdb[connName] = client.Connect(connName, config)
 }

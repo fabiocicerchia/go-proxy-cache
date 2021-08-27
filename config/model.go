@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
@@ -75,6 +76,11 @@ type Upstream struct {
 	InsecureBridge     bool     `yaml:"insecure_bridge"`
 	HTTP2HTTPS         bool     `yaml:"http_to_https",envconfig:"HTTP2HTTPS"`
 	RedirectStatusCode int      `yaml:"redirect_status_code",envconfig:"REDIRECT_STATUS_CODE"`
+}
+
+// GetDomainID - Returns the unique ID for the upstream.
+func (u Upstream) GetDomainID() string {
+	return utils.IfEmpty(u.Host, "*") + utils.StringSeparatorOne + u.Scheme
 }
 
 // Timeout - Defines the server timeouts.

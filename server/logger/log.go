@@ -20,6 +20,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -72,10 +73,16 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 
 // LogSetup - Logs the env variables required for a reverse proxy.
 func LogSetup(server config.Server) {
-	forwardHost := server.Upstream.Host
+	forwardHost := utils.IfEmpty(server.Upstream.Host, "*")
 	forwardProto := server.Upstream.Scheme
 	lbEndpointList := server.Upstream.Endpoints
 
 	log.Infof("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)
+
+	if len(lbEndpointList) == 0 {
+		log.Infof("Redirecting to url: %s://%s -> VOID\n", forwardProto, forwardHost)
+		return
+	}
+
 	log.Infof("Redirecting to url: %s://%s -> %v\n", forwardProto, forwardHost, lbEndpointList)
 }

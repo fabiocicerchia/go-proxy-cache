@@ -21,7 +21,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
@@ -34,7 +33,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 		CacheObject: cache.Object{
 			AllowedStatuses: rc.DomainConfig.Cache.AllowedStatuses,
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
-			DomainID:        rc.GetHostname() + utils.StringSeparatorOne + rc.GetConfiguredScheme(),
+			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
 		},
 	}
 }
