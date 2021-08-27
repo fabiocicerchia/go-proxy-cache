@@ -10,7 +10,8 @@ require (
 	github.com/go-redis/redis/v8 v8.3.3
 	github.com/go-redsync/redsync/v4 v4.0.4
 	github.com/gorilla/websocket v1.4.2
-	github.com/kelseyhightower/envconfig v1.4.0 // indirect
+	github.com/jinzhu/copier v0.3.2
+	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.3.0

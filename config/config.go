@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jinzhu/copier"
 	"github.com/kelseyhightower/envconfig"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -27,6 +28,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 	utilsString "github.com/fabiocicerchia/go-proxy-cache/utils/string"
 )
+
+const PasswordOmittedValue = "*** OMITTED ***"
 
 var domainsCache map[string]*Configuration
 
@@ -189,16 +192,18 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 
 // Print - Shows the current configuration.
 func Print() {
-	ObfuscatedConfig := Config
-	ObfuscatedConfig.Cache.Password = ""
+	obfuscatedConfig := Configuration{}
+	copier.CopyWithOption(&obfuscatedConfig, &Config, copier.Option{DeepCopy: true})
 
-	for k, v := range ObfuscatedConfig.Domains {
-		v.Cache.Password = ""
-		ObfuscatedConfig.Domains[k] = v
+	obfuscatedConfig.Cache.Password = PasswordOmittedValue
+
+	for k, v := range obfuscatedConfig.Domains {
+		v.Cache.Password = PasswordOmittedValue
+		obfuscatedConfig.Domains[k] = v
 	}
 
 	log.Debug("Config Settings:\n")
-	log.Debugf("%+v\n", ObfuscatedConfig)
+	log.Debugf("%+v\n", obfuscatedConfig)
 }
 
 // GetDomains - Returns a list of domains.
