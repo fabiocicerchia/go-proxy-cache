@@ -14,6 +14,7 @@ $ docker build -t fabiocicerchia/go-proxy-cache-test:node -f test/full-setup/Doc
 $ echo "127.0.0.1 testing.local www.testing.local" >> /etc/hosts
 $ cd test/full-setup
 $ ./gen-selfsigned-cert.sh
+$ ./gen-selfsigned-cert.sh www.w3.org
 $ docker-compose up
 ```
 

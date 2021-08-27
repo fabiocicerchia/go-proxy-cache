@@ -18,9 +18,9 @@ ws.on('connection', onConnection)
 // WSS
 // Ref: https://github.com/websockets/ws/blob/master/examples/ssl.js
 const server = https.createServer({
-  cert: fs.readFileSync('./certs/server.pem'),
-  key: fs.readFileSync('./certs/server.key'),
-  ca: fs.readFileSync('./certs/ca-crt.pem'),
+  cert: fs.readFileSync('./certs/default/server.pem'),
+  key: fs.readFileSync('./certs/default/server.key'),
+  ca: fs.readFileSync('./certs/default/ca-crt.pem'),
   requestCert: false,
   rejectUnauthorized: false
 })

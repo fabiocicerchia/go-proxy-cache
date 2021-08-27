@@ -6,8 +6,8 @@ server:
     http: "50080"
     https: "50443"
   tls:
-    cert_file: certs/server.pem
-    key_file: certs/server.key
+    cert_file: certs/default/server.pem
+    key_file: certs/default/server.key
   timeout:
     read: 5s
     read_header: 2s

@@ -50,3 +50,7 @@ __debug_bin
 coverage.txt
 dump.rdb
 test/full-setup/node_modules
+test/full-setup/certs/*/*.pem
+test/full-setup/certs/*/*.srl
+test/full-setup/certs/*/*.csr
+test/full-setup/certs/*/*.key

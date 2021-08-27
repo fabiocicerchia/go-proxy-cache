@@ -6,8 +6,8 @@ server:
     http: "50080"
     https: "50443"
   tls:
-    cert_file: certs/server.pem
-    key_file: certs/server.key
+    cert_file: certs/default/server.pem
+    key_file: certs/default/server.key
   timeout:
     read: 5s
     read_header: 2s
@@ -35,6 +35,9 @@ domains:
         host: www.w3.org
         endpoints:
         - www.w3.org
+      tls:
+        cert_file: certs/www.w3.org/server.pem
+        key_file: certs/www.w3.org/server.key
 
   www_testing_local:
     server:
