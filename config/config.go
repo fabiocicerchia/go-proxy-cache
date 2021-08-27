@@ -1,4 +1,3 @@
-//nolint: lll
 package config
 
 //                                                                         __
@@ -29,7 +28,10 @@ import (
 	utilsString "github.com/fabiocicerchia/go-proxy-cache/utils/string"
 )
 
+// PasswordOmittedValue - Replacement value when showing passwords in configuration.
 const PasswordOmittedValue = "*** OMITTED ***"
+
+// SchemeWildcard - Label to be shown when no schema (http/https) is selected.
 const SchemeWildcard = "*"
 
 var domainsCache map[string]*Configuration

@@ -31,7 +31,8 @@ import (
 
 const enableTimeoutHandler = true
 
-var DefaultTimeoutShutdown time.Duration = 5 * time.Second
+// DefaultTimeoutShutdown - Default Timeout for shutting down a context.
+const DefaultTimeoutShutdown time.Duration = 5 * time.Second
 
 // Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {

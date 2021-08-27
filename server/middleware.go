@@ -16,6 +16,7 @@ import (
 	"github.com/yhat/wsutil"
 )
 
+// ConditionalETag - Add HTTP header ETag only on HTTP(S) requests.
 func ConditionalETag(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		// ETag wrapper doesn't work well with WebSocket and HTTP/2.

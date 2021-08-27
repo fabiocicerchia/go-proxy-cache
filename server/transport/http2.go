@@ -17,7 +17,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
-var ItemsKeyValueCount int = 2
+// ItemsKeyValueCount - Amount of items allowed in a pair key-value.
+const ItemsKeyValueCount int = 2
 
 // LinkItem - A URL item contained in a Link HTTP Header.
 type LinkItem struct {

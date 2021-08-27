@@ -1,4 +1,3 @@
-//nolint: lll
 package config
 
 //                                                                         __
@@ -19,15 +18,34 @@ import (
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
+// DefaultTimeoutRead - Default value used for http.Server.ReadTimeout
 var DefaultTimeoutRead time.Duration = 5 * time.Second
+
+// DefaultTimeoutReadHeader - Default value used for http.Server.ReadHeaderTimeout
 var DefaultTimeoutReadHeader time.Duration = 2 * time.Second
+
+// DefaultTimeoutWrite - Default value used for http.Server.WriteTimeout
 var DefaultTimeoutWrite time.Duration = 5 * time.Second
+
+// DefaultTimeoutIdle - Default value used for http.Server.IdleTimeout
 var DefaultTimeoutIdle time.Duration = 20 * time.Second
+
+// DefaultTimeoutHandler - Default value used for http.TimeoutHandler
 var DefaultTimeoutHandler time.Duration = 5 * time.Second
+
+// DefaultCBThreshold - Default value used for circuitbreaker.CircuitBreaker.Threshold
 var DefaultCBThreshold uint32 = 2
+
+// DefaultCBFailureRate - Default value used for circuitbreaker.CircuitBreaker.FailureRate
 var DefaultCBFailureRate float64 = 0.5
+
+// DefaultCBInterval - Default value used for circuitbreaker.CircuitBreaker.Interval
 var DefaultCBInterval time.Duration = 0 * time.Second
+
+// DefaultCBTimeout - Default value used for circuitbreaker.CircuitBreaker.Timeout
 var DefaultCBTimeout time.Duration = 60 * time.Second
+
+// DefaultCBMaxRequests - Default value used for circuitbreaker.CircuitBreaker.MaxRequests
 var DefaultCBMaxRequests uint32 = 1
 
 // Configuration - Defines the server configuration.

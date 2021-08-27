@@ -19,9 +19,16 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
-var SchemeHTTP string = "http"
+// SchemeHTTPS - HTTPS scheme.
 var SchemeHTTPS string = "https"
+
+// SchemeHTTP - HTTP scheme.
+var SchemeHTTP string = "http"
+
+// SchemeWS - WS scheme.
 var SchemeWS string = "ws"
+
+// SchemeWSS - WSS scheme.
 var SchemeWSS string = "wss"
 
 // RequestCall - Main object containing request and response.

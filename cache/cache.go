@@ -28,8 +28,10 @@ var errNotAllowed = errors.New("not allowed")
 var errCannotFetchMetadata = errors.New("cannot fetch metadata")
 var errCannotGetKey = errors.New("cannot get key")
 var errCannotDecode = errors.New("cannot decode")
-var ErrEmptyValue = errors.New("empty value")
 var errVaryWildcard = errors.New("vary: *")
+
+// ErrEmptyValue - Error used when no data is available in Redis.
+var ErrEmptyValue = errors.New("empty value")
 
 // Object - Contains cache settings and current cached/cacheable object.
 type Object struct {

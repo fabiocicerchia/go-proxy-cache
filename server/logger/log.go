@@ -24,6 +24,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
+// CacheStatusLabel - Labels used for displaying HIT/MISS based on cache usage.
 var CacheStatusLabel = map[bool]string{
 	true:  "HIT",
 	false: "MISS",

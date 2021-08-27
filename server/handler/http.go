@@ -31,9 +31,16 @@ var enableStoringResponse = true
 var enableCachedResponse = true
 var enableLoggingRequest = true
 
+// DefaultTransportMaxIdleConns - Default value used for http.Transport.MaxIdleConns.
 var DefaultTransportMaxIdleConns int = 1000
+
+// DefaultTransportMaxIdleConnsPerHost - Default value used for http.Transport.MaxIdleConnsPerHost.
 var DefaultTransportMaxIdleConnsPerHost int = 1000
+
+// DefaultTransportMaxConnsPerHost - Default value used for http.Transport.MaxConnsPerHost.
 var DefaultTransportMaxConnsPerHost int = 1000
+
+// DefaultTransportDialTimeout - Default value used for net.Dialer.Timeout
 var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
