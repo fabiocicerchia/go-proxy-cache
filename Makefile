@@ -111,12 +111,22 @@ test-http2: ## test HTTP2
 	fi
 
 cover:  ## coverage
-	go test -race -count=1 --tags=unit,functional -coverprofile coverage.txt ./...
-	go tool cover -func=coverage.txt
-	go tool cover -html=coverage.txt
+	go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
+	go tool cover -func=c.out
+	go tool cover -html=c.out
 
 codeclimate:  ## codeclimate
-	wget -O test-reporter https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 && chmod +x test-reporter
+ifeq ($(IS_LINUX),1)
+	wget -O staticcheck_amd64.tar.gz https://github.com/dominikh/go-tools/releases/download/2021.1.1/staticcheck_linux_amd64.tar.gz
+else
+	wget -O test-reporter https://codeclimate.com/downloads/test-reporter/test-reporter-latest-darwin-amd64 && chmod +x test-reporter
+endif
+
+# CODECLIMATE WORKAROUND
+	mkdir -p ./github.com/fabiocicerchia
+	ln -s $$PWD ./github.com/fabiocicerchia/go-proxy-cache
+# / CODECLIMATE WORKAROUND
+
 	./test-reporter before-build
 	make cover
 	./test-reporter --debug after-build
