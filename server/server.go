@@ -79,13 +79,11 @@ func Run(configFile string) {
 
 // InitServer - Generates the http.Server configuration.
 func InitServer(domain string) *http.Server {
-	// THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
-	timeout := config.Config.Server.Timeout
-	gzip := config.Config.Server.GZip
-
 	mux := http.NewServeMux()
 
 	// handlers
+	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
+	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	if config.Config.Server.Healthcheck {
 		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
 	}
@@ -99,11 +97,16 @@ func InitServer(domain string) *http.Server {
 	muxMiddleware = ConditionalETag(muxMiddleware)
 
 	// gzip middleware
-	if gzip {
+	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
+	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
+	if config.Config.Server.GZip {
 		muxMiddleware = gziphandler.GzipHandler(muxMiddleware)
 	}
 
 	// timeout middleware
+	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
+	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
+	timeout := config.Config.Server.Timeout
 	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}
@@ -120,12 +123,18 @@ func InitServer(domain string) *http.Server {
 }
 
 // AttachPlain - Adds a new HTTP server in the listener container.
+// NOTE: There will be only ONE server listening on a port.
+//       This means the last processed will override all the previous shared
+//       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 func (s *Servers) AttachPlain(port string, server *http.Server) {
 	s.HTTP[port] = server
 	s.HTTP[port].Addr = ":" + port
 }
 
 // AttachSecure - Adds a new HTTPS server in the listener container.
+// NOTE: There will be only ONE server listening on a port.
+//       This means the last processed will override all the previous shared
+//       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 func (s *Servers) AttachSecure(port string, server *http.Server) {
 	s.HTTPS[port] = server
 	s.HTTPS[port].Addr = ":" + port

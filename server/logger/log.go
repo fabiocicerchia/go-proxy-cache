@@ -39,6 +39,8 @@ func Log(req http.Request, message string) {
 
 // LogRequest - Logs the requested URL.
 func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool) {
+	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
+	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	logLine := config.Config.Log.Format
 
 	protocol := strings.Trim(req.Proto, " ")
