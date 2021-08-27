@@ -107,7 +107,7 @@ func initLogs() {
 
 func closeLogFile() {
 	if logFileHandle != nil {
-		logFileHandle.Close()
+		_ = logFileHandle.Close()
 	}
 }
 

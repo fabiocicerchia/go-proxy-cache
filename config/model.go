@@ -48,34 +48,34 @@ type Server struct {
 	TLS         TLS      `yaml:"tls"`
 	Timeout     Timeout  `yaml:"timeout"`
 	Upstream    Upstream `yaml:"upstream"`
-	GZip        bool     `yaml:"gzip",envconfig:"GZIP_ENABLED"`
+	GZip        bool     `yaml:"gzip" envconfig:"GZIP_ENABLED"`
 	Healthcheck bool     `yaml:"healthcheck"`
 }
 
 // Port - Defines the listening ports per protocol.
 type Port struct {
-	HTTPS string `yaml:"https",envconfig:"SERVER_HTTPS_PORT"`
-	HTTP  string `yaml:"http",envconfig:"SERVER_HTTP_PORT"`
+	HTTPS string `yaml:"https" envconfig:"SERVER_HTTPS_PORT"`
+	HTTP  string `yaml:"http" envconfig:"SERVER_HTTP_PORT"`
 }
 
 // TLS - Defines the configuration for SSL/TLS.
 type TLS struct {
-	Auto     bool        `yaml:"auto",envconfig:"TLS_AUTO_CERT"`
-	Email    string      `yaml:"email",envconfig:"TLS_EMAIL"`
-	CertFile string      `yaml:"cert_file",envconfig:"TLS_CERT_FILE"`
-	KeyFile  string      `yaml:"key_file",envconfig:"TLS_KEY_FILE"`
+	Auto     bool        `yaml:"auto" envconfig:"TLS_AUTO_CERT"`
+	Email    string      `yaml:"email" envconfig:"TLS_EMAIL"`
+	CertFile string      `yaml:"cert_file" envconfig:"TLS_CERT_FILE"`
+	KeyFile  string      `yaml:"key_file" envconfig:"TLS_KEY_FILE"`
 	Override *tls.Config `yaml:"override"`
 }
 
 // Upstream - Defines the upstream settings.
 type Upstream struct {
-	Host               string   `yaml:"host",envconfig:"FORWARD_HOST"`
-	Port               string   `yaml:"port",envconfig:"FORWARD_PORT"`
-	Scheme             string   `yaml:"scheme",envconfig:"FORWARD_SCHEME"`
-	Endpoints          []string `yaml:"endpoints",envconfig:"LB_ENDPOINT_LIST",split_words:"true"`
+	Host               string   `yaml:"host" envconfig:"FORWARD_HOST"`
+	Port               string   `yaml:"port" envconfig:"FORWARD_PORT"`
+	Scheme             string   `yaml:"scheme" envconfig:"FORWARD_SCHEME"`
+	Endpoints          []string `yaml:"endpoints" envconfig:"LB_ENDPOINT_LIST" split_words:"true"`
 	InsecureBridge     bool     `yaml:"insecure_bridge"`
-	HTTP2HTTPS         bool     `yaml:"http_to_https",envconfig:"HTTP2HTTPS"`
-	RedirectStatusCode int      `yaml:"redirect_status_code",envconfig:"REDIRECT_STATUS_CODE"`
+	HTTP2HTTPS         bool     `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`
+	RedirectStatusCode int      `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE"`
 }
 
 // GetDomainID - Returns the unique ID for the upstream.
@@ -85,22 +85,22 @@ func (u Upstream) GetDomainID() string {
 
 // Timeout - Defines the server timeouts.
 type Timeout struct {
-	Read       time.Duration `yaml:"read",envconfig:"TIMEOUT_READ"`
-	ReadHeader time.Duration `yaml:"read_header",envconfig:"TIMEOUT_READ_HEADER"`
-	Write      time.Duration `yaml:"write",envconfig:"TIMEOUT_WRITE"`
-	Idle       time.Duration `yaml:"idle",envconfig:"TIMEOUT_IDLE"`
-	Handler    time.Duration `yaml:"handler",envconfig:"TIMEOUT_HANDLER"`
+	Read       time.Duration `yaml:"read" envconfig:"TIMEOUT_READ"`
+	ReadHeader time.Duration `yaml:"read_header" envconfig:"TIMEOUT_READ_HEADER"`
+	Write      time.Duration `yaml:"write" envconfig:"TIMEOUT_WRITE"`
+	Idle       time.Duration `yaml:"idle" envconfig:"TIMEOUT_IDLE"`
+	Handler    time.Duration `yaml:"handler" envconfig:"TIMEOUT_HANDLER"`
 }
 
 // Cache - Defines the config for the cache backend.
 type Cache struct {
-	Host            string   `yaml:"host",envconfig:"REDIS_HOST"`
-	Port            string   `yaml:"port",envconfig:"REDIS_PORT"`
-	Password        string   `yaml:"password",envconfig:"REDIS_PASSWORD"`
-	DB              int      `yaml:"db",envconfig:"REDIS_DB"`
-	TTL             int      `yaml:"ttl",envconfig:"DEFAULT_TTL"`
-	AllowedStatuses []int    `yaml:"allowed_statuses",envconfig:"CACHE_ALLOWED_STATUSES",split_words:"true"`
-	AllowedMethods  []string `yaml:"allowed_methods",envconfig:"CACHE_ALLOWED_METHODS",split_words:"true"`
+	Host            string   `yaml:"host" envconfig:"REDIS_HOST"`
+	Port            string   `yaml:"port" envconfig:"REDIS_PORT"`
+	Password        string   `yaml:"password" envconfig:"REDIS_PASSWORD"`
+	DB              int      `yaml:"db" envconfig:"REDIS_DB"`
+	TTL             int      `yaml:"ttl" envconfig:"DEFAULT_TTL"`
+	AllowedStatuses []int    `yaml:"allowed_statuses" envconfig:"CACHE_ALLOWED_STATUSES" split_words:"true"`
+	AllowedMethods  []string `yaml:"allowed_methods" envconfig:"CACHE_ALLOWED_METHODS" split_words:"true"`
 }
 
 // Log - Defines the config for the logs.

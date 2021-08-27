@@ -7,8 +7,9 @@
 # Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
+IS_LINUX=$(shell (ls -1 /etc/issue || true) | wc -l | awk '{$$1=$$1;print}')
 
-.PHONY: test changelog
+.PHONY: test changelog staticcheck tlsfuzzer
 .SILENT: help
 default: help
 
@@ -52,7 +53,7 @@ build-race: ## build-race
 sca: lint sec fmt staticcheck tlsfuzzer ## sca checks
 
 lint: ## lint
-	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.27.0 golangci-lint run -v ./...
+	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.42.0 golangci-lint run -v ./...
 
 sec: ## security scan
 	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s latest
@@ -62,8 +63,13 @@ fmt: ## format code
 	gofmt -w -s .
 
 staticcheck: ## staticcheck
-	wget https://github.com/dominikh/go-tools/releases/download/2020.1.6/staticcheck_linux_amd64.tar.gz
-	tar xvzf staticcheck_linux_amd64.tar.gz
+ifeq ($(IS_LINUX),1)
+	wget -O staticcheck_amd64.tar.gz https://github.com/dominikh/go-tools/releases/download/2021.1.1/staticcheck_linux_amd64.tar.gz
+else
+	wget -O staticcheck_amd64.tar.gz https://github.com/dominikh/go-tools/releases/download/2021.1.1/staticcheck_darwin_amd64.tar.gz
+endif
+	tar xvzf staticcheck_amd64.tar.gz
+	chmod +x ./staticcheck/staticcheck
 	./staticcheck/staticcheck ./...
 
 tlsfuzzer: ## tlsfuzzer

@@ -196,7 +196,12 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 // Print - Shows the current configuration.
 func Print() {
 	obfuscatedConfig := Configuration{}
-	copier.CopyWithOption(&obfuscatedConfig, &Config, copier.Option{DeepCopy: true})
+
+	err := copier.CopyWithOption(&obfuscatedConfig, &Config, copier.Option{DeepCopy: true})
+	if err != nil {
+		log.Errorf("Couldn't print configuration: %s", err)
+		return
+	}
 
 	obfuscatedConfig.Cache.Password = PasswordOmittedValue
 

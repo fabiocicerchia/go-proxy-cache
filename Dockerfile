@@ -15,14 +15,15 @@ WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
 ENV CGO_CFLAGS -march=native -O3
 
-COPY . ./
-
 RUN apk update \
     && apk add --no-cache \
       gcc \
       libc-dev \
-      make \
-    && make $BUILD_CMD
+      make
+
+COPY . ./
+
+RUN make $BUILD_CMD
 
 FROM alpine:3.14.1
 
