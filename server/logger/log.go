@@ -61,8 +61,8 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 		`$body_bytes_sent`, strconv.Itoa(slice.LenSliceBytes(lwr.Content)),
 		`$http_referer`, req.Referer(),
 		`$http_user_agent`, req.UserAgent(),
-		`$cached_status`, fmt.Sprintf("%v", cached),
 		`$cached_status_label`, CacheStatusLabel[cached],
+		`$cached_status`, fmt.Sprintf("%v", cached),
 	)
 
 	logLine = r.Replace(logLine)
