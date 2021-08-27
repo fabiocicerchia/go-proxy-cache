@@ -58,7 +58,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apk update
-          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev
+          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev openssl
 
       - name: Build
         run: make build-race
@@ -66,6 +66,10 @@ jobs:
       - name: Test
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
+          cd test/full-setup
+          ./gen-selfsigned-cert.sh
+          ./gen-selfsigned-cert.sh www.w3.org
+          cd ../..
           ./go-proxy-cache -debug -config=test/full-setup/config.yml &
           make test
         env:
