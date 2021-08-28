@@ -15,7 +15,10 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
@@ -24,7 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	log "github.com/sirupsen/logrus"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
 var enableStoringResponse = true
@@ -106,13 +109,31 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 }
 
 func (rc RequestCall) storeResponse() {
-	if enableStoringResponse {
-		rcDTO := ConvertToRequestCallDTO(rc)
+	if !enableStoringResponse {
+		return
+	}
 
-		stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
-		if !stored || err != nil {
-			logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
-		}
+	// Make it sync for testing
+	// TODO: Make it customizable?
+	if os.Getenv("GPC_SYNC_STORING") == "1" {
+		log.Debugf("Sync Store Response: %s", rc.Request.URL.String())
+
+		rc.doStoreResponse()
+		return
+	}
+
+	log.Debugf("Async Store Response: %s", rc.Request.URL.String())
+	queue.Dispatcher.Do(func() {
+		rc.doStoreResponse()
+	})
+}
+
+func (rc RequestCall) doStoreResponse() {
+	rcDTO := ConvertToRequestCallDTO(rc)
+
+	stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
+	if !stored || err != nil {
+		logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
 	}
 }
 

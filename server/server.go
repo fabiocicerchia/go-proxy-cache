@@ -27,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
 const enableTimeoutHandler = true
@@ -57,6 +58,9 @@ func Run(configFile string) {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
 
+	// init queue
+	queue.Init()
+
 	// start server http & https
 	servers.startListeners()
 
@@ -73,8 +77,13 @@ func Run(configFile string) {
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeoutShutdown)
 	defer cancel()
 
+	log.Error("Finishing processing queue...")
+	queue.Init()
+
+	log.Error("Shutting down servers...")
 	servers.shutdownServers(ctx)
-	log.Error("all listeners shut down.")
+
+	log.Error("All listeners shut down. Exiting.")
 }
 
 // InitServer - Generates the http.Server configuration.

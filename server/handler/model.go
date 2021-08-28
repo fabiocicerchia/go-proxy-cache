@@ -38,6 +38,7 @@ type RequestCall struct {
 	DomainConfig *config.Configuration
 }
 
+// GetHostname - Returns only the hostname (without port if present).
 func (rc RequestCall) GetHostname() string {
 	return strings.Split(rc.Request.Host, ":")[0]
 }
