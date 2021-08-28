@@ -57,6 +57,7 @@ func setCommonConfig() {
 
 func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 1
 	config.Config.Server.Upstream.Scheme = "http"
 	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
@@ -83,6 +84,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 
 func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 2
 	config.Config.Server.Upstream.Scheme = "http"
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
@@ -126,6 +128,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 
 func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 3
 	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "http",
@@ -177,7 +180,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 		Cache: config.Cache{
 			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
 			Port:            "6379",
-			DB:              0,
+			DB:              4,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
@@ -245,6 +248,114 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	tearDownHTTPFunctional()
 }
 
+func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
+	setCommonConfig()
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "www.w3.org",
+				Scheme:    "http",
+				Endpoints: []string{"www.w3.org"},
+			},
+		},
+		Cache: config.Cache{
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
+			Port:            "6379",
+			DB:              5,
+			AllowedStatuses: []int{200, 301, 302},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5,              // 1 out of 2 fails, or more
+			Interval:    time.Duration(1), // clears counts immediately
+			Timeout:     time.Duration(1), // clears state immediately
+		},
+	}
+
+	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
+
+	_, _ = engine.GetConn(domainID).PurgeAll()
+
+	time.Sleep(1 * time.Second)
+
+	// --- MISS
+
+	req, err := http.NewRequest("GET", "/standards/", nil)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+	assert.Nil(t, err)
+
+	rr := httptest.NewRecorder()
+	h := http.HandlerFunc(handler.HandleRequest)
+
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body := rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>Standards - W3C</title>`)
+	assert.Contains(t, body, "</div></body></html>\n")
+
+	// --- HIT
+
+	req, err = http.NewRequest("GET", "/standards/", nil)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "HIT", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>Standards - W3C</title>`)
+	assert.Contains(t, body, "</div></body></html>\n")
+
+	time.Sleep(10*time.Second)
+
+	// Manual Timeout All Fresh Keys
+	_, _ = engine.GetConn(domainID).DelWildcard("DATA@@GET@@http://www.w3.org/standards/@@*/fresh")
+	time.Sleep(10*time.Second)
+
+	// --- STALE
+
+	req, err = http.NewRequest("GET", "/standards/", nil)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "STALE", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>Standards - W3C</title>`)
+	assert.Contains(t, body, "</div></body></html>\n")
+
+	tearDownHTTPFunctional()
+}
+
 func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
@@ -257,6 +368,7 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 			},
 		},
 	}
+	config.Config.Cache.DB = 6
 
 	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
@@ -281,6 +393,7 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 
 func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 7
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
 	config.Config.Server.Upstream = config.Upstream{
@@ -317,6 +430,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 8
 	config.Config.Server.Upstream.Endpoints = []string{utils.GetEnv("NGINX_HOST_443", "localhost:40443")}
 	// This is because there's no client sending their certificate, so the handshake will be broken with a
 	// `remote error: tls: bad certificate`.
@@ -348,6 +462,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 
 func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 9
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
 	config.Config.Server.Upstream = config.Upstream{
@@ -390,6 +505,7 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 
 func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 10
 	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "https",
@@ -441,7 +557,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 		Cache: config.Cache{
 			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
 			Port:            "6379",
-			DB:              0,
+			DB:              11,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
 		},
@@ -513,6 +629,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 
 func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 	setCommonConfig()
+	config.Config.Cache.DB = 12
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
 	config.Config.Server.Upstream = config.Upstream{

@@ -84,6 +84,8 @@ you --->|---->----|--->---|---'     |       |     |   |
 - **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
 - **ETag Support**, generating non-weak tags, handling `304 Not Modified`, managing HTTP headers `If-Modified-Since`, `If-Unmodified-Since`, `If-None-Match`, `If-Match`.  
   ETag wrapper doesn't work well with WebSocket and HTTP/2.
+- **Cache Stampede Prevention**, delaying invalidation request to the backend using an extra small random TTL (between 5s and 10s).
+- **Serving Stale Content**, used mainly for avoiding cache stampede, for maximum 10s.
 
 ### Load Balancing
 

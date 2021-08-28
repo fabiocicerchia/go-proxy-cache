@@ -47,7 +47,7 @@ func TestHTTPClientCall(t *testing.T) {
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, string(body), `<title>About W3C</title>`)
-	assert.Contains(t, string(body), "</div></body></html>")
+	assert.Contains(t, string(body), "</div></body></html>\n")
 }
 
 func TestHTTPClientCallToMissingDomain(t *testing.T) {
