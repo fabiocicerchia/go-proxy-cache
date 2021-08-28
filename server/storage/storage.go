@@ -17,7 +17,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
@@ -32,16 +31,12 @@ type RequestCallDTO struct {
 
 // RetrieveCachedContent - Retrives the cached response.
 func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
-	url := *rc.Request.URL
-	url.Scheme = rc.Scheme
-	url.Host = rc.Hostname
-
-	err := rc.CacheObject.RetrieveFullPage(rc.Request.Method, url, rc.Request.Header)
+	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
 		if err == cache.ErrEmptyValue {
-			log.Infof("Cannot retrieve page %s: %s\n", url.String(), err)
+			log.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		} else {
-			log.Warnf("Cannot retrieve page %s: %s\n", url.String(), err)
+			log.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		}
 
 		return cache.URIObj{}, err
@@ -58,18 +53,6 @@ func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
 	ttl := ttl.GetTTL(rc.Response.Header(), domainConfigCache.TTL)
-
-	rc.CacheObject.CurrentURIObject = cache.URIObj{
-		URL:             *rc.Request.URL,
-		Host:            rc.Request.Host,
-		Scheme:          rc.Scheme,
-		Method:          rc.Request.Method,
-		StatusCode:      rc.Response.StatusCode,
-		RequestHeaders:  rc.Request.Header,
-		ResponseHeaders: rc.Response.Header(),
-		Content:         rc.Response.Content,
-	}
-
 	done, err := rc.CacheObject.StoreFullPage(ttl)
 
 	return done, err
@@ -77,11 +60,5 @@ func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool
 
 // PurgeCachedContent - Purges a content in the cache.
 func PurgeCachedContent(upstream config.Upstream, rc RequestCallDTO) (bool, error) {
-	scheme := utils.IfEmpty(upstream.Scheme, rc.Scheme)
-
-	proxyURL := *rc.Request.URL
-	proxyURL.Scheme = scheme
-	proxyURL.Host = upstream.Host
-
-	return rc.CacheObject.PurgeFullPage(rc.Request.Method, proxyURL)
+	return rc.CacheObject.PurgeFullPage()
 }

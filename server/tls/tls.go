@@ -73,6 +73,8 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 		return nil, err
 	}
 
+	// NOTE: This is workaround in order to keep the TLS certificates from
+	//       previously configured domains.
 	certificates[domain] = &cert
 
 	tlsConfig := defaultTlsConfig
@@ -85,6 +87,7 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
 	}
 
+	// TODO: THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 	if domainConfigTLS.Override != nil {
 		tlsConfig.CurvePreferences = domainConfigTLS.Override.CurvePreferences
 		tlsConfig.MinVersion = domainConfigTLS.Override.MinVersion

@@ -10,6 +10,9 @@ package cache
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -61,6 +64,27 @@ func (c Object) IsStatusAllowed() bool {
 // IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
 func (c Object) IsMethodAllowed() bool {
 	return slice.ContainsString(c.AllowedMethods, c.CurrentURIObject.Method)
+}
+
+// GetHeadersChecksum - Returns a SHA256 based on the HTTP Request Headers.
+func (u URIObj) GetHeadersChecksum(meta []string) string {
+	var key []string
+
+	for _, k := range meta {
+		if val, ok := u.RequestHeaders[k]; ok {
+			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
+		}
+	}
+
+	data, err := json.Marshal(key)
+	if err != nil {
+		return ""
+	}
+
+	h := sha256.New()
+	h.Write([]byte(data))
+
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
 // IsValid - Verifies the validity of a cacheable object.
@@ -121,16 +145,16 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 		return false, err
 	}
 
-	key := StorageKey(c.CurrentURIObject.Method, targetURL, meta, c.CurrentURIObject.RequestHeaders)
+	key := StorageKey(c.CurrentURIObject.Method, targetURL, c.CurrentURIObject.GetHeadersChecksum(meta))
 
 	return conn.Set(key, encoded, expiration)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
-func (c *Object) RetrieveFullPage(method string, url url.URL, reqHeaders http.Header) error {
+func (c *Object) RetrieveFullPage() error {
 	obj := &URIObj{}
 
-	meta, err := FetchMetadata(c.DomainID, method, url)
+	meta, err := FetchMetadata(c.DomainID, c.CurrentURIObject.Method, c.CurrentURIObject.URL)
 	if err != nil {
 		return errors.Wrap(errCannotFetchMetadata, err.Error())
 	}
@@ -140,7 +164,7 @@ func (c *Object) RetrieveFullPage(method string, url url.URL, reqHeaders http.He
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	key := StorageKey(method, url, meta, reqHeaders)
+	key := StorageKey(c.CurrentURIObject.Method, c.CurrentURIObject.URL, c.CurrentURIObject.GetHeadersChecksum(meta))
 	log.Debugf("StorageKey: %s", key)
 
 	encoded, err := conn.Get(key)
@@ -163,8 +187,8 @@ func (c *Object) RetrieveFullPage(method string, url url.URL, reqHeaders http.He
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
-func (c Object) PurgeFullPage(method string, url url.URL) (bool, error) {
-	err := PurgeMetadata(c.DomainID, url)
+func (c Object) PurgeFullPage() (bool, error) {
+	err := PurgeMetadata(c.DomainID, c.CurrentURIObject.URL)
 	if err != nil {
 		return false, err
 	}
@@ -174,8 +198,7 @@ func (c Object) PurgeFullPage(method string, url url.URL) (bool, error) {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	var meta []string
-	key := StorageKey(method, url, meta, http.Header{})
+	key := StorageKey(c.CurrentURIObject.Method, c.CurrentURIObject.URL, "")
 
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
@@ -192,15 +215,8 @@ func (c Object) PurgeFullPage(method string, url url.URL) (bool, error) {
 }
 
 // StorageKey - Returns the cache key for the requested URL.
-func StorageKey(method string, url url.URL, meta []string, reqHeaders http.Header) string {
-	key := []string{"DATA", method, url.String()}
-
-	for _, k := range meta {
-		if val, ok := reqHeaders[k]; ok {
-			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
-		}
-	}
-
+func StorageKey(method string, url url.URL, reqHeaderChecksum string) string {
+	key := []string{"DATA", method, url.String(), reqHeaderChecksum}
 	storageKey := strings.Join(key, utils.StringSeparatorOne)
 
 	return storageKey

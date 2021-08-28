@@ -21,10 +21,16 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
+	// Original URL does not have scheme and hostname in it, so we need to add it.
+	// Ref: https://github.com/golang/go/issues/28940
+	url := *rc.Request.URL
+	url.Scheme = rc.GetScheme()
+	url.Host = rc.GetHostname()
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
 		Request:  *rc.Request,
@@ -34,6 +40,16 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 			AllowedStatuses: rc.DomainConfig.Cache.AllowedStatuses,
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
 			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
+			CurrentURIObject: cache.URIObj{
+				Host:            rc.GetHostname(),
+				Scheme:          utils.IfEmpty(rc.GetConfiguredScheme(), rc.GetScheme()),
+				URL:             url,
+				Method:          rc.Request.Method,
+				StatusCode:      rc.Response.StatusCode,
+				RequestHeaders:  rc.Request.Header,
+				ResponseHeaders: rc.Response.Header(),
+				Content:         rc.Response.Content,
+			},
 		},
 	}
 }

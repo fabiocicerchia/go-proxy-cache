@@ -193,7 +193,7 @@ server:
     port: 8443
     # Endpoint scheme to be used when forwarding traffic.
     # Default: incoming connection.
-    # Values: http, https.
+    # Values: http, https, ws, wsss.
     scheme: https
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using a round robin algorithm.
