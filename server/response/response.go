@@ -27,6 +27,9 @@ const CacheStatusHeaderHit = "HIT"
 // CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status.
 const CacheStatusHeaderMiss = "MISS"
 
+// CacheStatusHeaderStale - Cache status STALE for HTTP Header X-Go-Proxy-Cache-Status.
+const CacheStatusHeaderStale = "STALE"
+
 // LoggedResponseWriter - Decorator for http.ResponseWriter.
 type LoggedResponseWriter struct {
 	http.ResponseWriter

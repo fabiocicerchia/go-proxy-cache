@@ -24,12 +24,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
-// CacheStatusLabel - Labels used for displaying HIT/MISS based on cache usage.
-var CacheStatusLabel = map[bool]string{
-	true:  "HIT",
-	false: "MISS",
-}
-
 // Log - Logs against a requested URL.
 func Log(req http.Request, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
@@ -38,7 +32,7 @@ func Log(req http.Request, message string) {
 }
 
 // LogRequest - Logs the requested URL.
-func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool) {
+func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool, cached_label string) {
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	logLine := config.Config.Log.Format
@@ -65,7 +59,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 		`$body_bytes_sent`, strconv.Itoa(slice.LenSliceBytes(lwr.Content)),
 		`$http_referer`, req.Referer(),
 		`$http_user_agent`, req.UserAgent(),
-		`$cached_status_label`, CacheStatusLabel[cached],
+		`$cached_status_label`, cached_label,
 		`$cached_status`, fmt.Sprintf("%v", cached),
 	)
 

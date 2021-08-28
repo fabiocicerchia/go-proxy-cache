@@ -107,7 +107,7 @@ func (rdb *RedisClient) Ping() bool {
 	return err == nil
 }
 
-// Set - Sets a key, with certain value, with TTL for expiring.
+// Set - Sets a key, with certain value, with TTL for expiring (soft and hard eviction).
 func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) (bool, error) {
 	_, err := circuitbreaker.CB(rdb.Name).Execute(rdb.doSet(key, value, expiration))
 
@@ -135,17 +135,13 @@ func (rdb *RedisClient) Get(key string) (string, error) {
 	value, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		value, err := rdb.Client.Get(ctx, key).Result()
 		if value == "" && err != nil && err.Error() == "redis: nil" {
-			return "", nil
+			return value, nil
 		}
 
 		return value, err
 	})
 
-	if err != nil {
-		return "", err
-	}
-
-	return value.(string), nil
+	return value.(string), err
 }
 
 // Del - Removes a key.
@@ -235,7 +231,7 @@ func (rdb *RedisClient) doPushKey(key string, values []string) func() (interface
 	}
 }
 
-// Expire - Sets a TTL on a key.
+// Expire - Sets a TTL on a key (hard eviction only).
 func (rdb *RedisClient) Expire(key string, expiration time.Duration) error {
 	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
 		err := rdb.Client.Expire(ctx, key, expiration).Err()

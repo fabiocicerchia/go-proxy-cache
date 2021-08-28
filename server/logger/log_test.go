@@ -45,7 +45,7 @@ func TestLogMessage(t *testing.T) {
 	config.Config = config.Configuration{
 		Log: config.Log{
 			TimeFormat: "2006/01/02 15:04:05",
-			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status $cached_status_label`,
 		},
 	}
 
@@ -84,13 +84,13 @@ func TestLogRequest(t *testing.T) {
 	config.Config = config.Configuration{
 		Log: config.Log{
 			TimeFormat: "2006/01/02 15:04:05",
-			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status $cached_status_label`,
 		},
 	}
 
-	logger.LogRequest(reqMock, lwrMock, true)
+	logger.LogRequest(reqMock, lwrMock, true, "HIT")
 
-	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true"` + "\n"
+	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT"` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -120,7 +120,7 @@ func TestLogSetup(t *testing.T) {
 		},
 		Log: config.Log{
 			TimeFormat: "2006/01/02 15:04:05",
-			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status`,
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status $cached_status_label`,
 		},
 	}
 

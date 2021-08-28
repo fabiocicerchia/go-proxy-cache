@@ -111,7 +111,7 @@ test-http2: ## test HTTP2
 	fi
 
 cover:  ## coverage
-	go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
+	GPC_SYNC_STORING=1 go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
 	go tool cover -func=c.out
 	go tool cover -html=c.out
 

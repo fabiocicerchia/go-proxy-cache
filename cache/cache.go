@@ -13,6 +13,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -36,6 +37,23 @@ var errVaryWildcard = errors.New("vary: *")
 // ErrEmptyValue - Error used when no data is available in Redis.
 var ErrEmptyValue = errors.New("empty value")
 
+// DefaultMinSoftExpirationTTL - Additional time to avoid cache stampede (min lower bound).
+// TODO: Make it customizable?
+const DefaultMinSoftExpirationTTL time.Duration = 5 * time.Second
+
+// DefaultMaxSoftExpirationTTL - Additional time to avoid cache stampede (max upper bound).
+// TODO: Make it customizable?
+const DefaultMaxSoftExpirationTTL time.Duration = 10 * time.Second
+
+// FreshSuffix - Used for saving a suffix for handling cache stampede.
+const FreshSuffix = "/fresh"
+
+// DataValue - Used for retrieving data from redis (and check whether stale).
+type DataValue struct {
+	Value string
+	Stale bool
+}
+
 // Object - Contains cache settings and current cached/cacheable object.
 type Object struct {
 	AllowedStatuses  []int
@@ -54,6 +72,7 @@ type URIObj struct {
 	RequestHeaders  http.Header
 	ResponseHeaders http.Header
 	Content         [][]byte
+	Stale           bool
 }
 
 // IsStatusAllowed - Checks if a status code is allowed to be cached.
@@ -64,6 +83,10 @@ func (c Object) IsStatusAllowed() bool {
 // IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
 func (c Object) IsMethodAllowed() bool {
 	return slice.ContainsString(c.AllowedMethods, c.CurrentURIObject.Method)
+}
+
+func getRandomSoftExpirationTTL() time.Duration {
+	return time.Duration(rand.Intn(int(DefaultMaxSoftExpirationTTL)-int(DefaultMinSoftExpirationTTL)) + int(DefaultMinSoftExpirationTTL))
 }
 
 // GetHeadersChecksum - Returns a SHA256 based on the HTTP Request Headers.
@@ -147,7 +170,19 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 
 	key := StorageKey(c.CurrentURIObject.Method, targetURL, c.CurrentURIObject.GetHeadersChecksum(meta))
 
-	return conn.Set(key, encoded, expiration)
+	// HARD EVICTION
+	expirationHard := expiration
+	done, err := conn.Set(key+FreshSuffix, encoded, expirationHard)
+	if err != nil {
+		return done, err
+	}
+
+	// SOFT EVICTION
+	expirationSoft := expiration + getRandomSoftExpirationTTL()
+	if expiration == 0 {
+		expirationSoft = 0
+	}
+	return conn.Set(key, encoded, expirationSoft)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
@@ -167,9 +202,14 @@ func (c *Object) RetrieveFullPage() error {
 	key := StorageKey(c.CurrentURIObject.Method, c.CurrentURIObject.URL, c.CurrentURIObject.GetHeadersChecksum(meta))
 	log.Debugf("StorageKey: %s", key)
 
-	encoded, err := conn.Get(key)
-	if err != nil {
-		return errors.Wrap(errCannotGetKey, err.Error())
+	var stale bool = false
+	encoded, err := conn.Get(key + FreshSuffix)
+	if err != nil || encoded == "" {
+		stale = true
+		encoded, err = conn.Get(key)
+		if err != nil {
+			return errors.Wrap(errCannotGetKey, err.Error())
+		}
 	}
 
 	if encoded == "" {
@@ -182,6 +222,7 @@ func (c *Object) RetrieveFullPage() error {
 	}
 
 	c.CurrentURIObject = *obj
+	c.CurrentURIObject.Stale = stale
 
 	return nil
 }
@@ -258,16 +299,19 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 	}
 
 	_ = conn.Del(key)
+	_ = conn.Del(key + FreshSuffix)
 
 	err := conn.Push(key, meta)
 	if err != nil {
 		return false, err
 	}
 
-	err = conn.Expire(key, expiration)
+	err = conn.Expire(key, expiration+getRandomSoftExpirationTTL())
+	err = conn.Expire(key+FreshSuffix, expiration)
 	if err != nil {
 		// TODO: use transaction
 		_ = conn.Del(key)
+		_ = conn.Del(key + FreshSuffix)
 
 		return false, err
 	}

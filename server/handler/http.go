@@ -30,6 +30,22 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
+// CacheStatusHit - Value for HIT.
+const CacheStatusHit = 1
+
+// CacheStatusHit - Value for MISS.
+const CacheStatusMiss = 0
+
+// CacheStatusHit - Value for STALE.
+const CacheStatusStale = -1
+
+// CacheStatusLabel - Labels used for displaying HIT/MISS based on cache usage.
+var CacheStatusLabel = map[int]string{
+	CacheStatusHit:   "HIT",
+	CacheStatusMiss:  "MISS",
+	CacheStatusStale: "STALE",
+}
+
 var enableStoringResponse = true
 var enableCachedResponse = true
 var enableLoggingRequest = true
@@ -48,38 +64,45 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy() {
-	cached := false
+	cached := CacheStatusMiss
 
 	if enableCachedResponse {
 		cached = rc.serveCachedContent()
 	}
 
-	if !cached {
+	if cached == CacheStatusMiss {
 		rc.serveReverseProxyHTTP()
 	}
 
 	if enableLoggingRequest {
-		logger.LogRequest(*rc.Request, *rc.Response, cached)
+		// HIT and STALE considered the same.
+		logger.LogRequest(*rc.Request, *rc.Response, cached != CacheStatusMiss, CacheStatusLabel[cached])
 	}
 }
 
-func (rc RequestCall) serveCachedContent() bool {
+func (rc RequestCall) serveCachedContent() int {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	uriobj, err := storage.RetrieveCachedContent(rcDTO)
+	uriObj, err := storage.RetrieveCachedContent(rcDTO)
 	if err != nil {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 
 		log.Warnf("Error on serving cached content: %s", err)
 
-		return false
+		return CacheStatusMiss
 	}
 
-	ctx := rc.Request.Context()
-	rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
-	transport.ServeCachedResponse(ctx, rc.Response, uriobj)
+	cached := CacheStatusHit
+	if uriObj.Stale {
+		cached = CacheStatusStale
+		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderStale)
+	} else {
+		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
+	}
 
-	return true
+	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
+
+	return cached
 }
 
 func (rc RequestCall) serveReverseProxyHTTP() {

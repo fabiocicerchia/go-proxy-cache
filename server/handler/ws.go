@@ -20,7 +20,7 @@ func (rc RequestCall) HandleWSRequestAndProxy() {
 	rc.serveReverseProxyWS()
 
 	if enableLoggingRequest {
-		logger.LogRequest(*rc.Request, *rc.Response, false)
+		logger.LogRequest(*rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
 	}
 }
 

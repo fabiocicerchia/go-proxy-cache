@@ -58,7 +58,7 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) RequestCall {
 	rc.DomainConfig = config.DomainConf(rc.GetHostname(), rc.GetScheme())
 	if rc.DomainConfig == nil || !isLegitPort(rc.DomainConfig.Server.Port, listeningPort) {
 		rc.Response.WriteHeader(http.StatusNotImplemented)
-		logger.LogRequest(*rc.Request, *rc.Response, false)
+		logger.LogRequest(*rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
 		log.Errorf("Missing configuration in HandleRequest for %s (listening on :%s).", rc.Request.Host, listeningPort)
 
 		return RequestCall{}
