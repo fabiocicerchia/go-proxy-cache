@@ -1,5 +1,42 @@
 # Changelog
 
+## v1.1.0 (2021-08-28)
+
+### New
+
+- Added new label for HIT/MISS in the logs. [Fabio Cicerchia]
+
+### Changes
+
+- Linted. [Fabio Cicerchia]
+- Upgraded package.json. [Fabio Cicerchia]
+- Refactoring to use DomainID consistenly in various places + changed some logging. [Fabio Cicerchia]
+- Displaying omitted when printing configuration settings. [Fabio Cicerchia]
+
+### Fix
+
+- Refactoring to avoid to share HTTP headers with sensitive information in redis key. [Fabio Cicerchia]
+- Automatically push to Docker Hub, closed #103. [Fabio Cicerchia]
+- Fix CodeClimate broken coverage, closed #44. [Fabio Cicerchia]
+- Added missing docs for golint. [Fabio Cicerchia]
+- Generating dummy tls certificates for tests. [Fabio Cicerchia]
+- Replacing correctly the cache_status_label variable. [Fabio Cicerchia]
+- Lowered priority from WARN to INFO in case of MISS in redis + fixed one test + fixed wrong wildcard schema being passed to the proxy. [Fabio Cicerchia]
+- Using the correct redis connection in case of wildcard scheme matching. [Fabio Cicerchia]
+- Using correct tls certificates on test/full-setup. [Fabio Cicerchia]
+
+### Other
+
+- Create codeql-analysis.yml. [Fabio Cicerchia]
+- Dev: added comments to explain critical settings related to issue #35. [Fabio Cicerchia]
+
+## v1.0.1 (2021-08-26)
+
+### Other
+
+- Fixed golang version base image for docker. [Fabio Cicerchia]
+- Corrected changelog for v1.0.0. [Fabio Cicerchia]
+
 ## v1.0.0 (2021-08-26)
 
 ### New
