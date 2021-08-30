@@ -17,13 +17,10 @@ import (
 
 // RedirectToHTTPS - Redirects from HTTP to HTTPS.
 func (rc RequestCall) RedirectToHTTPS() {
-	targetURL := rc.Request.URL
-	targetURL.Scheme = "https"
-	targetURL.Host = rc.Request.Host
+	targetURL := rc.GetRequestURL()
+	targetURL.Scheme = SchemeHTTPS
 
-	target := targetURL.String()
+	log.Infof("Redirect to: %s", targetURL.String())
 
-	log.Infof("Redirect to: %s", target)
-
-	http.Redirect(rc.Response, rc.Request, target, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	http.Redirect(rc.Response, rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }

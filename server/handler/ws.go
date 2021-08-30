@@ -10,6 +10,8 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"net/http"
+
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
@@ -25,14 +27,22 @@ func (rc RequestCall) HandleWSRequestAndProxy() {
 }
 
 func (rc RequestCall) serveReverseProxyWS() {
-	upstream := rc.DomainConfig.Server.Upstream
-	proxyURL := rc.patchRequestForReverseProxy(upstream)
+	proxyURL := rc.GetUpstreamURL()
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
 	log.Debugf("Req URL: %s", rc.Request.URL.String())
 	log.Debugf("Req Host: %s", rc.Request.Host)
 
-	proxy := wsutil.NewSingleHostReverseProxy(proxyURL)
+	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
+
+	originalDirector := proxy.Director
+	gpcDirector := rc.ProxyDirector
+	proxy.Director = func(req *http.Request) {
+		// the default director implementation returned by httputil.NewSingleHostReverseProxy
+		// takes care of setting the request Scheme, Host, and Path.
+		originalDirector(req)
+		gpcDirector(req)
+	}
 
 	transport := rc.patchProxyTransport()
 	proxy.Dial = transport.Dial

@@ -55,6 +55,7 @@ type Configuration struct {
 	CircuitBreaker circuitbreaker.CircuitBreaker `yaml:"circuit_breaker"`
 	Domains        Domains                       `yaml:"domains"`
 	Log            Log                           `yaml:"log"`
+	domainsCache   map[string]*Configuration
 }
 
 // Domains - Overrides per domain.
@@ -93,7 +94,7 @@ type Upstream struct {
 	Endpoints          []string `yaml:"endpoints" envconfig:"LB_ENDPOINT_LIST" split_words:"true"`
 	InsecureBridge     bool     `yaml:"insecure_bridge"`
 	HTTP2HTTPS         bool     `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`
-	RedirectStatusCode int      `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE"`
+	RedirectStatusCode int      `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE" default:"301"`
 }
 
 // GetDomainID - Returns the unique ID for the upstream.

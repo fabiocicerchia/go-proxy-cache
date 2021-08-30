@@ -35,6 +35,9 @@ domains:
         host: www.w3.org
         endpoints:
         - www.w3.org
+      tls:
+        cert_file: certs/www.w3.org/server.pem
+        key_file: certs/www.w3.org/server.key
 
   www_testing_local:
     server:

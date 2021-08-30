@@ -94,10 +94,10 @@ func InitServer(domain string) *http.Server {
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	if config.Config.Server.Healthcheck {
-		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck)
+		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck(config.Config))
 	}
 
-	mux.HandleFunc("/", handler.HandleRequest)
+	mux.HandleFunc("/", handler.HandleRequest(config.Config))
 
 	// basic
 	var muxMiddleware http.Handler = mux

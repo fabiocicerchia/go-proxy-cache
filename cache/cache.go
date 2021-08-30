@@ -48,12 +48,6 @@ const DefaultMaxSoftExpirationTTL time.Duration = 10 * time.Second
 // FreshSuffix - Used for saving a suffix for handling cache stampede.
 const FreshSuffix = "/fresh"
 
-// DataValue - Used for retrieving data from redis (and check whether stale).
-type DataValue struct {
-	Value string
-	Stale bool
-}
-
 // Object - Contains cache settings and current cached/cacheable object.
 type Object struct {
 	AllowedStatuses  []int
@@ -65,8 +59,6 @@ type Object struct {
 // URIObj - Holds details about the response.
 type URIObj struct {
 	URL             url.URL
-	Host            string
-	Scheme          string
 	Method          string
 	StatusCode      int
 	RequestHeaders  http.Header
@@ -92,6 +84,10 @@ func getRandomSoftExpirationTTL() time.Duration {
 // GetHeadersChecksum - Returns a SHA256 based on the HTTP Request Headers.
 func (u URIObj) GetHeadersChecksum(meta []string) string {
 	var key []string
+
+	if len(meta) == 0 {
+		return ""
+	}
 
 	for _, k := range meta {
 		if val, ok := u.RequestHeaders[k]; ok {
@@ -149,11 +145,7 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 		return false, nil
 	}
 
-	targetURL := c.CurrentURIObject.URL
-	targetURL.Scheme = c.CurrentURIObject.Scheme
-	targetURL.Host = c.CurrentURIObject.Host
-
-	meta, err := c.handleMetadata(c.DomainID, targetURL, expiration)
+	meta, err := c.handleMetadata(c.DomainID, c.CurrentURIObject.URL, expiration)
 	if err != nil {
 		return false, err
 	}
@@ -168,7 +160,7 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 		return false, err
 	}
 
-	key := StorageKey(c.CurrentURIObject.Method, targetURL, c.CurrentURIObject.GetHeadersChecksum(meta))
+	key := StorageKey(c.CurrentURIObject, meta)
 
 	// HARD EVICTION
 	expirationHard := expiration
@@ -199,7 +191,7 @@ func (c *Object) RetrieveFullPage() error {
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	key := StorageKey(c.CurrentURIObject.Method, c.CurrentURIObject.URL, c.CurrentURIObject.GetHeadersChecksum(meta))
+	key := StorageKey(c.CurrentURIObject, meta)
 	log.Debugf("StorageKey: %s", key)
 
 	var stale bool = false
@@ -239,7 +231,7 @@ func (c Object) PurgeFullPage() (bool, error) {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	key := StorageKey(c.CurrentURIObject.Method, c.CurrentURIObject.URL, "")
+	key := StorageKey(c.CurrentURIObject, []string{})
 
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
@@ -256,8 +248,8 @@ func (c Object) PurgeFullPage() (bool, error) {
 }
 
 // StorageKey - Returns the cache key for the requested URL.
-func StorageKey(method string, url url.URL, reqHeaderChecksum string) string {
-	key := []string{"DATA", method, url.String(), reqHeaderChecksum}
+func StorageKey(currentURIObject URIObj, meta []string) string {
+	key := []string{"DATA", currentURIObject.Method, currentURIObject.URL.String(), currentURIObject.GetHeadersChecksum(meta)}
 	storageKey := strings.Join(key, utils.StringSeparatorOne)
 
 	return storageKey

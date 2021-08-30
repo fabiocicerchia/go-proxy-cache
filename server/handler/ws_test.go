@@ -53,7 +53,7 @@ func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache)
@@ -71,7 +71,7 @@ func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest)
+	h := http.HandlerFunc(handler.HandleRequest(config.Config))
 
 	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
@@ -111,7 +111,7 @@ func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache)
@@ -130,7 +130,7 @@ func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest)
+	h := http.HandlerFunc(handler.HandleRequest(config.Config))
 
 	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)

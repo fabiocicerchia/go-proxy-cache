@@ -24,8 +24,6 @@ import (
 type RequestCallDTO struct {
 	Response    response.LoggedResponseWriter
 	Request     http.Request
-	Hostname    string
-	Scheme      string
 	CacheObject cache.Object
 }
 

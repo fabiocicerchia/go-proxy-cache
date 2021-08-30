@@ -11,6 +11,7 @@ package handler
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/yhat/wsutil"
@@ -36,6 +37,17 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      *http.Request
 	DomainConfig *config.Configuration
+}
+
+// GetRequestURL - Returns the valid Request URL (with Scheme and Host).
+func (rc RequestCall) GetRequestURL() url.URL {
+	// Original URL does not have scheme and hostname in it, so we need to add it.
+	// Ref: https://github.com/golang/go/issues/28940
+	url := *rc.Request.URL
+	url.Scheme = rc.GetScheme()
+	url.Host = rc.GetHostname()
+
+	return url
 }
 
 // GetHostname - Returns only the hostname (without port if present).

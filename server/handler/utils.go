@@ -20,30 +20,22 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
-	// Original URL does not have scheme and hostname in it, so we need to add it.
-	// Ref: https://github.com/golang/go/issues/28940
-	url := *rc.Request.URL
-	url.Scheme = rc.GetScheme()
-	url.Host = rc.GetHostname()
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
 		Request:  *rc.Request,
-		Hostname: rc.GetHostname(),
-		Scheme:   rc.GetScheme(),
 		CacheObject: cache.Object{
 			AllowedStatuses: rc.DomainConfig.Cache.AllowedStatuses,
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
 			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
 			CurrentURIObject: cache.URIObj{
-				Host:            rc.GetHostname(),
-				Scheme:          utils.IfEmpty(rc.GetConfiguredScheme(), rc.GetScheme()),
-				URL:             url,
+				URL:             rc.GetRequestURL(),
 				Method:          rc.Request.Method,
 				StatusCode:      rc.Response.StatusCode,
 				RequestHeaders:  rc.Request.Header,
@@ -108,18 +100,51 @@ func getOverridePort(host string, port string, scheme string) string {
 	return portOverride
 }
 
-func (rc *RequestCall) patchRequestForReverseProxy(upstream config.Upstream) *url.URL {
+// GetUpstreamURL - Get the URL based on the upstream.
+func (rc RequestCall) GetUpstreamURL() url.URL {
+	upstream := rc.DomainConfig.Server.Upstream
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
-	targetURL := *rc.Request.URL
-	targetURL.Scheme = rc.GetScheme()
-	targetURL.Host = upstream.Host + overridePort
 
-	rc.FixRequest(targetURL, upstream)
-
-	proxyURL := &url.URL{
-		Scheme: rc.Request.URL.Scheme,
-		Host:   rc.Request.URL.Host,
+	// Override Hostname with Destination Hostname.
+	hostname := upstream.Host + overridePort
+	scheme := upstream.Scheme
+	if scheme == config.SchemeWildcard {
+		scheme = rc.GetScheme()
 	}
 
-	return proxyURL
+	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme
+	balancedHost := balancer.GetLBRoundRobin(lbID, hostname)
+	overridePort = getOverridePort(balancedHost, upstream.Port, scheme)
+
+	return url.URL{
+		Scheme: scheme,
+		Host:   balancedHost + overridePort,
+	}
+}
+
+// ProxyDirector - Add extra behaviour to request.
+func (rc RequestCall) ProxyDirector(req *http.Request) {
+	upstream := rc.DomainConfig.Server.Upstream
+	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
+	host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
+
+	// The value of r.URL.Host and r.Host are almost always different. On a
+	// proxy server, r.URL.Host is the host of the target server and r.Host is
+	// the host of the proxy server itself.
+	// Ref: https://stackoverflow.com/a/42926149/888162
+	rc.Request.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
+
+	rc.Request.Header.Set("X-Forwarded-Proto", rc.GetScheme())
+
+	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
+	clientIP := utils.StripPort(rc.Request.RemoteAddr)
+
+	xForwardedFor := net.ParseIP(clientIP).String()
+	if previousXForwardedFor != "" {
+		xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
+	}
+
+	rc.Request.Header.Set("X-Forwarded-For", xForwardedFor)
+
+	rc.Request.Host = host
 }

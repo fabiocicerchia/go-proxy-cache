@@ -54,7 +54,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	domainID := config.Config.Server.Upstream.GetDomainID()
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache)
 	engine.GetConn(domainID).Close()
@@ -63,7 +63,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck)
+	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
 
 	h.ServeHTTP(rr, req)
 
@@ -96,9 +96,9 @@ func TestHealthcheckWithRedis(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck)
+	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
 
-	domainID := config.Config.Server.Upstream.Host + utils.StringSeparatorOne + config.Config.Server.Upstream.Scheme
+	domainID := config.Config.Server.Upstream.GetDomainID()
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache)
 

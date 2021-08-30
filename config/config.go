@@ -34,8 +34,6 @@ const PasswordOmittedValue = "*** OMITTED ***"
 // SchemeWildcard - Label to be shown when no schema (http/https) is selected.
 const SchemeWildcard = "*"
 
-var domainsCache map[string]*Configuration
-
 func newFromEnv() Configuration {
 	envConfig := Configuration{}
 
@@ -245,42 +243,47 @@ func getSliceFromMap(domains map[string]DomainSet) []DomainSet {
 	return domainsUnique
 }
 
-// DomainConf - Returns the configuration for the requested domain.
+// DomainConf - Returns the configuration for the requested domain (Global Access).
 func DomainConf(domain string, scheme string) *Configuration {
+	return Config.DomainConf(domain, scheme)
+}
+
+// DomainConf - Returns the configuration for the requested domain.
+func (c Configuration) DomainConf(domain string, scheme string) *Configuration {
 	// Memoization
-	if domainsCache == nil {
-		domainsCache = make(map[string]*Configuration)
+	if c.domainsCache == nil {
+		c.domainsCache = make(map[string]*Configuration)
 	}
 
 	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
-	if val, ok := domainsCache[keyCache]; ok {
+	if val, ok := c.domainsCache[keyCache]; ok {
 		log.Debugf("Cached configuration for %s", keyCache)
 		return val
 	}
 
-	domainsCache[keyCache] = domainConfLookup(utils.StripPort(domain), scheme)
+	c.domainsCache[keyCache] = c.domainConfLookup(utils.StripPort(domain), scheme)
 
-	return domainsCache[keyCache]
+	return c.domainsCache[keyCache]
 }
 
-func domainConfLookup(domain string, scheme string) *Configuration {
+func (c Configuration) domainConfLookup(domain string, scheme string) *Configuration {
 	// First round: host & scheme
-	for _, v := range Config.Domains {
+	for _, v := range c.Domains {
 		if v.Server.Upstream.Host == domain && v.Server.Upstream.Scheme == scheme {
 			return &v
 		}
 	}
 
 	// Second round: host
-	for _, v := range Config.Domains {
+	for _, v := range c.Domains {
 		if v.Server.Upstream.Host == domain {
 			return &v
 		}
 	}
 
 	// Third round: global
-	if Config.Server.Upstream.Host == domain {
-		return &Config
+	if c.Server.Upstream.Host == domain {
+		return &c
 	}
 
 	return nil

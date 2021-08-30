@@ -11,22 +11,17 @@ package handler
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
-	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
@@ -106,26 +101,25 @@ func (rc RequestCall) serveCachedContent() int {
 }
 
 func (rc RequestCall) serveReverseProxyHTTP() {
-	upstream := rc.DomainConfig.Server.Upstream
-	proxyURL := rc.patchRequestForReverseProxy(upstream)
+	proxyURL := rc.GetUpstreamURL()
 
 	log.Debugf("ProxyURL: %s", proxyURL.String())
 	log.Debugf("Req URL: %s", rc.Request.URL.String())
 	log.Debugf("Req Host: %s", rc.Request.Host)
 
-	proxy := httputil.NewSingleHostReverseProxy(proxyURL)
+	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()
 
-	director := proxy.Director
-
+	originalDirector := proxy.Director
+	gpcDirector := rc.ProxyDirector
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.
-		director(req)
-
-		// TODO: Move patchRequestForReverseProxy in here
+		originalDirector(req)
+		gpcDirector(req)
 	}
 
+	// Forward Original Request
 	proxy.ServeHTTP(rc.Response, rc.Request)
 
 	rc.storeResponse()
@@ -158,39 +152,4 @@ func (rc RequestCall) doStoreResponse() {
 	if !stored || err != nil {
 		logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
 	}
-}
-
-// FixRequest - Fixes the Request in order to use the load balanced host.
-func (rc *RequestCall) FixRequest(url url.URL, upstream config.Upstream) {
-	scheme := upstream.Scheme
-	if scheme == config.SchemeWildcard {
-		scheme = rc.GetScheme()
-	}
-	host := utils.IfEmpty(upstream.Host, url.Host)
-
-	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme
-	balancedHost := balancer.GetLBRoundRobin(lbID, url.Host)
-	overridePort := getOverridePort(balancedHost, upstream.Port, scheme)
-
-	// The value of r.URL.Host and r.Host are almost always different. On a
-	// proxy server, r.URL.Host is the host of the target server and r.Host is
-	// the host of the proxy server itself.
-	// Ref: https://stackoverflow.com/a/42926149/888162
-	rc.Request.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
-
-	rc.Request.Header.Set("X-Forwarded-Proto", rc.GetScheme())
-
-	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
-	clientIP := utils.StripPort(rc.Request.RemoteAddr)
-
-	xForwardedFor := net.ParseIP(clientIP).String()
-	if previousXForwardedFor != "" {
-		xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
-	}
-
-	rc.Request.Header.Set("X-Forwarded-For", xForwardedFor)
-
-	rc.Request.URL.Host = balancedHost + overridePort
-	rc.Request.URL.Scheme = scheme
-	rc.Request.Host = host
 }
