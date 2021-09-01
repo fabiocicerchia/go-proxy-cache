@@ -40,7 +40,7 @@ func initLogs() {
 func TestHealthcheckWithoutRedis(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -52,18 +52,26 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 			Interval:    time.Duration(1),
 			Timeout:     time.Duration(1), // clears state immediately
 		},
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "testing.local",
+				Scheme:    "https",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_80", "localhost:40080")},
+			},
+		},
 	}
 
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	domainID := cfg.Server.Upstream.GetDomainID()
+	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
+	engine.InitConn(domainID, cfg.Cache)
 	engine.GetConn(domainID).Close()
 
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
+	req.Host = "testing.local"
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
+	h := http.HandlerFunc(handler.HandleHealthcheck(cfg))
 
 	h.ServeHTTP(rr, req)
 
@@ -72,13 +80,13 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `REDIS KO`)
 	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
 
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, cfg.Cache)
 }
 
 func TestHealthcheckWithRedis(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -90,17 +98,25 @@ func TestHealthcheckWithRedis(t *testing.T) {
 			Interval:    time.Duration(1),
 			Timeout:     time.Duration(1), // clears state immediately
 		},
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "testing.local",
+				Scheme:    "http",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_80", "localhost:40080")},
+			},
+		},
 	}
 
+	domainID := cfg.Server.Upstream.GetDomainID()
+	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
+	engine.InitConn(domainID, cfg.Cache)
+
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
+	req.Host = "testing.local"
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
-
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	h := http.HandlerFunc(handler.HandleHealthcheck(cfg))
 
 	h.ServeHTTP(rr, req)
 

@@ -61,7 +61,10 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 func (rc RequestCall) HandleHTTPRequestAndProxy() {
 	cached := CacheStatusMiss
 
-	if enableCachedResponse {
+	// TODO: INFO LOG
+	forceFresh := rc.Request.Header.Get("X-GPC-Force-Fresh") == "1"
+
+	if enableCachedResponse && !forceFresh {
 		cached = rc.serveCachedContent()
 	}
 
@@ -69,9 +72,11 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 		rc.serveReverseProxyHTTP()
 	}
 
+	// TODO: Inject ETag
+
 	if enableLoggingRequest {
 		// HIT and STALE considered the same.
-		logger.LogRequest(*rc.Request, *rc.Response, cached != CacheStatusMiss, CacheStatusLabel[cached])
+		logger.LogRequest(rc.Request, *rc.Response, cached != CacheStatusMiss, CacheStatusLabel[cached])
 	}
 }
 
@@ -120,7 +125,7 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 	}
 
 	// Forward Original Request
-	proxy.ServeHTTP(rc.Response, rc.Request)
+	proxy.ServeHTTP(rc.Response, &rc.Request)
 
 	rc.storeResponse()
 }
@@ -150,6 +155,6 @@ func (rc RequestCall) doStoreResponse() {
 
 	stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
 	if !stored || err != nil {
-		logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
+		logger.Log(rc.Request, fmt.Sprintf("Not Stored: %v", err))
 	}
 }

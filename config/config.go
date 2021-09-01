@@ -244,47 +244,49 @@ func getSliceFromMap(domains map[string]DomainSet) []DomainSet {
 }
 
 // DomainConf - Returns the configuration for the requested domain (Global Access).
-func DomainConf(domain string, scheme string) *Configuration {
+func DomainConf(domain string, scheme string) (Configuration, bool) {
 	return Config.DomainConf(domain, scheme)
 }
 
 // DomainConf - Returns the configuration for the requested domain.
-func (c Configuration) DomainConf(domain string, scheme string) *Configuration {
+func (c Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
+	var found bool
+
 	// Memoization
 	if c.domainsCache == nil {
-		c.domainsCache = make(map[string]*Configuration)
+		c.domainsCache = make(map[string]Configuration)
 	}
 
 	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
 	if val, ok := c.domainsCache[keyCache]; ok {
 		log.Debugf("Cached configuration for %s", keyCache)
-		return val
+		return val, true
 	}
 
-	c.domainsCache[keyCache] = c.domainConfLookup(utils.StripPort(domain), scheme)
+	c.domainsCache[keyCache], found = c.domainConfLookup(utils.StripPort(domain), scheme)
 
-	return c.domainsCache[keyCache]
+	return c.domainsCache[keyCache], found
 }
 
-func (c Configuration) domainConfLookup(domain string, scheme string) *Configuration {
+func (c Configuration) domainConfLookup(domain string, scheme string) (Configuration, bool) {
 	// First round: host & scheme
 	for _, v := range c.Domains {
 		if v.Server.Upstream.Host == domain && v.Server.Upstream.Scheme == scheme {
-			return &v
+			return v, true
 		}
 	}
 
 	// Second round: host
 	for _, v := range c.Domains {
 		if v.Server.Upstream.Host == domain {
-			return &v
+			return v, true
 		}
 	}
 
 	// Third round: global
 	if c.Server.Upstream.Host == domain {
-		return &c
+		return c, true
 	}
 
-	return nil
+	return Configuration{}, false
 }

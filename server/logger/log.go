@@ -72,14 +72,11 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 func LogSetup(server config.Server) {
 	forwardHost := utils.IfEmpty(server.Upstream.Host, "*")
 	forwardProto := server.Upstream.Scheme
-	lbEndpointList := server.Upstream.Endpoints
 
-	log.Infof("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)
-
+	lbEndpointList := fmt.Sprintf("%v", server.Upstream.Endpoints)
 	if len(lbEndpointList) == 0 {
-		log.Infof("Redirecting to url: %s://%s -> VOID\n", forwardProto, forwardHost)
-		return
+		lbEndpointList = "VOID"
 	}
 
-	log.Infof("Redirecting to url: %s://%s -> %v\n", forwardProto, forwardHost, lbEndpointList)
+	log.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
 }

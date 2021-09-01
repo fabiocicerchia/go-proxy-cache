@@ -22,7 +22,7 @@ func (rc RequestCall) HandleWSRequestAndProxy() {
 	rc.serveReverseProxyWS()
 
 	if enableLoggingRequest {
-		logger.LogRequest(*rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
+		logger.LogRequest(rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
 	}
 }
 
@@ -48,5 +48,5 @@ func (rc RequestCall) serveReverseProxyWS() {
 	proxy.Dial = transport.Dial
 	proxy.TLSClientConfig = transport.TLSClientConfig
 
-	proxy.ServeHTTP(rc.Response, rc.Request)
+	proxy.ServeHTTP(rc.Response, &rc.Request)
 }

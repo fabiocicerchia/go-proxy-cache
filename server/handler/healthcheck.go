@@ -12,6 +12,8 @@ package handler
 import (
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
@@ -20,7 +22,12 @@ import (
 // HandleHealthcheck - Returns healthcheck status.
 func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		rc := initRequestParams(res, req, cfg)
+		rc, err := initRequestParams(res, req)
+		if err != nil {
+			log.Errorf(err.Error())
+			return
+		}
+
 		domainID := rc.DomainConfig.Server.Upstream.GetDomainID()
 
 		lwr := response.NewLoggedResponseWriter(res)

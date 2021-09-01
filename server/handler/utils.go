@@ -15,8 +15,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -27,9 +30,14 @@ import (
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
+	responseHeaders := http.Header{}
+	if rc.Response != nil {
+		responseHeaders = rc.Response.Header().Clone()
+	}
+
 	return storage.RequestCallDTO{
 		Response: *rc.Response,
-		Request:  *rc.Request,
+		Request:  rc.Request,
 		CacheObject: cache.Object{
 			AllowedStatuses: rc.DomainConfig.Cache.AllowedStatuses,
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
@@ -38,8 +46,8 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 				URL:             rc.GetRequestURL(),
 				Method:          rc.Request.Method,
 				StatusCode:      rc.Response.StatusCode,
-				RequestHeaders:  rc.Request.Header,
-				ResponseHeaders: rc.Response.Header(),
+				RequestHeaders:  rc.Request.Header.Clone(),
+				ResponseHeaders: responseHeaders,
 				Content:         rc.Response.Content,
 			},
 		},
@@ -59,6 +67,12 @@ func getListeningPort(ctx context.Context) string {
 }
 
 func isLegitPort(port config.Port, listeningPort string) bool {
+	// When running the functional tests there's no server listening (so no port open).
+	if os.Getenv("TESTING") == "1" && listeningPort == "" {
+		log.Warn("Testing Environment found, and listening port is empty")
+		return true
+	}
+
 	return port.HTTP == listeningPort || port.HTTPS == listeningPort
 }
 
@@ -132,9 +146,9 @@ func (rc RequestCall) ProxyDirector(req *http.Request) {
 	// proxy server, r.URL.Host is the host of the target server and r.Host is
 	// the host of the proxy server itself.
 	// Ref: https://stackoverflow.com/a/42926149/888162
-	rc.Request.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
+	req.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
 
-	rc.Request.Header.Set("X-Forwarded-Proto", rc.GetScheme())
+	req.Header.Set("X-Forwarded-Proto", rc.GetScheme())
 
 	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
 	clientIP := utils.StripPort(rc.Request.RemoteAddr)
@@ -144,7 +158,7 @@ func (rc RequestCall) ProxyDirector(req *http.Request) {
 		xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
 	}
 
-	rc.Request.Header.Set("X-Forwarded-For", xForwardedFor)
+	req.Header.Set("X-Forwarded-For", xForwardedFor)
 
-	rc.Request.Host = host
+	req.Host = host
 }

@@ -25,6 +25,10 @@ func TestETagValidResponse(t *testing.T) {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "http://testing.local:50080/", nil)
+	// Need to fetch fresh content to verify the ETag.
+	req.Header = http.Header{
+		"X-GPC-Force-Fresh": []string{"1"},
+	}
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)

@@ -37,7 +37,7 @@ func initLogs() {
 func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -51,9 +51,9 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
 
@@ -67,7 +67,7 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 	assert.False(t, val)
 	assert.Equal(t, "half-open", circuit_breaker.CB("testing").State().String())
 
-	rdb = client.Connect("testing", config.Config.Cache)
+	rdb = client.Connect("testing", cfg.Cache)
 
 	val = rdb.Ping()
 	assert.True(t, val)
@@ -77,7 +77,7 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 func TestClose(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -91,9 +91,9 @@ func TestClose(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	assert.True(t, rdb.Ping())
 
@@ -105,7 +105,7 @@ func TestClose(t *testing.T) {
 func TestSetGet(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -119,9 +119,9 @@ func TestSetGet(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -135,7 +135,7 @@ func TestSetGet(t *testing.T) {
 func TestSetGetWithExpiration(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -149,9 +149,9 @@ func TestSetGetWithExpiration(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	done, err := rdb.Set("test", "sample", 1*time.Millisecond)
 	assert.True(t, done)
@@ -167,7 +167,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 func TestDel(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -181,9 +181,9 @@ func TestDel(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -204,7 +204,7 @@ func TestDel(t *testing.T) {
 func TestExpire(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -218,9 +218,9 @@ func TestExpire(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -239,7 +239,7 @@ func TestExpire(t *testing.T) {
 func TestPushList(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -253,9 +253,9 @@ func TestPushList(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	err := rdb.Push("test", []string{"a", "b", "c"})
 	assert.Nil(t, err)
@@ -268,7 +268,7 @@ func TestPushList(t *testing.T) {
 func TestDelWildcard(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -282,9 +282,9 @@ func TestDelWildcard(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -324,7 +324,7 @@ func TestDelWildcard(t *testing.T) {
 func TestPurgeAll(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -338,9 +338,9 @@ func TestPurgeAll(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -380,7 +380,7 @@ func TestPurgeAll(t *testing.T) {
 func TestEncodeDecode(t *testing.T) {
 	initLogs()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -394,9 +394,9 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", config.Config.Cache)
+	rdb := client.Connect("testing", cfg.Cache)
 
 	str := []byte("test string")
 	var decoded []byte

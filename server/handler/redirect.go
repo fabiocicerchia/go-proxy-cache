@@ -22,5 +22,5 @@ func (rc RequestCall) RedirectToHTTPS() {
 
 	log.Infof("Redirect to: %s", targetURL.String())
 
-	http.Redirect(rc.Response, rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	http.Redirect(rc.Response, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }

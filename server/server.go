@@ -11,6 +11,8 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,10 +37,15 @@ const enableTimeoutHandler = true
 // DefaultTimeoutShutdown - Default Timeout for shutting down a context.
 const DefaultTimeoutShutdown time.Duration = 5 * time.Second
 
+type Server struct {
+	Domain  string
+	HttpSrv http.Server
+}
+
 // Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {
-	HTTP  map[string]*http.Server
-	HTTPS map[string]*http.Server
+	HTTP  map[string][]Server
+	HTTPS map[string][]Server
 }
 
 // Run - Starts the GoProxyCache servers' listeners.
@@ -50,8 +57,8 @@ func Run(configFile string) {
 	config.Print()
 
 	servers := &Servers{
-		HTTP:  make(map[string]*http.Server),
-		HTTPS: make(map[string]*http.Server),
+		HTTP:  make(map[string][]Server),
+		HTTPS: make(map[string][]Server),
 	}
 
 	for _, domain := range config.GetDomains() {
@@ -87,40 +94,34 @@ func Run(configFile string) {
 }
 
 // InitServer - Generates the http.Server configuration.
-func InitServer(domain string) *http.Server {
+func InitServer(domain string, domainConfig config.Configuration) http.Server {
 	mux := http.NewServeMux()
 
 	// handlers
-	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
-	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
-	if config.Config.Server.Healthcheck {
-		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck(config.Config))
+	if domainConfig.Server.Healthcheck {
+		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck(domainConfig))
 	}
 
-	mux.HandleFunc("/", handler.HandleRequest(config.Config))
+	mux.HandleFunc("/", handler.HandleRequest)
 
 	// basic
 	var muxMiddleware http.Handler = mux
 
 	// etag middleware
-	muxMiddleware = ConditionalETag(muxMiddleware)
+	muxMiddleware = handler.ConditionalETag(muxMiddleware)
 
 	// gzip middleware
-	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
-	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
-	if config.Config.Server.GZip {
+	if domainConfig.Server.GZip {
 		muxMiddleware = gziphandler.GzipHandler(muxMiddleware)
 	}
 
 	// timeout middleware
-	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
-	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
-	timeout := config.Config.Server.Timeout
+	timeout := domainConfig.Server.Timeout
 	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}
 
-	server := &http.Server{
+	server := http.Server{
 		ReadTimeout:       timeout.Read * time.Second,
 		WriteTimeout:      timeout.Write * time.Second,
 		IdleTimeout:       timeout.Idle * time.Second,
@@ -132,31 +133,25 @@ func InitServer(domain string) *http.Server {
 }
 
 // AttachPlain - Adds a new HTTP server in the listener container.
-// NOTE: There will be only ONE server listening on a port.
-//       This means the last processed will override all the previous shared
-//       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
-func (s *Servers) AttachPlain(port string, server *http.Server) {
-	s.HTTP[port] = server
-	s.HTTP[port].Addr = ":" + port
+func (s *Servers) AttachPlain(domain string, port string, server http.Server) {
+	fmt.Println("ATTACHING " + domain + ":" + port)
+	s.HTTP[port] = append(s.HTTP[port], Server{Domain: domain, HttpSrv: server})
 }
 
 // AttachSecure - Adds a new HTTPS server in the listener container.
-// NOTE: There will be only ONE server listening on a port.
-//       This means the last processed will override all the previous shared
-//       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
-func (s *Servers) AttachSecure(port string, server *http.Server) {
-	s.HTTPS[port] = server
-	s.HTTPS[port].Addr = ":" + port
+func (s *Servers) AttachSecure(domain string, port string, server http.Server) {
+	fmt.Println("ATTACHING SSL " + domain + ":" + port)
+	s.HTTPS[port] = append(s.HTTPS[port], Server{Domain: domain, HttpSrv: server})
 }
 
 // InitServers - Returns a http.Server configuration for HTTP and HTTPS.
-func (s *Servers) InitServers(domain string, domainConfig config.Server) {
-	srv := InitServer(domain)
-	s.AttachPlain(domainConfig.Port.HTTP, srv)
+func (s *Servers) InitServers(domain string, domainConfig config.Configuration) {
+	srvHTTP := InitServer(domain, domainConfig)
+	s.AttachPlain(domain, domainConfig.Server.Port.HTTP, srvHTTP)
 
-	srvHTTPS := InitServer(domain)
+	srvHTTPS := InitServer(domain, domainConfig)
 
-	err := srvtls.ServerOverrides(domain, srvHTTPS, domainConfig)
+	err := srvtls.ServerOverrides(domain, &srvHTTPS, domainConfig.Server)
 	if err != nil {
 		log.Errorf("Skipping '%s' TLS server configuration: %s", domain, err)
 		log.Errorf("No HTTPS server will be listening on '%s'", domain)
@@ -164,13 +159,13 @@ func (s *Servers) InitServers(domain string, domainConfig config.Server) {
 		return
 	}
 
-	s.AttachSecure(domainConfig.Port.HTTPS, srvHTTPS)
+	s.AttachSecure(domain, domainConfig.Server.Port.HTTPS, srvHTTPS)
 }
 
 // StartDomainServer - Configures and start listening for a particular domain.
 func (s *Servers) StartDomainServer(domain string, scheme string) {
-	domainConfig := config.DomainConf(domain, scheme)
-	if domainConfig == nil {
+	domainConfig, found := config.DomainConf(domain, scheme)
+	if !found {
 		log.Errorf("Missing configuration for %s.", domain)
 		return
 	}
@@ -185,34 +180,56 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 	logger.LogSetup(domainConfig.Server)
 
 	// config server http & https
-	s.InitServers(domain, domainConfig.Server)
+	s.InitServers(domain, domainConfig)
 
 	// lb
 	balancer.InitRoundRobin(domainID, domainConfig.Server.Upstream.Endpoints)
 }
 
 func (s Servers) startListeners() {
-	for _, srvHTTP := range s.HTTP {
-		go func(srv *http.Server) { log.Fatal(srv.ListenAndServe()) }(srvHTTP)
+	for port, srvsHTTP := range s.HTTP {
+		l, err := net.Listen("tcp", ":"+port)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, srvHTTP := range srvsHTTP {
+			go func(srv http.Server, l net.Listener) {
+				log.Fatal(srv.Serve(l))
+			}(srvHTTP.HttpSrv, l)
+		}
 	}
 
-	for _, srvHTTPS := range s.HTTPS {
-		go func(srv *http.Server) { log.Fatal(srv.ListenAndServeTLS("", "")) }(srvHTTPS)
+	for port, srvsHTTPS := range s.HTTPS {
+		l, err := net.Listen("tcp", ":"+port)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, srvHTTPS := range srvsHTTPS {
+			go func(srv http.Server, l net.Listener) {
+				log.Fatal(srv.ServeTLS(l, "", ""))
+			}(srvHTTPS.HttpSrv, l)
+		}
 	}
 }
 
 func (s Servers) shutdownServers(ctx context.Context) {
-	for k, v := range s.HTTP {
-		err := v.Shutdown(ctx)
-		if err != nil {
-			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+	for k, srvsHTTP := range s.HTTP {
+		for _, v := range srvsHTTP {
+			err := v.HttpSrv.Shutdown(ctx)
+			if err != nil {
+				log.Fatalf("Cannot shutdown server %s: %s", k, err)
+			}
 		}
 	}
 
-	for k, v := range s.HTTPS {
-		err := v.Shutdown(ctx)
-		if err != nil {
-			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+	for k, srvsHTTPS := range s.HTTPS {
+		for _, v := range srvsHTTPS {
+			err := v.HttpSrv.Shutdown(ctx)
+			if err != nil {
+				log.Fatalf("Cannot shutdown server %s: %s", k, err)
+			}
 		}
 	}
 }

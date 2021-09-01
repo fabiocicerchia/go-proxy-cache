@@ -23,7 +23,6 @@ import (
 )
 
 var httpsDomains []string
-var certificates map[string]*crypto_tls.Certificate = make(map[string]*crypto_tls.Certificate)
 var tlsConfig *crypto_tls.Config
 
 // G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
@@ -36,7 +35,6 @@ var defaultTlsConfig = &crypto_tls.Config{
 	MinVersion:               config.Config.Server.TLS.Override.MinVersion,
 	MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
 	CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
-	GetCertificate:           returnCert,
 } // #nosec
 
 var errMissingCertificate = errors.New("missing certificate")
@@ -73,19 +71,13 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 		return nil, err
 	}
 
-	// NOTE: This is workaround in order to keep the TLS certificates from
-	//       previously configured domains.
-	certificates[domain] = &cert
-
 	tlsConfig := defaultTlsConfig
 
 	// If GetCertificate is nil or returns nil, then the certificate is
 	// retrieved from NameToCertificate. If NameToCertificate is nil, the
 	// best element of Certificates will be used.
 	// Ref: https://golang.org/pkg/crypto/tls/#Config.GetCertificate
-	for _, c := range certificates {
-		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
-	}
+	tlsConfig.Certificates = append(tlsConfig.Certificates, cert)
 
 	// TODO: THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 	if domainConfigTLS.Override != nil {
@@ -96,16 +88,6 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 	}
 
 	return tlsConfig, nil
-}
-
-func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate, error) {
-	log.Debugf("HelloInfo: %+v\n", helloInfo)
-
-	if val, ok := certificates[helloInfo.ServerName]; ok {
-		return val, nil
-	}
-
-	return nil, errors.Wrapf(errMissingCertificate, "ServerName %s", helloInfo.ServerName)
 }
 
 // InitCertManager - Initialise the Certification Manager for auto generation.
