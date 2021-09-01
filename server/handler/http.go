@@ -69,10 +69,9 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 	}
 
 	if cached == CacheStatusMiss {
+		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 		rc.serveReverseProxyHTTP()
 	}
-
-	// TODO: Inject ETag
 
 	if enableLoggingRequest {
 		// HIT and STALE considered the same.
@@ -85,7 +84,6 @@ func (rc RequestCall) serveCachedContent() int {
 
 	uriObj, err := storage.RetrieveCachedContent(rcDTO)
 	if err != nil {
-		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 
 		log.Warnf("Error on serving cached content: %s", err)
 

@@ -40,7 +40,7 @@ func initLogs() {
 func TestHealthcheckWithoutRedis(t *testing.T) {
 	initLogs()
 
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -61,9 +61,9 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 		},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 	engine.GetConn(domainID).Close()
 
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
@@ -71,7 +71,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck(cfg))
+	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
 
 	h.ServeHTTP(rr, req)
 
@@ -80,13 +80,13 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `REDIS KO`)
 	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
 
-	engine.InitConn(domainID, cfg.Cache)
+	engine.InitConn(domainID, config.Config.Cache)
 }
 
 func TestHealthcheckWithRedis(t *testing.T) {
 	initLogs()
 
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Cache: config.Cache{
 			Host: utils.GetEnv("REDIS_HOST", "localhost"),
 			Port: "6379",
@@ -107,16 +107,16 @@ func TestHealthcheckWithRedis(t *testing.T) {
 		},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	req.Host = "testing.local"
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleHealthcheck(cfg))
+	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
 
 	h.ServeHTTP(rr, req)
 

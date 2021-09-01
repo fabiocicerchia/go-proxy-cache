@@ -17,6 +17,8 @@ import (
 	"hash"
 	"net/http"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/go-http-utils/fresh"
 	"github.com/go-http-utils/headers"
 	"github.com/yhat/wsutil"
@@ -71,7 +73,7 @@ func (bwr BufferedResponseWriter) MustServeOriginalResponse() bool {
 	// return bwr.Hash == nil || // no hash has been computed (maybe no Write has been invoked)
 	return bwr.ResponseWriter.Header().Get(headers.ETag) != "" || // there's already an ETag from upstream
 		(bwr.StatusCode < 200 || bwr.StatusCode > 299) || // response is not successful (2xx)
-		bwr.StatusCode == http.StatusNoContent || // response is without countent (204)
+		bwr.StatusCode == http.StatusNoContent || // response is without content (204)
 		bwr.BufferedResponse.Len() == 0 // there is no buffered content (maybe no Write has been invoked)
 }
 
@@ -110,6 +112,9 @@ func HandleETagRequest(res http.ResponseWriter, req *http.Request, h http.Handle
 
 	// Serve existing response.
 	if bwr.MustServeOriginalResponse() {
+		log.Info("Serving original response as cannot be handled with ETag.")
+
+		// This will bypass RequestCall.HandleHTTPRequestAndProxy()
 		bwr.SendResponse()
 		return
 	}

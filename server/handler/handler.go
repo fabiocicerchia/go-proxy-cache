@@ -28,6 +28,11 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if rc.Request.Method == http.MethodConnect {
+		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
 	if rc.GetScheme() == SchemeHTTP && rc.DomainConfig.Server.Upstream.HTTP2HTTPS {
 		rc.RedirectToHTTPS()
 		return
@@ -35,11 +40,6 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 	if rc.Request.Method == "PURGE" {
 		rc.HandlePurge()
-		return
-	}
-
-	if rc.Request.Method == http.MethodConnect {
-		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 

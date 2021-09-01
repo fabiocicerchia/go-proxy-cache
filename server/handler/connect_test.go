@@ -30,7 +30,7 @@ import (
 func TestEndToEndCallConnect(t *testing.T) {
 	initLogs()
 
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
@@ -53,20 +53,20 @@ func TestEndToEndCallConnect(t *testing.T) {
 		},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache)
 
 	req, err := http.NewRequest("CONNECT", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 

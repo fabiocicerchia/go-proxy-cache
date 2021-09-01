@@ -11,7 +11,6 @@ package server
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -134,13 +133,11 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 
 // AttachPlain - Adds a new HTTP server in the listener container.
 func (s *Servers) AttachPlain(domain string, port string, server http.Server) {
-	fmt.Println("ATTACHING " + domain + ":" + port)
 	s.HTTP[port] = append(s.HTTP[port], Server{Domain: domain, HttpSrv: server})
 }
 
 // AttachSecure - Adds a new HTTPS server in the listener container.
 func (s *Servers) AttachSecure(domain string, port string, server http.Server) {
-	fmt.Println("ATTACHING SSL " + domain + ":" + port)
 	s.HTTPS[port] = append(s.HTTPS[port], Server{Domain: domain, HttpSrv: server})
 }
 
