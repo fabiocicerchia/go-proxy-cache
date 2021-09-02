@@ -68,11 +68,6 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 		cached = rc.serveCachedContent()
 	}
 
-	// gzip middleware
-	// if rc.DmainConfig.Server.GZip {
-	// muxMiddleware = gziphandler.GzipHandler(muxMiddleware)
-	// }
-
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 		rc.serveReverseProxyHTTP()
@@ -131,6 +126,10 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 	if serveNotModified {
 		rc.Response.SendNotModifiedResponse()
 		return
+	}
+
+	if rc.DomainConfig.Server.GZip {
+		WrapResponseForGZip(rc.Response, &rc.Request)
 	}
 
 	rc.Response.SendResponse()

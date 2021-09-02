@@ -66,10 +66,15 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 
 	rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
 	if !configFound || !rc.IsLegitRequest(listeningPort) {
-		rc.Response.WriteHeader(http.StatusNotImplemented)
+		rc.Response.SendNotImplemented()
+
 		logger.LogRequest(rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
 
 		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed (mostly likely it's a configuration mismatch).", rc.Request.Host, listeningPort)
+	}
+
+	if rc.DomainConfig.Server.GZip {
+		rc.Response.InitGZipBuffer()
 	}
 
 	return rc, nil

@@ -23,6 +23,7 @@ import (
 // HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
 func GetResponseWithETag(res *response.LoggedResponseWriter, req *http.Request, proxy *httputil.ReverseProxy) (serveNotModified bool) {
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
+	// TODO: REFACTOR THIS ISBUFFERED THING
 	res.IsBuffered = !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2
 
 	// Start buffering the response.
