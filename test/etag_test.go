@@ -54,6 +54,8 @@ func TestETagValidResponse(t *testing.T) {
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, string(body), "</body>\n</html>\n")
+
+	tearDownETag()
 }
 
 func TestETagIfModifiedSinceWhenChanged(t *testing.T) {
@@ -212,4 +214,11 @@ func TestETagIfMatchAsMatch(t *testing.T) {
 
 func TestETagIfMatchAsNotMatch(t *testing.T) {
 	t.Skip("Need to be implemented.")
+}
+
+func tearDownETag() {
+	req, _ := http.NewRequest("PURGE", "http://testing.local:50080/", nil)
+	req.Host = "www.w3.org"
+	client := &http.Client{}
+	_, _ = client.Do(req)
 }

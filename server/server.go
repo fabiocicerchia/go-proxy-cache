@@ -18,7 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/NYTimes/gziphandler"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -106,15 +105,8 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 	// basic
 	var muxMiddleware http.Handler = mux
 
-	// etag middleware
-	muxMiddleware = handler.ConditionalETag(muxMiddleware)
-
-	// gzip middleware
-	if domainConfig.Server.GZip {
-		muxMiddleware = gziphandler.GzipHandler(muxMiddleware)
-	}
-
 	// timeout middleware
+	// TODO: CONVERT FOR DOMAIN CONFIG
 	timeout := domainConfig.Server.Timeout
 	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")

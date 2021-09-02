@@ -12,8 +12,10 @@ package handler
 import (
 	"net/http"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 )
 
 // HandlePurge - Purges the cache for the requested URI.
@@ -32,4 +34,8 @@ func (rc RequestCall) HandlePurge() {
 
 	rc.Response.WriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
+
+	if enableLoggingRequest {
+		logger.LogRequest(rc.Request, *rc.Response, false, "-")
+	}
 }

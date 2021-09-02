@@ -10,124 +10,37 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"bytes"
-	"crypto/sha1"
-	"encoding/hex"
-	"fmt"
-	"hash"
 	"net/http"
+	"net/http/httputil"
 
+	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	log "github.com/sirupsen/logrus"
+	"github.com/yhat/wsutil"
 
 	"github.com/go-http-utils/fresh"
-	"github.com/go-http-utils/headers"
-	"github.com/yhat/wsutil"
 )
 
-// Version is this package's version.
-const Version = "0.2.1"
-
-type BufferedResponseWriter struct {
-	http.ResponseWriter
-	Hash             hash.Hash
-	BufferedResponse *bytes.Buffer
-	HashLen          int
-	StatusCode       int
-}
-
-// func (bwr BufferedResponseWriter) Header() http.Header {
-// 	// it'll reference the original writer, so no need to CopyHeaders later.
-// 	return bwr.ResponseWriter.Header()
-// }
-
-func (bwr *BufferedResponseWriter) WriteHeader(status int) {
-	bwr.StatusCode = status
-}
-
-func (bwr *BufferedResponseWriter) Write(b []byte) (int, error) {
-	// bytes.Buffer.Write(b) always return (len(b), nil), so just
-	// ignore the return values.
-	bwr.BufferedResponse.Write(b)
-
-	l, err := bwr.Hash.Write(b)
-	bwr.HashLen += l
-
-	return l, err
-}
-
-// GetETag - Returns the ETag value.
-func (bwr BufferedResponseWriter) GetETag(weak bool) string {
-	etagWeakPrefix := ""
-	if weak {
-		etagWeakPrefix = "W/"
-	}
-
-	return fmt.Sprintf("%s%d-%s", etagWeakPrefix, bwr.HashLen, hex.EncodeToString(bwr.Hash.Sum(nil)))
-}
-
-func (bwr *BufferedResponseWriter) SetETag(weak bool) {
-	bwr.ResponseWriter.Header().Set(headers.ETag, bwr.GetETag(weak))
-}
-
-func (bwr BufferedResponseWriter) MustServeOriginalResponse() bool {
-	// return bwr.Hash == nil || // no hash has been computed (maybe no Write has been invoked)
-	return bwr.ResponseWriter.Header().Get(headers.ETag) != "" || // there's already an ETag from upstream
-		(bwr.StatusCode < 200 || bwr.StatusCode > 299) || // response is not successful (2xx)
-		bwr.StatusCode == http.StatusNoContent || // response is without content (204)
-		bwr.BufferedResponse.Len() == 0 // there is no buffered content (maybe no Write has been invoked)
-}
-
-func (bwr BufferedResponseWriter) SendResponse() {
-	if bwr.StatusCode == 0 {
-		bwr.StatusCode = http.StatusOK // TODO: WHY?
-	}
-
-	bwr.ResponseWriter.WriteHeader(bwr.StatusCode)
-	bwr.ResponseWriter.Write(bwr.BufferedResponse.Bytes())
-}
-
-func ConditionalETag(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		HandleETagRequest(res, req, h)
-	})
-}
-
-// HandleETagRequest - Add HTTP header ETag only on HTTP(S) requests.
-func HandleETagRequest(res http.ResponseWriter, req *http.Request, h http.Handler) {
+// HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
+func HandleRequestWithETag(res *response.LoggedResponseWriter, req *http.Request, proxy *httputil.ReverseProxy) int {
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
-	if wsutil.IsWebSocketRequest(req) || req.ProtoMajor == 2 {
-		h.ServeHTTP(res, req)
-		return
-	}
+	res.IsBuffered = !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2
 
-	weak := false
-
-	bwr := BufferedResponseWriter{
-		ResponseWriter:   res,
-		Hash:             sha1.New(),
-		BufferedResponse: bytes.NewBuffer(nil),
-	}
 	// Start buffering the response.
-	h.ServeHTTP(&bwr, req)
+	proxy.ServeHTTP(res, req)
 
 	// Serve existing response.
-	if bwr.MustServeOriginalResponse() {
+	if res.MustServeOriginalResponse(req) {
 		log.Info("Serving original response as cannot be handled with ETag.")
-
-		// This will bypass RequestCall.HandleHTTPRequestAndProxy()
-		bwr.SendResponse()
-		return
+		return 0
 	}
 
-	bwr.SetETag(weak)
+	res.SetETag(false)
 
 	// Send 304 Not Modified.
 	if fresh.IsFresh(req.Header, res.Header()) {
-		res.WriteHeader(http.StatusNotModified)
-		res.Write(nil)
-		return
+		return http.StatusNotModified
 	}
 
 	// Serve response with ETag header.
-	bwr.SendResponse()
+	return 0
 }

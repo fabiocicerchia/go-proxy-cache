@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -22,7 +21,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
-	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
 // CacheStatusHit - Value for HIT.
@@ -67,6 +65,11 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 	if enableCachedResponse && !forceFresh {
 		cached = rc.serveCachedContent()
 	}
+
+	// gzip middleware
+	// if rc.DmainConfig.Server.GZip {
+	// muxMiddleware = gziphandler.GzipHandler(muxMiddleware)
+	// }
 
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
@@ -122,8 +125,13 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 		gpcDirector(req)
 	}
 
-	// Forward Original Request
-	proxy.ServeHTTP(rc.Response, &rc.Request)
+	statusCode := HandleRequestWithETag(rc.Response, &rc.Request, proxy)
+	if statusCode == http.StatusNotModified {
+		rc.Response.SendNotMofifiedResponse()
+		return
+	}
+
+	rc.Response.SendResponse()
 
 	rc.storeResponse()
 }
@@ -135,17 +143,17 @@ func (rc RequestCall) storeResponse() {
 
 	// Make it sync for testing
 	// TODO: Make it customizable?
-	if os.Getenv("GPC_SYNC_STORING") == "1" {
-		log.Debugf("Sync Store Response: %s", rc.Request.URL.String())
+	// if os.Getenv("GPC_SYNC_STORING") == "1" {
+	// 	log.Debugf("Sync Store Response: %s", rc.Request.URL.String())
 
-		rc.doStoreResponse()
-		return
-	}
+	rc.doStoreResponse()
+	return
+	// }
 
-	log.Debugf("Async Store Response: %s", rc.Request.URL.String())
-	queue.Dispatcher.Do(func() {
-		rc.doStoreResponse()
-	})
+	// log.Debugf("Async Store Response: %s", rc.Request.URL.String())
+	// queue.Dispatcher.Do(func() {
+	// 	rc.doStoreResponse()
+	// })
 }
 
 func (rc RequestCall) doStoreResponse() {
