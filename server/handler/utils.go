@@ -32,7 +32,7 @@ import (
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 	responseHeaders := http.Header{}
 	if rc.Response != nil {
-		responseHeaders = rc.Response.Header().Clone()
+		responseHeaders = rc.Response.Header()
 	}
 
 	return storage.RequestCallDTO{
@@ -46,7 +46,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 				URL:             rc.GetRequestURL(),
 				Method:          rc.Request.Method,
 				StatusCode:      rc.Response.StatusCode,
-				RequestHeaders:  rc.Request.Header.Clone(),
+				RequestHeaders:  rc.Request.Header,
 				ResponseHeaders: responseHeaders,
 				Content:         rc.Response.Content,
 			},

@@ -39,9 +39,9 @@ var CacheStatusLabel = map[int]string{
 	CacheStatusStale: "STALE",
 }
 
-var enableStoringResponse = true
-var enableCachedResponse = true
-var enableLoggingRequest = true
+const enableStoringResponse = true
+const enableCachedResponse = true
+const enableLoggingRequest = true
 
 // DefaultTransportMaxIdleConns - Default value used for http.Transport.MaxIdleConns.
 var DefaultTransportMaxIdleConns int = 1000
@@ -59,8 +59,10 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 func (rc RequestCall) HandleHTTPRequestAndProxy() {
 	cached := CacheStatusMiss
 
-	// TODO: INFO LOG
-	forceFresh := rc.Request.Header.Get("X-GPC-Force-Fresh") == "1"
+	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
+	if forceFresh {
+		log.Warningf("Forcing Fresh Content on %v", rc.Request.URL.String())
+	}
 
 	if enableCachedResponse && !forceFresh {
 		cached = rc.serveCachedContent()
@@ -125,9 +127,9 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 		gpcDirector(req)
 	}
 
-	statusCode := HandleRequestWithETag(rc.Response, &rc.Request, proxy)
-	if statusCode == http.StatusNotModified {
-		rc.Response.SendNotMofifiedResponse()
+	serveNotModified := GetResponseWithETag(rc.Response, &rc.Request, proxy)
+	if serveNotModified {
+		rc.Response.SendNotModifiedResponse()
 		return
 	}
 
@@ -141,6 +143,7 @@ func (rc RequestCall) storeResponse() {
 		return
 	}
 
+	// TODO: RESTORE?!
 	// Make it sync for testing
 	// TODO: Make it customizable?
 	// if os.Getenv("GPC_SYNC_STORING") == "1" {

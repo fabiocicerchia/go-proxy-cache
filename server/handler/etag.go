@@ -21,7 +21,7 @@ import (
 )
 
 // HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
-func HandleRequestWithETag(res *response.LoggedResponseWriter, req *http.Request, proxy *httputil.ReverseProxy) int {
+func GetResponseWithETag(res *response.LoggedResponseWriter, req *http.Request, proxy *httputil.ReverseProxy) (serveNotModified bool) {
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
 	res.IsBuffered = !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2
 
@@ -31,16 +31,16 @@ func HandleRequestWithETag(res *response.LoggedResponseWriter, req *http.Request
 	// Serve existing response.
 	if res.MustServeOriginalResponse(req) {
 		log.Info("Serving original response as cannot be handled with ETag.")
-		return 0
+		return false
 	}
 
 	res.SetETag(false)
 
 	// Send 304 Not Modified.
 	if fresh.IsFresh(req.Header, res.Header()) {
-		return http.StatusNotModified
+		return true
 	}
 
 	// Serve response with ETag header.
-	return 0
+	return false
 }

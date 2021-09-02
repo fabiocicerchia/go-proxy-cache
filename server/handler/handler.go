@@ -29,6 +29,10 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if rc.Request.Method == http.MethodConnect {
+		if enableLoggingRequest {
+			logger.LogRequest(rc.Request, *rc.Response, false, "-")
+		}
+
 		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}

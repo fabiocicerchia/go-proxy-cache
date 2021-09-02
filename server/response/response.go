@@ -28,6 +28,9 @@ var errHijackNotSupported = errors.New("hijack not supported")
 // CacheStatusHeader - HTTP Header for showing cache status.
 const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
 
+// CacheStatusHeader - HTTP Header for showing cache status.
+const CacheBypassHeader = "X-Go-Proxy-Cache-Force-Fresh"
+
 // CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status.
 const CacheStatusHeaderHit = "HIT"
 
@@ -163,8 +166,8 @@ func (lwr LoggedResponseWriter) MustServeOriginalResponse(req *http.Request) boo
 		lwr.bufferedResponse.Len() == 0 // there is no buffered content (maybe no Write has been invoked)
 }
 
-// SendNotMofifiedResponse - Write the 304 Response.
-func (lwr LoggedResponseWriter) SendNotMofifiedResponse() {
+// SendNotModifiedResponse - Write the 304 Response.
+func (lwr LoggedResponseWriter) SendNotModifiedResponse() {
 	lwr.ResponseWriter.WriteHeader(http.StatusNotModified)
 	lwr.ResponseWriter.Write(nil)
 }

@@ -74,7 +74,7 @@ func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter
 
 	res := http.Response{
 		StatusCode: uriobj.StatusCode,
-		Header:     uriobj.ResponseHeaders.Clone(),
+		Header:     uriobj.ResponseHeaders,
 	}
 
 	announcedTrailers := handleHeaders(lwr, res)
