@@ -1,4 +1,4 @@
-package handler
+package response
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -10,15 +10,12 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/http"
+	log "github.com/sirupsen/logrus"
 )
 
-// RedirectToHTTPS - Redirects from HTTP to HTTPS.
-func (rc RequestCall) RedirectToHTTPS() {
-	targetURL := rc.GetRequestURL()
-	targetURL.Scheme = SchemeHTTPS
-
-	rc.GetLogger().Infof("Redirect to: %s", targetURL.String())
-
-	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+// LoggedResponseWriter - Decorator for http.ResponseWriter.
+func (lwr LoggedResponseWriter) GetLogger() *log.Entry {
+	return log.WithFields(log.Fields{
+		"ReqID": lwr.ReqID,
+	})
 }

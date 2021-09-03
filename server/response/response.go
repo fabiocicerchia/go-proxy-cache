@@ -11,7 +11,6 @@ package response
 
 import (
 	"bufio"
-	"bytes"
 	"compress/gzip"
 	"crypto/sha1"
 	"encoding/hex"
@@ -22,56 +21,34 @@ import (
 	"net/http"
 
 	"github.com/go-http-utils/headers"
-	log "github.com/sirupsen/logrus"
 )
 
 var errHijackNotSupported = errors.New("hijack not supported")
-
-// CacheStatusHeader - HTTP Header for showing cache status.
-const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
-
-// CacheStatusHeader - HTTP Header for showing cache status.
-const CacheBypassHeader = "X-Go-Proxy-Cache-Force-Fresh"
-
-// CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status.
-const CacheStatusHeaderHit = "HIT"
-
-// CacheStatusHeaderMiss - Cache status MISS for HTTP Header X-Go-Proxy-Cache-Status.
-const CacheStatusHeaderMiss = "MISS"
-
-// CacheStatusHeaderStale - Cache status STALE for HTTP Header X-Go-Proxy-Cache-Status.
-const CacheStatusHeaderStale = "STALE"
-
-// type parsedContentType struct {
-// 	mediaType string
-// 	params    map[string]string
-// }
 
 // LoggedResponseWriter - Decorator for http.ResponseWriter.
 type LoggedResponseWriter struct {
 	http.ResponseWriter
 	http.Hijacker
+
+	ReqID          string
 	statusCodeSent bool
 	StatusCode     int
-	Content        [][]byte
+	Content        DataChunks
 
-	// GZip + ETag
-	IsBuffered   bool
+	// GZip
 	GZipResponse *gzip.Writer
 
 	// ETag
-	BufferedResponse *bytes.Buffer
-	hash             hash.Hash
-	hashLen          int
+	hash    hash.Hash
+	hashLen int
 }
 
 // NewLoggedResponseWriter - Creates new instance of ResponseWriter.
-func NewLoggedResponseWriter(w http.ResponseWriter) *LoggedResponseWriter {
+func NewLoggedResponseWriter(w http.ResponseWriter, reqID string) *LoggedResponseWriter {
 	lwr := &LoggedResponseWriter{
-		IsBuffered:       true, // TODO: REmove from other places
-		ResponseWriter:   w,
-		hash:             sha1.New(),
-		BufferedResponse: bytes.NewBuffer(nil),
+		ReqID:          reqID,
+		ResponseWriter: w,
+		hash:           sha1.New(),
 	}
 	lwr.Reset()
 
@@ -91,7 +68,7 @@ func (lwr *LoggedResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // Reset - Reset the stored content of LoggedResponseWriter.
 func (lwr *LoggedResponseWriter) Reset() {
 	lwr.StatusCode = 0
-	lwr.Content = make([][]byte, 0)
+	lwr.Content = make(DataChunks, 0)
 }
 
 // WriteHeader - ResponseWriter's WriteHeader method decorator.
@@ -99,21 +76,25 @@ func (lwr *LoggedResponseWriter) WriteHeader(statusCode int) {
 	lwr.statusCodeSent = true
 	lwr.StatusCode = statusCode
 
-	if !lwr.IsBuffered {
-		lwr.ResponseWriter.WriteHeader(statusCode)
-	}
+	// no sending to ResponseWriter as it is buffered either for ETag or GZip support.
+}
+
+// ForceWriteHeader - Send statusCode right away.
+func (lwr *LoggedResponseWriter) ForceWriteHeader(statusCode int) {
+	lwr.WriteHeader(statusCode)
+
+	lwr.ResponseWriter.WriteHeader(statusCode)
 }
 
 // SendNotImplemented - Send 501 Not Implemented.
 func (lwr *LoggedResponseWriter) SendNotImplemented() {
-	lwr.IsBuffered = false
-	lwr.WriteHeader(http.StatusNotImplemented)
+	lwr.ForceWriteHeader(http.StatusNotImplemented) // TODO: COVER
 }
 
 // Write - ResponseWriter's Write method decorator.
 func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 	if !lwr.statusCodeSent && lwr.StatusCode == 0 {
-		log.Warning("No status code has been set before sending data, fallback on 200 OK.")
+		lwr.GetLogger().Warning("No status code has been set before sending data, fallback on 200 OK.")
 		// This is exactly what Go would also do if it hasn't been written yet.
 		lwr.StatusCode = http.StatusOK
 	}
@@ -126,23 +107,23 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 	if lwr.GZipResponse != nil {
 		if lwr.Header().Get(headers.ContentType) == "" {
 			// If no content type, apply sniffing algorithm to un-gzipped body.
-			lwr.Header().Set(headers.ContentType, http.DetectContentType(p))
+			lwr.Header().Set(headers.ContentType, http.DetectContentType(p)) // TODO: COVER
 		}
 
-		lwr.GZipResponse.Write(p)
+		lwr.GZipResponse.Write(p) // TODO: COVER
 	}
 
 	// etag
-	if lwr.IsBuffered {
-		// bytes.Buffer.Write(b) always return (len(b), nil), so just
-		// ignore the return values.
-		lwr.BufferedResponse.Write(p) // TODO: use lwr.Content instead of BufferedResponse
+	l, err := lwr.hash.Write(p)
+	lwr.hashLen += l
 
-		l, err := lwr.hash.Write(p)
-		lwr.hashLen += l
+	// no sending to ResponseWriter as it is buffered either for ETag or GZip support.
+	return l, err
+}
 
-		return l, err
-	}
+// ForceWrite - Send content right away.
+func (lwr *LoggedResponseWriter) ForceWrite(p []byte) (int, error) {
+	lwr.Write(p)
 
 	return lwr.ResponseWriter.Write(p)
 }
@@ -156,7 +137,7 @@ func (lwr *LoggedResponseWriter) CopyHeaders(src http.Header) {
 	}
 }
 
-// WriteBody - Sends the body to the client.
+// WriteBody - Sends the body to the client (forced sent).
 func (lwr *LoggedResponseWriter) WriteBody(page string) bool {
 	pageByte := []byte(page)
 	sent, err := lwr.ResponseWriter.Write(pageByte)
@@ -164,42 +145,10 @@ func (lwr *LoggedResponseWriter) WriteBody(page string) bool {
 	return sent > 0 && err == nil
 }
 
-// ETAG ------------------------------------------------------------------------
-
-// GetETag - Returns the ETag value.
-func (lwr LoggedResponseWriter) GetETag(weak bool) string {
-	etagWeakPrefix := ""
-	if weak {
-		etagWeakPrefix = "W/"
-	}
-
-	return fmt.Sprintf("%s%d-%s", etagWeakPrefix, lwr.hashLen, hex.EncodeToString(lwr.hash.Sum(nil)))
-}
-
-// SetETag - Set the ETag HTTP Header.
-func (lwr *LoggedResponseWriter) SetETag(weak bool) {
-	lwr.ResponseWriter.Header().Set(headers.ETag, lwr.GetETag(weak))
-}
-
-// MustServeOriginalResponse - Check whether an ETag could be added.
-func (lwr LoggedResponseWriter) MustServeOriginalResponse(req *http.Request) bool {
-	return lwr.hash == nil || // no hash has been computed (maybe no Write has been invoked)
-		lwr.ResponseWriter.Header().Get(headers.ETag) != "" || // there's already an ETag from upstream
-		(lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices) || // response is not successful (2xx)
-		lwr.StatusCode == http.StatusNoContent || // response is without content (204)
-		lwr.BufferedResponse.Len() == 0 // there is no buffered content (maybe no Write has been invoked)
-}
-
-// SendNotModifiedResponse - Write the 304 Response.
-func (lwr LoggedResponseWriter) SendNotModifiedResponse() {
-	lwr.ResponseWriter.WriteHeader(http.StatusNotModified)
-	lwr.ResponseWriter.Write(nil)
-}
-
 // SendResponse - Write the Response.
 func (lwr LoggedResponseWriter) SendResponse() {
 	// TODO: Get extra behaviour from ServeCachedResponse
-	lwr.ResponseWriter.WriteHeader(lwr.StatusCode)
+	lwr.ResponseWriter.WriteHeader(lwr.StatusCode) // TODO: COVER
 
 	// Generate GZip.
 	// lwr.GZipResponse.Close() will write some data even if no data has been written.
@@ -207,19 +156,54 @@ func (lwr LoggedResponseWriter) SendResponse() {
 	if lwr.GZipResponse != nil && lwr.StatusCode != http.StatusNotModified && lwr.StatusCode != http.StatusNoContent {
 		// In this way it'll write in a nested LoggedResponseWriter so it can
 		// catch the binary data.
-		lwr.GZipResponse.Close()
+		lwr.GZipResponse.Close() // TODO: COVER
 	}
 
 	// Serve content.
-	lwr.ResponseWriter.Write(lwr.BufferedResponse.Bytes())
+	lwr.ResponseWriter.Write(lwr.Content.Bytes()) // TODO: COVER
+}
+
+// ETAG ------------------------------------------------------------------------
+
+// GetETag - Returns the ETag value.
+func (lwr LoggedResponseWriter) GetETag(weak bool) string {
+	etagWeakPrefix := "" // TODO: COVER
+	if weak {
+		etagWeakPrefix = "W/" // TODO: COVER
+	}
+
+	return fmt.Sprintf("%s%d-%s", etagWeakPrefix, lwr.hashLen, hex.EncodeToString(lwr.hash.Sum(nil))) // TODO: COVER
+}
+
+// SetETag - Set the ETag HTTP Header.
+func (lwr *LoggedResponseWriter) SetETag(weak bool) {
+	lwr.ResponseWriter.Header().Set(headers.ETag, lwr.GetETag(weak)) // TODO: COVER
+}
+
+// MustServeOriginalResponse - Check whether an ETag could be added.
+func (lwr LoggedResponseWriter) MustServeOriginalResponse(req *http.Request) bool {
+	// TODO: COVER
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - no hash has been computed (maybe no Write has been invoked): %v", lwr.hash == nil)
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - there's already an ETag from upstream: %v", lwr.ResponseWriter.Header().Get(headers.ETag) != "")
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is not successful (2xx): %v", (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices))
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is without content (204): %v", lwr.StatusCode == http.StatusNoContent)
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - there is no buffered content (maybe no Write has been invoked): %v", len(lwr.Content) == 0)
+
+	return lwr.hash == nil || // no hash has been computed (maybe no Write has been invoked)
+		lwr.ResponseWriter.Header().Get(headers.ETag) != "" || // there's already an ETag from upstream
+		(lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices) || // response is not successful (2xx)
+		lwr.StatusCode == http.StatusNoContent || // response is without content (204)
+		len(lwr.Content) == 0 // there is no buffered content (maybe no Write has been invoked)
+}
+
+// SendNotModifiedResponse - Write the 304 Response.
+func (lwr LoggedResponseWriter) SendNotModifiedResponse() {
+	lwr.ResponseWriter.WriteHeader(http.StatusNotModified) // TODO: COVER
+	lwr.ResponseWriter.Write(nil)                          // TODO: COVER
 }
 
 // GZIP ------------------------------------------------------------------------
 func (lwr LoggedResponseWriter) InitGZipBuffer() {
-	lwrGzip := &LoggedResponseWriter{
-		IsBuffered:     true,
-		ResponseWriter: lwr.ResponseWriter,
-	}
-
-	lwr.GZipResponse = gzip.NewWriter(lwrGzip)
+	lwrGzip := &LoggedResponseWriter{ResponseWriter: lwr.ResponseWriter} // TODO: COVER
+	lwr.GZipResponse = gzip.NewWriter(lwrGzip)                           // TODO: COVER
 }

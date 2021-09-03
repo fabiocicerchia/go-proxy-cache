@@ -22,6 +22,7 @@ import (
 
 // RequestCallDTO - DTO object containing request and response.
 type RequestCallDTO struct {
+	ReqID       string
 	Response    response.LoggedResponseWriter
 	Request     http.Request
 	CacheObject cache.Object
@@ -32,9 +33,13 @@ func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
 		if err == cache.ErrEmptyValue {
-			log.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
+			log.WithFields(log.Fields{
+				"ReqID": rc.ReqID,
+			}).Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		} else {
-			log.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
+			log.WithFields(log.Fields{
+				"ReqID": rc.ReqID,
+			}).Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		}
 
 		return cache.URIObj{}, err

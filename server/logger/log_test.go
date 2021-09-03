@@ -49,9 +49,9 @@ func TestLogMessage(t *testing.T) {
 		},
 	}
 
-	logger.Log(reqMock, "message")
+	logger.Log(reqMock, "TestLogMessage", "message")
 
-	expectedOut := `time=" " level=info msg="HTTPS POST /path/to/file - message"` + "\n"
+	expectedOut := `time=" " level=info msg="HTTPS POST /path/to/file - message" ReqID=TestLogMessage` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -88,9 +88,9 @@ func TestLogRequest(t *testing.T) {
 		},
 	}
 
-	logger.LogRequest(reqMock, lwrMock, true, "HIT")
+	logger.LogRequest(reqMock, lwrMock, "TestLogRequest", true, "HIT")
 
-	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT"` + "\n"
+	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT" ReqID=TestLogRequest` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 

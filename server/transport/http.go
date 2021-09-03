@@ -81,7 +81,7 @@ func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter
 
 	PushProxiedResources(lwr, &uriobj)
 
-	handleBody(lwr, uriobj.Content)
+	handleBody(lwr.ResponseWriter, uriobj.Content)
 	handleTrailer(announcedTrailers, lwr, res)
 }
 
@@ -113,8 +113,8 @@ func handleHeaders(lwr *response.LoggedResponseWriter, res http.Response) int {
 	return announcedTrailers
 }
 
-func handleBody(lwr *response.LoggedResponseWriter, content [][]byte) {
-	copyResponse(lwr, content)
+func handleBody(res http.ResponseWriter, content [][]byte) {
+	copyResponse(res, content)
 }
 
 func handleTrailer(announcedTrailers int, lwr *response.LoggedResponseWriter, res http.Response) {

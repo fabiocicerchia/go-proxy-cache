@@ -15,8 +15,6 @@ import (
 	"net/http/httputil"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
@@ -61,7 +59,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 
 	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
 	if forceFresh {
-		log.Warningf("Forcing Fresh Content on %v", rc.Request.URL.String())
+		rc.GetLogger().Warningf("Forcing Fresh Content on %v", rc.Request.URL.String()) // TODO: COVER
 	}
 
 	if enableCachedResponse && !forceFresh {
@@ -75,7 +73,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 
 	if enableLoggingRequest {
 		// HIT and STALE considered the same.
-		logger.LogRequest(rc.Request, *rc.Response, cached != CacheStatusMiss, CacheStatusLabel[cached])
+		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, cached != CacheStatusMiss, CacheStatusLabel[cached])
 	}
 }
 
@@ -84,8 +82,7 @@ func (rc RequestCall) serveCachedContent() int {
 
 	uriObj, err := storage.RetrieveCachedContent(rcDTO)
 	if err != nil {
-
-		log.Warnf("Error on serving cached content: %s", err)
+		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
 
 		return CacheStatusMiss
 	}
@@ -106,9 +103,9 @@ func (rc RequestCall) serveCachedContent() int {
 func (rc RequestCall) serveReverseProxyHTTP() {
 	proxyURL := rc.GetUpstreamURL()
 
-	log.Debugf("ProxyURL: %s", proxyURL.String())
-	log.Debugf("Req URL: %s", rc.Request.URL.String())
-	log.Debugf("Req Host: %s", rc.Request.Host)
+	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
+	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
+	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()
@@ -122,14 +119,14 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 		gpcDirector(req)
 	}
 
-	serveNotModified := GetResponseWithETag(rc.Response, &rc.Request, proxy)
+	serveNotModified := rc.GetResponseWithETag(proxy)
 	if serveNotModified {
-		rc.Response.SendNotModifiedResponse()
+		rc.Response.SendNotModifiedResponse() // TODO: COVER
 		return
 	}
 
 	if rc.DomainConfig.Server.GZip {
-		WrapResponseForGZip(rc.Response, &rc.Request)
+		WrapResponseForGZip(rc.Response, &rc.Request) // TODO: COVER
 	}
 
 	rc.Response.SendResponse()
@@ -146,13 +143,13 @@ func (rc RequestCall) storeResponse() {
 	// Make it sync for testing
 	// TODO: Make it customizable?
 	// if os.Getenv("GPC_SYNC_STORING") == "1" {
-	// 	log.Debugf("Sync Store Response: %s", rc.Request.URL.String())
+	// 	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
 
 	rc.doStoreResponse()
 	return
 	// }
 
-	// log.Debugf("Async Store Response: %s", rc.Request.URL.String())
+	// rc.GetLogger().Debugf("Async Store Response: %s", rc.Request.URL.String())
 	// queue.Dispatcher.Do(func() {
 	// 	rc.doStoreResponse()
 	// })
@@ -163,6 +160,6 @@ func (rc RequestCall) doStoreResponse() {
 
 	stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
 	if !stored || err != nil {
-		logger.Log(rc.Request, fmt.Sprintf("Not Stored: %v", err))
+		logger.Log(rc.Request, rc.ReqID, fmt.Sprintf("Not Stored: %v", err))
 	}
 }

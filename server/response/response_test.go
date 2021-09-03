@@ -12,23 +12,27 @@ package response_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/stretchr/testify/assert"
 )
 
 var MockStatusCode int
-var MockContent [][]byte
+var MockContent response.DataChunks
 
 type ResponseWriterMock struct {
 	http.ResponseWriter
 }
 
-func (rwm ResponseWriterMock) WriteHeader(statusCode int) { MockStatusCode = statusCode }
+func (rwm ResponseWriterMock) WriteHeader(statusCode int) {
+	fmt.Println(">>>>>>>>>>>>>>>>>>>", statusCode)
+	MockStatusCode = statusCode
+}
 func (rwm ResponseWriterMock) Write(p []byte) (int, error) {
 	MockContent = append(MockContent, []byte{})
 	chunk := len(MockContent) - 1
@@ -51,7 +55,7 @@ func TestNewWriter(t *testing.T) {
 
 	var rwMock ResponseWriterMock
 
-	lwr := response.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestNewWriter")
 
 	assert.Equal(t, 0, lwr.StatusCode)
 	assert.Len(t, lwr.Content, 0)
@@ -64,8 +68,27 @@ func TestCatchStatusCode(t *testing.T) {
 
 	var rwMock ResponseWriterMock
 
-	lwr := response.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchStatusCode")
 	lwr.WriteHeader(http.StatusCreated)
+
+	// checks lwr
+	assert.Equal(t, http.StatusCreated, lwr.StatusCode)
+	assert.Len(t, lwr.Content, 0)
+
+	// verify calls on rwMock
+	assert.Equal(t, -1, MockStatusCode)
+	assert.Len(t, MockContent, 0)
+
+	tearDownResponse()
+}
+
+func TestCatchStatusCodeForced(t *testing.T) {
+	initLogs()
+
+	var rwMock ResponseWriterMock
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchStatusCodeForced")
+	lwr.ForceWriteHeader(http.StatusCreated)
 
 	// checks lwr
 	assert.Equal(t, http.StatusCreated, lwr.StatusCode)
@@ -83,16 +106,43 @@ func TestCatchContent(t *testing.T) {
 
 	var rwMock ResponseWriterMock
 
-	lwr := response.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchContent")
 
 	content := []byte("test content")
 	_, err := lwr.Write(content)
 	assert.Nil(t, err)
 
-	expectedContent := [][]byte{content}
+	expectedContent := response.DataChunks{content}
 
 	// checks lwr
-	assert.Equal(t, 0, lwr.StatusCode)
+	// even if don't set it explicitly, it fallback on 200
+	assert.Equal(t, http.StatusOK, lwr.StatusCode)
+	assert.Equal(t, expectedContent, lwr.Content)
+
+	// verify calls on rwMock
+	assert.Equal(t, -1, MockStatusCode)
+	// Empty because buffered.
+	assert.Equal(t, response.DataChunks{}, MockContent)
+
+	tearDownResponse()
+}
+
+func TestCatchContentForced(t *testing.T) {
+	initLogs()
+
+	var rwMock ResponseWriterMock
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchContentForced")
+
+	content := []byte("test content")
+	_, err := lwr.ForceWrite(content)
+	assert.Nil(t, err)
+
+	expectedContent := response.DataChunks{content}
+
+	// checks lwr
+	// even if don't set it explicitly, it fallback on 200
+	assert.Equal(t, http.StatusOK, lwr.StatusCode)
 	assert.Equal(t, expectedContent, lwr.Content)
 
 	// verify calls on rwMock
@@ -107,22 +157,23 @@ func TestCatchContentThreeChunks(t *testing.T) {
 
 	var rwMock ResponseWriterMock
 
-	lwr := response.NewLoggedResponseWriter(rwMock)
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchContentThreeChunks")
 
 	content := []byte("test content")
 	content2 := []byte("test content2")
 	content3 := []byte("test content3")
-	_, err := lwr.Write(content)
+	_, err := lwr.ForceWrite(content)
 	assert.Nil(t, err)
-	_, err = lwr.Write(content2)
+	_, err = lwr.ForceWrite(content2)
 	assert.Nil(t, err)
-	_, err = lwr.Write(content3)
+	_, err = lwr.ForceWrite(content3)
 	assert.Nil(t, err)
 
-	expectedContent := [][]byte{content, content2, content3}
+	expectedContent := response.DataChunks{content, content2, content3}
 
 	// checks lwr
-	assert.Equal(t, 0, lwr.StatusCode)
+	// even if don't set it explicitly, it fallback on 200
+	assert.Equal(t, http.StatusOK, lwr.StatusCode)
 	assert.Equal(t, expectedContent, lwr.Content)
 
 	// verify calls on rwMock
@@ -134,5 +185,5 @@ func TestCatchContentThreeChunks(t *testing.T) {
 
 func tearDownResponse() {
 	MockStatusCode = -1
-	MockContent = make([][]byte, 0)
+	MockContent = make(response.DataChunks, 0)
 }

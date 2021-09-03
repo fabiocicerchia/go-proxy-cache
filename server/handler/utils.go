@@ -36,9 +36,11 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 	}
 
 	return storage.RequestCallDTO{
+		ReqID:    rc.ReqID,
 		Response: *rc.Response,
 		Request:  rc.Request,
 		CacheObject: cache.Object{
+			ReqID:           rc.ReqID,
 			AllowedStatuses: rc.DomainConfig.Cache.AllowedStatuses,
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
 			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
@@ -123,7 +125,7 @@ func (rc RequestCall) GetUpstreamURL() url.URL {
 	hostname := upstream.Host + overridePort
 	scheme := upstream.Scheme
 	if scheme == config.SchemeWildcard {
-		scheme = rc.GetScheme()
+		scheme = rc.GetScheme() // TODO: COVER
 	}
 
 	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme

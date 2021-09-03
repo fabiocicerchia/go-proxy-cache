@@ -10,30 +10,34 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/xid"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
+// HttpMethodPurge - PURGE method.
+const HttpMethodPurge = "PURGE"
+
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	rc, err := initRequestParams(res, req)
 	if err != nil {
-		log.Errorf(err.Error())
+		rc.GetLogger().Errorf(err.Error())
 		return
 	}
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {
-			logger.LogRequest(rc.Request, *rc.Response, false, "-")
+			logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")
 		}
 
-		rc.Response.WriteHeader(http.StatusMethodNotAllowed)
+		rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -42,7 +46,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if rc.Request.Method == "PURGE" {
+	if rc.Request.Method == HttpMethodPurge {
 		rc.HandlePurge()
 		return
 	}
@@ -57,24 +61,36 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, error) {
 	var configFound bool
 
+	guid := xid.New()
+	reqID := guid.String()
+
+	// TODO: IS IT NEEDED?
+	reqCtx := req.Context()
+	v := map[string]string{
+		"reqID": reqID,
+	}
+	newCtx := context.WithValue(reqCtx, "gpcdata", v)
+
 	rc := RequestCall{
-		Response: response.NewLoggedResponseWriter(res),
+		ctx:      newCtx,
+		ReqID:    reqID,
+		Response: response.NewLoggedResponseWriter(res, reqID),
 		Request:  *req,
 	}
 
-	listeningPort := getListeningPort(req.Context())
+	listeningPort := getListeningPort(reqCtx)
 
 	rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
 	if !configFound || !rc.IsLegitRequest(listeningPort) {
 		rc.Response.SendNotImplemented()
 
-		logger.LogRequest(rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
+		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, CacheStatusLabel[CacheStatusMiss])
 
 		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed (mostly likely it's a configuration mismatch).", rc.Request.Host, listeningPort)
 	}
 
 	if rc.DomainConfig.Server.GZip {
-		rc.Response.InitGZipBuffer()
+		rc.Response.InitGZipBuffer() // TODO: COVER
 	}
 
 	return rc, nil

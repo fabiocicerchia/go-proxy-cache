@@ -1,4 +1,4 @@
-package handler
+package response
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -10,15 +10,23 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/http"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
-// RedirectToHTTPS - Redirects from HTTP to HTTPS.
-func (rc RequestCall) RedirectToHTTPS() {
-	targetURL := rc.GetRequestURL()
-	targetURL.Scheme = SchemeHTTPS
+type DataChunks [][]byte
 
-	rc.GetLogger().Infof("Redirect to: %s", targetURL.String())
+// Bytes - Returns flat slice of bytes.
+func (dc DataChunks) Bytes() []byte {
+	bytes := []byte{} // TODO: COVER
 
-	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	for _, c := range dc {
+		bytes = append(bytes, c...)
+	}
+
+	return bytes
+}
+
+// Len - Returns total length.
+func (dc DataChunks) Len() int {
+	return slice.LenSliceBytes(([][]byte)(dc)) // TODO: COVER
 }

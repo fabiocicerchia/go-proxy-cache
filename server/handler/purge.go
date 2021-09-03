@@ -12,8 +12,6 @@ package handler
 import (
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 )
@@ -24,18 +22,18 @@ func (rc RequestCall) HandlePurge() {
 
 	status, err := storage.PurgeCachedContent(rc.DomainConfig.Server.Upstream, rcDTO)
 	if !status || err != nil {
-		rc.Response.WriteHeader(http.StatusNotFound)
+		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")
 
-		log.Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
+		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
 		return
 	}
 
-	rc.Response.WriteHeader(http.StatusOK)
+	rc.Response.ForceWriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
 
 	if enableLoggingRequest {
-		logger.LogRequest(rc.Request, *rc.Response, false, "-")
+		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")
 	}
 }

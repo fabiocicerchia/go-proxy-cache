@@ -13,7 +13,6 @@ import (
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
-	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
 )
 
@@ -22,16 +21,16 @@ func (rc RequestCall) HandleWSRequestAndProxy() {
 	rc.serveReverseProxyWS()
 
 	if enableLoggingRequest {
-		logger.LogRequest(rc.Request, *rc.Response, false, CacheStatusLabel[CacheStatusMiss])
+		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, CacheStatusLabel[CacheStatusMiss])
 	}
 }
 
 func (rc RequestCall) serveReverseProxyWS() {
 	proxyURL := rc.GetUpstreamURL()
 
-	log.Debugf("ProxyURL: %s", proxyURL.String())
-	log.Debugf("Req URL: %s", rc.Request.URL.String())
-	log.Debugf("Req Host: %s", rc.Request.Host)
+	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
+	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
+	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 
