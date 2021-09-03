@@ -12,9 +12,8 @@ package handler
 import (
 	"net/http/httputil"
 
-	"github.com/yhat/wsutil"
-
 	"github.com/go-http-utils/fresh"
+	"github.com/yhat/wsutil"
 )
 
 // HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.

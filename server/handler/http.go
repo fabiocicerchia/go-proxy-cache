@@ -13,12 +13,15 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
 // CacheStatusHit - Value for HIT.
@@ -80,7 +83,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 func (rc RequestCall) serveCachedContent() int {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	uriObj, err := storage.RetrieveCachedContent(rcDTO, *rc.GetLogger().Logger)
+	uriObj, err := storage.RetrieveCachedContent(rcDTO, rc.GetLogger())
 	if err != nil {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
 
@@ -139,27 +142,27 @@ func (rc RequestCall) storeResponse() {
 		return
 	}
 
-	// Make it sync for testing
-	// TODO: Make it customizable?
-	// if os.Getenv("GPC_SYNC_STORING") == "1" {
-	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
-
-	rc.doStoreResponse()
-	return
-	// }
-
-	// rc.GetLogger().Debugf("Async Store Response: %s", rc.Request.URL.String())
-	// go rc.doStoreResponse()
-	// queue.Dispatcher.Do(func() {
-	// rc.doStoreResponse()
-	// })
-}
-
-func (rc RequestCall) doStoreResponse() {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
+	// Make it sync for testing
+	// TODO: Make it customizable?
+	if os.Getenv("GPC_SYNC_STORING") == "1" {
+		rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
+
+		doStoreResponse(rcDTO, rc.DomainConfig.Cache)
+		return
+	}
+
+	rc.GetLogger().Debugf("Async Store Response: %s", rc.Request.URL.String())
+	// go rc.doStoreResponse()
+	queue.Dispatcher.Do(func() {
+		doStoreResponse(rcDTO, rc.DomainConfig.Cache)
+	})
+}
+
+func doStoreResponse(rcDTO storage.RequestCallDTO, configCache config.Cache) {
+	stored, err := storage.StoreGeneratedPage(rcDTO, configCache)
 	if !stored || err != nil {
-		logger.Log(rc.Request, rc.ReqID, fmt.Sprintf("Not Stored: %v", err))
+		logger.Log(rcDTO.Request, rcDTO.ReqID, fmt.Sprintf("Not Stored: %v", err))
 	}
 }

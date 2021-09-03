@@ -201,8 +201,6 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
 
-	time.Sleep(1 * time.Second)
-
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -281,8 +279,6 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
 
-	time.Sleep(1 * time.Second)
-
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/standards/", nil)
@@ -327,11 +323,8 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	assert.Contains(t, body, `<title>Standards - W3C</title>`)
 	assert.Contains(t, body, "</div></body></html>\n")
 
-	time.Sleep(10 * time.Second)
-
 	// Manual Timeout All Fresh Keys
 	_, _ = engine.GetConn(domainID).DelWildcard("DATA@@GET@@http://www.w3.org/standards/@@*/fresh")
-	time.Sleep(10 * time.Second)
 
 	// --- STALE
 
@@ -603,8 +596,6 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, body, "</body>\n</html>\n")
-
-	time.Sleep(1 * time.Second)
 
 	// --- HIT
 

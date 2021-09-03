@@ -24,6 +24,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// this is to verify any possible data race condition
+const redisConnName = "testing"
+const clashingKey = "test"
+
 func initLogs() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
@@ -51,27 +55,27 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName).State().String())
 
 	val := rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName).State().String())
 
 	_ = rdb.Close()
 
 	val = rdb.Ping()
 	assert.False(t, val)
-	assert.Equal(t, "half-open", circuit_breaker.CB("testing").State().String())
+	assert.Equal(t, "half-open", circuit_breaker.CB(redisConnName).State().String())
 
-	rdb = client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb = client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	val = rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName).State().String())
 }
 
 func TestClose(t *testing.T) {
@@ -91,9 +95,9 @@ func TestClose(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	assert.True(t, rdb.Ping())
 
@@ -119,15 +123,15 @@ func TestSetGet(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test", "sample", 0)
+	done, err := rdb.Set(clashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := rdb.Get("test")
+	value, err := rdb.Get(clashingKey)
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 }
@@ -149,17 +153,15 @@ func TestSetGetWithExpiration(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test", "sample", 1*time.Millisecond)
+	done, err := rdb.Set(clashingKey, "sample", 1*time.Millisecond)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	time.Sleep(10 * time.Millisecond)
-
-	value, err := rdb.Get("test")
+	value, err := rdb.Get(clashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
 }
@@ -181,22 +183,22 @@ func TestDel(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test", "sample", 0)
+	done, err := rdb.Set(clashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := rdb.Get("test")
+	value, err := rdb.Get(clashingKey)
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	err = rdb.Del("test")
+	err = rdb.Del(clashingKey)
 	assert.Nil(t, err)
 
-	value, err = rdb.Get("test")
+	value, err = rdb.Get(clashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
 }
@@ -218,20 +220,21 @@ func TestExpire(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test", "sample", 0)
+	done, err := rdb.Set(clashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	err = rdb.Expire("test", 1*time.Second)
+	err = rdb.Expire(clashingKey, 100*time.Millisecond)
 	assert.Nil(t, err)
 
-	time.Sleep(1500 * time.Millisecond)
+	// redis: commands.go:36: specified duration is 100ms, but minimal supported value is 1s - truncating to 1s
+	time.Sleep(1 * time.Second)
 
-	value, err := rdb.Get("test")
+	value, err := rdb.Get(clashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
 }
@@ -253,14 +256,14 @@ func TestPushList(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	err := rdb.Push("test", []string{"a", "b", "c"})
+	err := rdb.Push(clashingKey, []string{"a", "b", "c"})
 	assert.Nil(t, err)
 
-	value, err := rdb.List("test")
+	value, err := rdb.List(clashingKey)
 	assert.Equal(t, []string{"a", "b", "c"}, value)
 	assert.Nil(t, err)
 }
@@ -282,9 +285,9 @@ func TestDelWildcardNoMatch(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -338,9 +341,9 @@ func TestDelWildcard(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -394,9 +397,9 @@ func TestPurgeAll(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -450,9 +453,9 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	str := []byte("test string")
 	var decoded []byte

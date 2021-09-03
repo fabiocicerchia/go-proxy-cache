@@ -11,7 +11,6 @@ package server
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -185,25 +184,19 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 
 func (s Servers) startListeners() {
 	for port, srvHTTP := range s.HTTP {
-		l, err := net.Listen("tcp", ":"+port)
-		if err != nil {
-			panic(err)
-		}
+		srvHTTP.HttpSrv.Addr = ":" + port
 
-		go func(srv http.Server, l net.Listener) {
-			log.Fatal(srv.Serve(l))
-		}(srvHTTP.HttpSrv, l)
+		go func(srv http.Server) {
+			log.Fatal(srv.ListenAndServe())
+		}(srvHTTP.HttpSrv)
 	}
 
 	for port, srvHTTPS := range s.HTTPS {
-		l, err := net.Listen("tcp", ":"+port)
-		if err != nil {
-			panic(err)
-		}
+		srvHTTPS.HttpSrv.Addr = ":" + port
 
-		go func(srv http.Server, l net.Listener) {
-			log.Fatal(srv.ServeTLS(l, "", ""))
-		}(srvHTTPS.HttpSrv, l)
+		go func(srv http.Server) {
+			log.Fatal(srv.ListenAndServeTLS("", ""))
+		}(srvHTTPS.HttpSrv)
 	}
 }
 

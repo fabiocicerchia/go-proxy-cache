@@ -80,8 +80,6 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	body := rr.Body.String()
 
 	assert.Equal(t, body, "KO")
-
-	time.Sleep(1 * time.Second)
 }
 
 func TestEndToEndCallPurge(t *testing.T) {
@@ -182,8 +180,6 @@ func TestEndToEndCallPurge(t *testing.T) {
 	body = rr.Body.String()
 
 	assert.Equal(t, "OK", body)
-
-	time.Sleep(1 * time.Second)
 
 	// --- MISS
 

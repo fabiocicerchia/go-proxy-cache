@@ -20,5 +20,6 @@ func (rc RequestCall) RedirectToHTTPS() {
 
 	rc.GetLogger().Infof("Redirect to: %s", targetURL.String())
 
+	// Just write to client, no need to cache this response.
 	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }

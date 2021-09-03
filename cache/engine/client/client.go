@@ -63,7 +63,7 @@ func (rdb *RedisClient) Close() error {
 }
 
 func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
-	mutexname := fmt.Sprintf("mutex-%s", key)
+	mutexname := fmt.Sprintf("mutex-%s-%s", rdb.Name, key)
 	if _, ok := rdb.Mutex[mutexname]; !ok {
 		rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
 	}
