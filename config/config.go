@@ -24,8 +24,8 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/scheme"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
-	utilsString "github.com/fabiocicerchia/go-proxy-cache/utils/string"
 )
 
 // PasswordOmittedValue - Replacement value when showing passwords in configuration.
@@ -59,7 +59,7 @@ func getFromYaml(file string) (Configuration, error) {
 		return YamlConfig, err
 	}
 
-	YamlConfig.Server.Upstream.Scheme = utilsString.NormalizeScheme(YamlConfig.Server.Upstream.Scheme)
+	YamlConfig.Server.Upstream.Scheme = scheme.NormalizeScheme(YamlConfig.Server.Upstream.Scheme)
 
 	return YamlConfig, err
 }

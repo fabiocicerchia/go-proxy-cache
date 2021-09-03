@@ -15,15 +15,19 @@ import (
 	"github.com/sdeoras/dispatcher"
 )
 
+// MaxConcurrency - How many concurrent functions can be executed.
 // TODO: Make it customizable?
 const MaxConcurrency = 10
 
+// Dispatcher - Global queue dispatcher.
 var Dispatcher dispatcher.Dispatcher
 
+// Init - Init a new dispatcher.
 func Init() {
 	Dispatcher = dispatcher.New(MaxConcurrency)
 }
 
+// WaitForCompletion - Waits all functions are completed.
 func WaitForCompletion() {
 	for Dispatcher.IsRunning() {
 		time.Sleep(time.Second)
