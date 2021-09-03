@@ -161,6 +161,8 @@ func TestSetGetWithExpiration(t *testing.T) {
 	assert.True(t, done)
 	assert.Nil(t, err)
 
+	time.Sleep(10 * time.Millisecond) // let it expire in Redis
+
 	value, err := rdb.Get(clashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
@@ -228,11 +230,11 @@ func TestExpire(t *testing.T) {
 	assert.True(t, done)
 	assert.Nil(t, err)
 
+	// redis: commands.go:36: specified duration is 100ms, but minimal supported value is 1s - truncating to 1s
 	err = rdb.Expire(clashingKey, 100*time.Millisecond)
 	assert.Nil(t, err)
 
-	// redis: commands.go:36: specified duration is 100ms, but minimal supported value is 1s - truncating to 1s
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	value, err := rdb.Get(clashingKey)
 	assert.Equal(t, "", value)
