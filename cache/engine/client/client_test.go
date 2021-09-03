@@ -265,6 +265,62 @@ func TestPushList(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestDelWildcardNoMatch(t *testing.T) {
+	initLogs()
+
+	cfg := config.Configuration{
+		Cache: config.Cache{
+			Host: utils.GetEnv("REDIS_HOST", "localhost"),
+			Port: "6379",
+			DB:   0,
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5,              // 1 out of 2 fails, or more
+			Interval:    0,                // doesn't clears counts
+			Timeout:     time.Duration(1), // clears state immediately
+		},
+	}
+
+	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
+
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
+
+	done, err := rdb.Set("test_1", "sample", 0)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	done, err = rdb.Set("test_2", "sample", 0)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	done, err = rdb.Set("test_3", "sample", 0)
+	assert.True(t, done)
+	assert.Nil(t, err)
+
+	value, err := rdb.Get("test_1")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_2")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_3")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+
+	len, err := rdb.DelWildcard("missing_*")
+	assert.Equal(t, 0, len)
+	assert.Nil(t, err)
+
+	value, err = rdb.Get("test_1")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_2")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_3")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+}
+
 func TestDelWildcard(t *testing.T) {
 	initLogs()
 

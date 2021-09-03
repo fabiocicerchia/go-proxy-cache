@@ -172,7 +172,7 @@ func (rdb *RedisClient) deleteKeys(keyID string, keys []string) (int, error) {
 	l := len(keys)
 
 	if l == 0 {
-		return 0, nil // TODO! COVER
+		return 0, nil
 	}
 
 	_, errDel := circuitbreaker.CB(rdb.Name).Execute(rdb.doDeleteKeys(keyID, keys))

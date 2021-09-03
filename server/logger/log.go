@@ -73,8 +73,8 @@ func LogSetup(server config.Server) {
 	forwardProto := server.Upstream.Scheme
 
 	lbEndpointList := fmt.Sprintf("%v", server.Upstream.Endpoints)
-	if len(lbEndpointList) == 0 {
-		lbEndpointList = "VOID" // TODO! COVER
+	if len(server.Upstream.Endpoints) == 0 {
+		lbEndpointList = "VOID"
 	}
 
 	log.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
