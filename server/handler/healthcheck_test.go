@@ -63,7 +63,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 	engine.GetConn(domainID).Close()
 
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
@@ -80,7 +80,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `REDIS KO`)
 	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
 
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 }
 
 func TestHealthcheckWithRedis(t *testing.T) {
@@ -109,7 +109,7 @@ func TestHealthcheckWithRedis(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
 	req.Host = "testing.local"

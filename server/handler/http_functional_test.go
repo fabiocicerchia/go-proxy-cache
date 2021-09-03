@@ -18,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -65,7 +66,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
@@ -100,7 +101,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
@@ -140,7 +141,7 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, err := engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
@@ -196,7 +197,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
 
@@ -276,7 +277,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
 
@@ -406,7 +407,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
@@ -444,7 +445,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
@@ -479,7 +480,7 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
@@ -519,7 +520,7 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, err := engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
@@ -575,7 +576,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
 
@@ -645,7 +646,7 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 

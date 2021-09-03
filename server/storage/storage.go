@@ -29,15 +29,15 @@ type RequestCallDTO struct {
 }
 
 // RetrieveCachedContent - Retrives the cached response.
-func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
+func RetrieveCachedContent(rc RequestCallDTO, logger log.Logger) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
 		if err == cache.ErrEmptyValue {
-			log.WithFields(log.Fields{
+			logger.WithFields(log.Fields{
 				"ReqID": rc.ReqID,
 			}).Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		} else {
-			log.WithFields(log.Fields{
+			logger.WithFields(log.Fields{
 				"ReqID": rc.ReqID,
 			}).Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		}

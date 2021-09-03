@@ -125,7 +125,7 @@ func (rc RequestCall) GetUpstreamURL() url.URL {
 	hostname := upstream.Host + overridePort
 	scheme := upstream.Scheme
 	if scheme == config.SchemeWildcard {
-		scheme = rc.GetScheme() // TODO: COVER
+		scheme = rc.GetScheme() // TODO! COVER
 	}
 
 	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme

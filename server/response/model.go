@@ -17,7 +17,7 @@ type DataChunks [][]byte
 
 // Bytes - Returns flat slice of bytes.
 func (dc DataChunks) Bytes() []byte {
-	bytes := []byte{} // TODO: COVER
+	bytes := []byte{} // TODO! COVER
 
 	for _, c := range dc {
 		bytes = append(bytes, c...)
@@ -28,5 +28,5 @@ func (dc DataChunks) Bytes() []byte {
 
 // Len - Returns total length.
 func (dc DataChunks) Len() int {
-	return slice.LenSliceBytes(([][]byte)(dc)) // TODO: COVER
+	return slice.LenSliceBytes(([][]byte)(dc)) // TODO! COVER
 }

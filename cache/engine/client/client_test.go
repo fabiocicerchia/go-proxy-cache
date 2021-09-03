@@ -53,7 +53,7 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	assert.Equal(t, "closed", circuit_breaker.CB("testing").State().String())
 
@@ -67,7 +67,7 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 	assert.False(t, val)
 	assert.Equal(t, "half-open", circuit_breaker.CB("testing").State().String())
 
-	rdb = client.Connect("testing", cfg.Cache)
+	rdb = client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	val = rdb.Ping()
 	assert.True(t, val)
@@ -93,7 +93,7 @@ func TestClose(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	assert.True(t, rdb.Ping())
 
@@ -121,7 +121,7 @@ func TestSetGet(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -151,7 +151,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test", "sample", 1*time.Millisecond)
 	assert.True(t, done)
@@ -183,7 +183,7 @@ func TestDel(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -220,7 +220,7 @@ func TestExpire(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test", "sample", 0)
 	assert.True(t, done)
@@ -255,7 +255,7 @@ func TestPushList(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	err := rdb.Push("test", []string{"a", "b", "c"})
 	assert.Nil(t, err)
@@ -284,7 +284,7 @@ func TestDelWildcard(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -340,7 +340,7 @@ func TestPurgeAll(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set("test_1", "sample", 0)
 	assert.True(t, done)
@@ -396,7 +396,7 @@ func TestEncodeDecode(t *testing.T) {
 
 	circuit_breaker.InitCircuitBreaker("testing", cfg.CircuitBreaker)
 
-	rdb := client.Connect("testing", cfg.Cache)
+	rdb := client.Connect("testing", cfg.Cache, log.StandardLogger())
 
 	str := []byte("test string")
 	var decoded []byte

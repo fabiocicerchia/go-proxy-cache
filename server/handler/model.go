@@ -10,7 +10,6 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"context"
 	"net/http"
 	"net/url"
 	"strings"
@@ -36,7 +35,6 @@ var SchemeWSS string = "wss"
 
 // RequestCall - Main object containing request and response.
 type RequestCall struct {
-	ctx          context.Context
 	ReqID        string
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
@@ -100,7 +98,7 @@ func (rc RequestCall) GetScheme() string {
 
 // GetConfiguredScheme - Returns configured request scheme (could be wildcard).
 func (rc RequestCall) GetConfiguredScheme() string {
-	return rc.DomainConfig.Server.Upstream.Scheme // TODO: COVER
+	return rc.DomainConfig.Server.Upstream.Scheme // TODO! COVER
 }
 
 // IsWebSocket - Checks whether a request is a websocket.

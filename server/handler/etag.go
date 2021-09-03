@@ -24,7 +24,7 @@ func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNo
 
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
 	if wsutil.IsWebSocketRequest(&rc.Request) || rc.Request.ProtoMajor == 2 {
-		rc.GetLogger().Info("Current request doesn't support ETag.") // TODO: COVER
+		rc.GetLogger().Info("Current request doesn't support ETag.") // TODO! COVER
 
 		// Serve existing response.
 		return false
@@ -36,13 +36,13 @@ func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNo
 		return false
 	}
 
-	rc.Response.SetETag(false) // TODO: COVER
+	rc.Response.SetETag(false) // TODO! COVER
 
 	// Send 304 Not Modified.
 	if fresh.IsFresh(rc.Request.Header, rc.Response.Header()) {
-		return true // TODO: COVER
+		return true // TODO! COVER
 	}
 
 	// Serve response with ETag header.
-	return false // TODO: COVER
+	return false // TODO! COVER
 }

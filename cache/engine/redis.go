@@ -30,11 +30,11 @@ func GetConn(connName string) *client.RedisClient {
 }
 
 // InitConn - Initialises the Redis connection.
-func InitConn(connName string, config config.Cache) {
+func InitConn(connName string, config config.Cache, logger *log.Logger) {
 	if rdb == nil {
 		rdb = make(map[string]*client.RedisClient)
 	}
 
-	log.Debugf("New redis connection for %s", connName)
-	rdb[connName] = client.Connect(connName, config)
+	logger.Debugf("New redis connection for %s", connName)
+	rdb[connName] = client.Connect(connName, config, logger)
 }

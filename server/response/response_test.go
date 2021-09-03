@@ -12,7 +12,6 @@ package response_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -30,7 +29,6 @@ type ResponseWriterMock struct {
 }
 
 func (rwm ResponseWriterMock) WriteHeader(statusCode int) {
-	fmt.Println(">>>>>>>>>>>>>>>>>>>", statusCode)
 	MockStatusCode = statusCode
 }
 func (rwm ResponseWriterMock) Write(p []byte) (int, error) {

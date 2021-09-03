@@ -10,7 +10,6 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 
@@ -61,24 +60,14 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, error) {
 	var configFound bool
 
-	guid := xid.New()
-	reqID := guid.String()
-
-	// TODO: IS IT NEEDED?
-	reqCtx := req.Context()
-	v := map[string]string{
-		"reqID": reqID,
-	}
-	newCtx := context.WithValue(reqCtx, "gpcdata", v)
-
+	reqID := xid.New().String()
 	rc := RequestCall{
-		ctx:      newCtx,
 		ReqID:    reqID,
 		Response: response.NewLoggedResponseWriter(res, reqID),
 		Request:  *req,
 	}
 
-	listeningPort := getListeningPort(reqCtx)
+	listeningPort := getListeningPort(req.Context())
 
 	rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
 	if !configFound || !rc.IsLegitRequest(listeningPort) {
@@ -90,7 +79,7 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 	}
 
 	if rc.DomainConfig.Server.GZip {
-		rc.Response.InitGZipBuffer() // TODO: COVER
+		rc.Response.InitGZipBuffer() // TODO! COVER
 	}
 
 	return rc, nil
