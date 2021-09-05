@@ -16,13 +16,15 @@ import (
 	"github.com/yhat/wsutil"
 )
 
+const HttpVersion2 = 2
+
 // HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
 func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNotModified bool) {
 	// Start buffering the response.
 	proxy.ServeHTTP(rc.Response, &rc.Request)
 
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
-	if wsutil.IsWebSocketRequest(&rc.Request) || rc.Request.ProtoMajor == 2 {
+	if wsutil.IsWebSocketRequest(&rc.Request) || rc.Request.ProtoMajor == HttpVersion2 {
 		rc.GetLogger().Info("Current request doesn't support ETag.")
 
 		// Serve existing response.
