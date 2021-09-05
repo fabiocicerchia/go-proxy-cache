@@ -62,7 +62,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 
 	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
 	if forceFresh {
-		rc.GetLogger().Warningf("Forcing Fresh Content on %v", rc.Request.URL.String()) // TODO! COVER
+		rc.GetLogger().Warningf("Forcing Fresh Content on %v", rc.Request.URL.String())
 	}
 
 	if enableCachedResponse && !forceFresh {

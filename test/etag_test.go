@@ -44,6 +44,7 @@ func TestETagValidResponse(t *testing.T) {
 	res.Body.Close()
 
 	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
+	// this is the real ETag from w3.org
 	assert.Regexp(t, regexp.MustCompile(`^\"[0-9a-f]{4}-[0-9a-f]{13};[0-9a-f]{2}-[0-9a-f]{13}-gzip\"$`), res.Header.Get("ETag"))
 
 	assert.Equal(t, "HTTP/1.1", res.Proto)

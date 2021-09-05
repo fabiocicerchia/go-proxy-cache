@@ -120,6 +120,8 @@ func TestCatchContent(t *testing.T) {
 	// verify calls on rwMock
 	assert.Equal(t, -1, MockStatusCode)
 	// Empty because buffered.
+	assert.Equal(t, 0, MockContent.Len())
+	assert.Equal(t, []byte{}, MockContent.Bytes())
 	assert.Equal(t, response.DataChunks{}, MockContent)
 
 	tearDownResponse()
@@ -146,6 +148,8 @@ func TestCatchContentForced(t *testing.T) {
 	// verify calls on rwMock
 	assert.Equal(t, -1, MockStatusCode)
 	assert.Equal(t, expectedContent, MockContent)
+	assert.Equal(t, 12, MockContent.Len())
+	assert.Equal(t, content, MockContent.Bytes())
 
 	tearDownResponse()
 }
@@ -177,6 +181,7 @@ func TestCatchContentThreeChunks(t *testing.T) {
 	// verify calls on rwMock
 	assert.Equal(t, -1, MockStatusCode)
 	assert.Equal(t, expectedContent, MockContent)
+	assert.Equal(t, 38, MockContent.Len())
 
 	tearDownResponse()
 }

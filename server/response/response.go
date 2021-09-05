@@ -172,7 +172,7 @@ func (lwr LoggedResponseWriter) GetETag(weak bool) string {
 		etagWeakPrefix = "W/" // TODO! COVER
 	}
 
-	return fmt.Sprintf("%s%d-%s", etagWeakPrefix, lwr.hashLen, hex.EncodeToString(lwr.hash.Sum(nil))) // TODO! COVER
+	return fmt.Sprintf(`"%s%d-%s"`, etagWeakPrefix, lwr.hashLen, hex.EncodeToString(lwr.hash.Sum(nil))) // TODO! COVER
 }
 
 // SetETag - Set the ETag HTTP Header.
@@ -184,8 +184,8 @@ func (lwr *LoggedResponseWriter) SetETag(weak bool) {
 func (lwr LoggedResponseWriter) MustServeOriginalResponse(req *http.Request) bool {
 	// TODO! COVER
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - no hash has been computed (maybe no Write has been invoked): %v", lwr.hash == nil)
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - there's already an ETag from upstream: %v", lwr.ResponseWriter.Header().Get(headers.ETag) != "")
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is not successful (2xx): %v", (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices))
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - there's already an ETag from upstream: %v (%s)", lwr.ResponseWriter.Header().Get(headers.ETag) != "", lwr.ResponseWriter.Header().Get(headers.ETag))
+	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is not successful (2xx): %v (%d)", (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices), lwr.StatusCode)
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is without content (204): %v", lwr.StatusCode == http.StatusNoContent)
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - there is no buffered content (maybe no Write has been invoked): %v", len(lwr.Content) == 0)
 
