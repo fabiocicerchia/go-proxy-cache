@@ -49,7 +49,7 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
 	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
-	proxyURL := r.GetUpstreamURL()
+	proxyURL, _ := r.GetUpstreamURL()
 	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -85,7 +85,7 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
 	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
-	proxyURL := r.GetUpstreamURL()
+	proxyURL, _ := r.GetUpstreamURL()
 	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -123,7 +123,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 	}
 
 	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
-	proxyURL := r.GetUpstreamURL()
+	proxyURL, _ := r.GetUpstreamURL()
 	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -146,7 +146,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 	}
 
 	r = handler.RequestCall{Request: reqMock, DomainConfig: cfg}
-	proxyURL = r.GetUpstreamURL()
+	proxyURL, _ = r.GetUpstreamURL()
 	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -184,7 +184,7 @@ func TestXForwardedFor(t *testing.T) {
 	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
 	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
-	_ = r.GetUpstreamURL()
+	_, _ = r.GetUpstreamURL()
 	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "https", r.Request.Header.Get("X-Forwarded-Proto"))

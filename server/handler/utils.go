@@ -117,25 +117,53 @@ func getOverridePort(host string, port string, scheme string) string {
 }
 
 // GetUpstreamURL - Get the URL based on the upstream.
-func (rc RequestCall) GetUpstreamURL() url.URL {
+func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 	upstream := rc.DomainConfig.Server.Upstream
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 
 	// Override Hostname with Destination Hostname.
 	hostname := upstream.Host + overridePort
+
+	balancedEndpoint := balancer.GetLBRoundRobin(upstream.GetDomainID(), hostname)
+	balancedURL, err := url.Parse(balancedEndpoint)
+	if err != nil {
+		return url.URL{}, err
+	}
+
+	// scheme
 	scheme := upstream.Scheme
 	if scheme == config.SchemeWildcard {
 		scheme = rc.GetScheme()
 	}
+	if balancedURL.Scheme != "" && balancedURL.Scheme != scheme {
+		scheme = balancedURL.Scheme
+	}
 
-	lbID := upstream.Host + utils.StringSeparatorOne + upstream.Scheme
-	balancedHost := balancer.GetLBRoundRobin(lbID, hostname)
-	overridePort = getOverridePort(balancedHost, upstream.Port, scheme)
+	// host
+	balancedHost := balancedURL.Host
+	// when it's specified only the hostname, url.Parse it converts it to Path.
+	if balancedHost == "" {
+		balancedHost = balancedEndpoint
+	}
+	if balancedHost != "" && balancedHost != upstream.Host {
+		hostname = balancedHost
+	}
+
+	// port
+	upstreamPort := upstream.Port
+	_, port, _ := net.SplitHostPort(hostname)
+	// if port is defined in endpoint, it takes the precedence over listening port.
+	if port != "" && port != upstreamPort {
+		upstreamPort = port
+	}
+
+	overridePort = getOverridePort(hostname, upstreamPort, scheme)
 
 	return url.URL{
 		Scheme: scheme,
-		Host:   balancedHost + overridePort,
-	}
+		User:   balancedURL.User, // TODO: Add tests
+		Host:   hostname + overridePort,
+	}, nil
 }
 
 // ProxyDirector - Add extra behaviour to request.

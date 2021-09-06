@@ -13,6 +13,7 @@ package handler_test
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -109,6 +110,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -388,6 +390,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -411,6 +414,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -427,7 +431,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	assert.Contains(t, body, "</div></body></html>\n")
 
 	// Manual Timeout All Fresh Keys
-	_, _ = engine.GetConn(domainID).DelWildcard("DATA@@GET@@http://www.w3.org/standards/@@*/fresh")
+	_, _ = engine.GetConn(domainID).DelWildcard("DATA@@GET@@https://www.w3.org/standards/@@*/fresh")
 
 	// --- STALE
 
@@ -435,6 +439,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -584,6 +589,7 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -625,6 +631,7 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
+	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()

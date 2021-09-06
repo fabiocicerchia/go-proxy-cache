@@ -1,3 +1,5 @@
+// +build all functional
+
 package handler_test
 
 //                                                                         __

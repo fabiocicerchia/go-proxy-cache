@@ -104,7 +104,11 @@ func (rc RequestCall) serveCachedContent() int {
 }
 
 func (rc RequestCall) serveReverseProxyHTTP() {
-	proxyURL := rc.GetUpstreamURL()
+	proxyURL, err := rc.GetUpstreamURL()
+	if err != nil {
+		rc.GetLogger().Errorf("Cannot process Upstream URL: %s", err.Error())
+		return
+	}
 
 	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
