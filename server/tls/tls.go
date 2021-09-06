@@ -86,14 +86,6 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
 	}
 
-	// TODO: THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
-	if domainConfigTLS.Override != nil {
-		tlsConfig.CurvePreferences = domainConfigTLS.Override.CurvePreferences
-		tlsConfig.MinVersion = domainConfigTLS.Override.MinVersion
-		tlsConfig.MaxVersion = domainConfigTLS.Override.MaxVersion
-		tlsConfig.CipherSuites = domainConfigTLS.Override.CipherSuites
-	}
-
 	return tlsConfig, nil
 }
 
