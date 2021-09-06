@@ -79,7 +79,6 @@ func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall,
 	}
 
 	if rc.DomainConfig.Server.GZip {
-		rc.Response.InitGZipBuffer() // TODO! COVER
 	}
 
 	return rc, nil

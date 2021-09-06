@@ -12,7 +12,10 @@ package response_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"compress/gzip"
 	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -51,7 +54,7 @@ func initLogs() {
 func TestNewWriter(t *testing.T) {
 	initLogs()
 
-	var rwMock ResponseWriterMock
+	rwMock := ResponseWriterMock{}
 
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestNewWriter")
 
@@ -64,7 +67,7 @@ func TestNewWriter(t *testing.T) {
 func TestCatchStatusCode(t *testing.T) {
 	initLogs()
 
-	var rwMock ResponseWriterMock
+	rwMock := ResponseWriterMock{}
 
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchStatusCode")
 	lwr.WriteHeader(http.StatusCreated)
@@ -83,7 +86,7 @@ func TestCatchStatusCode(t *testing.T) {
 func TestCatchStatusCodeForced(t *testing.T) {
 	initLogs()
 
-	var rwMock ResponseWriterMock
+	rwMock := ResponseWriterMock{}
 
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchStatusCodeForced")
 	lwr.ForceWriteHeader(http.StatusCreated)
@@ -102,7 +105,7 @@ func TestCatchStatusCodeForced(t *testing.T) {
 func TestCatchContent(t *testing.T) {
 	initLogs()
 
-	var rwMock ResponseWriterMock
+	rwMock := ResponseWriterMock{}
 
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchContent")
 
@@ -130,7 +133,7 @@ func TestCatchContent(t *testing.T) {
 func TestCatchContentForced(t *testing.T) {
 	initLogs()
 
-	var rwMock ResponseWriterMock
+	rwMock := ResponseWriterMock{}
 
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchContentForced")
 
@@ -157,7 +160,7 @@ func TestCatchContentForced(t *testing.T) {
 func TestCatchContentThreeChunks(t *testing.T) {
 	initLogs()
 
-	var rwMock ResponseWriterMock
+	rwMock := ResponseWriterMock{}
 
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestCatchContentThreeChunks")
 
@@ -184,6 +187,101 @@ func TestCatchContentThreeChunks(t *testing.T) {
 	assert.Equal(t, 38, MockContent.Len())
 
 	tearDownResponse()
+}
+
+func TestSendNotImplemented(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestSendNotImplemented")
+	lwr.SendNotImplemented()
+
+	// checks lwr
+	assert.Equal(t, http.StatusNotImplemented, lwr.StatusCode)
+
+	// verify calls on rwMock
+	assert.Equal(t, http.StatusNotImplemented, MockStatusCode)
+
+	tearDownResponse()
+}
+
+func TestSendNotModifiedResponse(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestSendNotModifiedResponse")
+	lwr.SendNotModifiedResponse()
+
+	// checks lwr
+	// it sends only to the internal writer
+	assert.Equal(t, 0, lwr.StatusCode)
+	assert.Equal(t, response.DataChunks{}, lwr.Content)
+
+	// verify calls on rwMock
+	assert.Equal(t, http.StatusNotModified, MockStatusCode)
+	assert.Equal(t, response.DataChunks{[]byte{}}, MockContent)
+
+	tearDownResponse()
+}
+
+func TestGetETagWeak(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestGetETagWeak")
+
+	etag := lwr.GetETag(true)
+
+	assert.Regexp(t, regexp.MustCompile(`^\"W/[0-9]+-[0-9a-f]{40}\"$`), etag)
+}
+
+func TestGetETagNotWeak(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestGetETagNotWeak")
+
+	etag := lwr.GetETag(false)
+
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), etag)
+}
+
+func TestSetETagWeak(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{ResponseWriter: httptest.NewRecorder()}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestSetETagWeak")
+	lwr.SetETag(true)
+
+	assert.Regexp(t, regexp.MustCompile(`^\"W/[0-9]+-[0-9a-f]{40}\"$`), lwr.ResponseWriter.Header().Get("ETag"))
+}
+
+func TestSetETagNotWeak(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{ResponseWriter: httptest.NewRecorder()}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestSetETagNotWeak")
+	lwr.SetETag(false)
+
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), lwr.ResponseWriter.Header().Get("ETag"))
+}
+
+func TestInitGZipBuffer(t *testing.T) {
+	initLogs()
+
+	rwMock := ResponseWriterMock{ResponseWriter: httptest.NewRecorder()}
+
+	lwr := response.NewLoggedResponseWriter(rwMock, "TestInitGZipBuffer")
+	lwr.InitGZipBuffer()
+
+	assert.NotNil(t, lwr.GZipResponse)
+	assert.IsType(t, &gzip.Writer{}, lwr.GZipResponse)
 }
 
 func tearDownResponse() {

@@ -11,7 +11,7 @@
           "id": "config",
           "type": "promptString",
           "description": "Configuration File",
-          "default": "examples/config.no-docker.yml"
+          "default": "examples/config.yml"
       }
     ],
     "configurations": [

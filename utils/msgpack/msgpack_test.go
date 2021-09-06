@@ -14,8 +14,9 @@ package msgpack_test
 import (
 	"testing"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
 )
 
 func TestEncodeDecode(t *testing.T) {

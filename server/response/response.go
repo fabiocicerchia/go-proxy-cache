@@ -88,7 +88,7 @@ func (lwr *LoggedResponseWriter) ForceWriteHeader(statusCode int) {
 
 // SendNotImplemented - Send 501 Not Implemented.
 func (lwr *LoggedResponseWriter) SendNotImplemented() {
-	lwr.ForceWriteHeader(http.StatusNotImplemented) // TODO! COVER
+	lwr.ForceWriteHeader(http.StatusNotImplemented)
 }
 
 // Write - ResponseWriter's Write method decorator.
@@ -105,12 +105,12 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 
 	// gzip
 	if lwr.GZipResponse != nil {
-		if lwr.Header().Get(headers.ContentType) == "" {
+		if lwr.ResponseWriter.Header().Get(headers.ContentType) == "" {
 			// If no content type, apply sniffing algorithm to un-gzipped body.
-			lwr.Header().Set(headers.ContentType, http.DetectContentType(p)) // TODO! COVER
+			lwr.ResponseWriter.Header().Set(headers.ContentType, http.DetectContentType(p))
 		}
 
-		lwr.GZipResponse.Write(p) // TODO! COVER
+		lwr.GZipResponse.Write(p)
 	}
 
 	// etag
@@ -132,7 +132,7 @@ func (lwr *LoggedResponseWriter) ForceWrite(p []byte) (int, error) {
 func (lwr *LoggedResponseWriter) CopyHeaders(src http.Header) {
 	for k, vv := range src {
 		for _, v := range vv {
-			lwr.Header().Add(k, v)
+			lwr.ResponseWriter.Header().Add(k, v)
 		}
 	}
 }
@@ -148,7 +148,7 @@ func (lwr *LoggedResponseWriter) WriteBody(page string) bool {
 // SendResponse - Write the Response.
 func (lwr LoggedResponseWriter) SendResponse() {
 	// TODO: Get extra behaviour from ServeCachedResponse
-	lwr.ResponseWriter.WriteHeader(lwr.StatusCode) // TODO! COVER
+	lwr.ResponseWriter.WriteHeader(lwr.StatusCode)
 
 	// Generate GZip.
 	// lwr.GZipResponse.Close() will write some data even if no data has been written.
@@ -156,33 +156,32 @@ func (lwr LoggedResponseWriter) SendResponse() {
 	if lwr.GZipResponse != nil && lwr.StatusCode != http.StatusNotModified && lwr.StatusCode != http.StatusNoContent {
 		// In this way it'll write in a nested LoggedResponseWriter so it can
 		// catch the binary data.
-		lwr.GZipResponse.Close() // TODO! COVER
+		lwr.GZipResponse.Close()
 	}
 
 	// Serve content.
-	lwr.ResponseWriter.Write(lwr.Content.Bytes()) // TODO! COVER
+	lwr.ResponseWriter.Write(lwr.Content.Bytes())
 }
 
 // ETAG ------------------------------------------------------------------------
 
 // GetETag - Returns the ETag value.
 func (lwr LoggedResponseWriter) GetETag(weak bool) string {
-	etagWeakPrefix := "" // TODO! COVER
+	etagWeakPrefix := ""
 	if weak {
-		etagWeakPrefix = "W/" // TODO! COVER
+		etagWeakPrefix = "W/"
 	}
 
-	return fmt.Sprintf(`"%s%d-%s"`, etagWeakPrefix, lwr.hashLen, hex.EncodeToString(lwr.hash.Sum(nil))) // TODO! COVER
+	return fmt.Sprintf(`"%s%d-%s"`, etagWeakPrefix, lwr.hashLen, hex.EncodeToString(lwr.hash.Sum(nil)))
 }
 
 // SetETag - Set the ETag HTTP Header.
 func (lwr *LoggedResponseWriter) SetETag(weak bool) {
-	lwr.ResponseWriter.Header().Set(headers.ETag, lwr.GetETag(weak)) // TODO! COVER
+	lwr.ResponseWriter.Header().Set(headers.ETag, lwr.GetETag(weak))
 }
 
 // MustServeOriginalResponse - Check whether an ETag could be added.
 func (lwr LoggedResponseWriter) MustServeOriginalResponse(req *http.Request) bool {
-	// TODO! COVER
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - no hash has been computed (maybe no Write has been invoked): %v", lwr.hash == nil)
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - there's already an ETag from upstream: %v (%s)", lwr.ResponseWriter.Header().Get(headers.ETag) != "", lwr.ResponseWriter.Header().Get(headers.ETag))
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is not successful (2xx): %v (%d)", (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices), lwr.StatusCode)
@@ -198,12 +197,12 @@ func (lwr LoggedResponseWriter) MustServeOriginalResponse(req *http.Request) boo
 
 // SendNotModifiedResponse - Write the 304 Response.
 func (lwr LoggedResponseWriter) SendNotModifiedResponse() {
-	lwr.ResponseWriter.WriteHeader(http.StatusNotModified) // TODO! COVER
-	lwr.ResponseWriter.Write(nil)                          // TODO! COVER
+	lwr.ResponseWriter.WriteHeader(http.StatusNotModified)
+	lwr.ResponseWriter.Write(nil)
 }
 
 // GZIP ------------------------------------------------------------------------
-func (lwr LoggedResponseWriter) InitGZipBuffer() {
-	lwrGzip := &LoggedResponseWriter{ResponseWriter: lwr.ResponseWriter} // TODO! COVER
-	lwr.GZipResponse = gzip.NewWriter(lwrGzip)                           // TODO! COVER
+func (lwr *LoggedResponseWriter) InitGZipBuffer() {
+	lwrGzip := &LoggedResponseWriter{ResponseWriter: lwr.ResponseWriter}
+	lwr.GZipResponse = gzip.NewWriter(lwrGzip)
 }

@@ -12,8 +12,9 @@ package handler
 import (
 	"net/http"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/yhat/wsutil"
+
+	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.

@@ -107,8 +107,7 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 	// timeout middleware
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
-	// TODO! CONVERT FOR DOMAIN CONFIG
-	timeout := domainConfig.Server.Timeout
+	timeout := config.Config.Server.Timeout
 	if enableTimeoutHandler && timeout.Handler > 0 {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}

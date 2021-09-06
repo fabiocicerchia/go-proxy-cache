@@ -20,9 +20,10 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetResponseWithETagWithHTTP2(t *testing.T) {

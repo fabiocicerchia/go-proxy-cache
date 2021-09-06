@@ -16,9 +16,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	"github.com/stretchr/testify/assert"
 )
 
 // --- GetEnv

@@ -15,7 +15,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"

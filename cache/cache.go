@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
-	log "github.com/sirupsen/logrus"
 )
 
 var errMissingRedisConnection = errors.New("missing redis connection")

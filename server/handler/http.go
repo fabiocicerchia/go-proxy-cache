@@ -124,12 +124,12 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 
 	serveNotModified := rc.GetResponseWithETag(proxy)
 	if serveNotModified {
-		rc.Response.SendNotModifiedResponse() // TODO! COVER
+		rc.Response.SendNotModifiedResponse()
 		return
 	}
 
 	if rc.DomainConfig.Server.GZip {
-		WrapResponseForGZip(rc.Response, &rc.Request) // TODO! COVER
+		WrapResponseForGZip(rc.Response, &rc.Request)
 	}
 
 	rc.Response.SendResponse()
