@@ -18,13 +18,15 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEndToEndCallPurgeDoNothing(t *testing.T) {
@@ -55,7 +57,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	// --- PURGE
 
@@ -66,7 +68,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(config.Config))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
@@ -78,8 +80,6 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	body := rr.Body.String()
 
 	assert.Equal(t, body, "KO")
-
-	time.Sleep(1 * time.Second)
 }
 
 func TestEndToEndCallPurge(t *testing.T) {
@@ -111,7 +111,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	// --- MISS
 
@@ -123,7 +123,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(config.Config))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
@@ -150,7 +150,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
-	h = http.HandlerFunc(handler.HandleRequest(config.Config))
+	h = http.HandlerFunc(handler.HandleRequest)
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -180,8 +180,6 @@ func TestEndToEndCallPurge(t *testing.T) {
 	body = rr.Body.String()
 
 	assert.Equal(t, "OK", body)
-
-	time.Sleep(1 * time.Second)
 
 	// --- MISS
 

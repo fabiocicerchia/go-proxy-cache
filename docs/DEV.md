@@ -20,7 +20,7 @@ $ docker-compose up
 
 ## Test
 
-**NOTE:** If you use docker please use `config.yml` otherwise `config.no-docker.yml`. The port will be different from host and container, this will address the issue.
+**NOTE:** In order to have a fully working environment you need to put in the host file `127.0.0.1 nginx`.
 
 ```console
 $ make test

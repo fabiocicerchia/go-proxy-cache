@@ -3,6 +3,7 @@
   "reporters": ["html", "markdown"],
   "ignore": [
     "**/*_test.go",
+    "*.md",
     "**/*.md"
   ]
 }

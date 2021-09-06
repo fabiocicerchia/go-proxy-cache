@@ -31,12 +31,13 @@ var ctx = context.Background()
 type RedisClient struct {
 	*goredislib.Client
 	*redsync.Redsync
-	Name  string
-	Mutex map[string]*redsync.Mutex
+	Name   string
+	Mutex  map[string]*redsync.Mutex
+	logger *log.Logger
 }
 
 // Connect - Connects to DB.
-func Connect(connName string, config config.Cache) *RedisClient {
+func Connect(connName string, config config.Cache, logger *log.Logger) *RedisClient {
 	client := goredislib.NewClient(&goredislib.Options{
 		Addr:     config.Host + ":" + config.Port,
 		Password: config.Password,
@@ -50,6 +51,7 @@ func Connect(connName string, config config.Cache) *RedisClient {
 		Client:  client,
 		Redsync: rs,
 		Mutex:   make(map[string]*redsync.Mutex),
+		logger:  logger,
 	}
 
 	return rdb
@@ -61,7 +63,7 @@ func (rdb *RedisClient) Close() error {
 }
 
 func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
-	mutexname := fmt.Sprintf("mutex-%s", key)
+	mutexname := fmt.Sprintf("mutex-%s-%s", rdb.Name, key)
 	if _, ok := rdb.Mutex[mutexname]; !ok {
 		rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
 	}
@@ -71,7 +73,7 @@ func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
 
 func (rdb *RedisClient) lock(key string) error {
 	if err := rdb.getMutex(key).Lock(); err != nil {
-		log.Errorf("Lock Error on %s: %s", key, err)
+		rdb.logger.Errorf("Lock Error on %s: %s", key, err)
 		return err
 	}
 
@@ -80,7 +82,7 @@ func (rdb *RedisClient) lock(key string) error {
 
 func (rdb *RedisClient) unlock(key string) error {
 	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
-		log.Errorf("Unlock Error on %s: %s", key, err)
+		rdb.logger.Errorf("Unlock Error on %s: %s", key, err)
 		return err
 	}
 

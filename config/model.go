@@ -55,7 +55,7 @@ type Configuration struct {
 	CircuitBreaker circuitbreaker.CircuitBreaker `yaml:"circuit_breaker"`
 	Domains        Domains                       `yaml:"domains"`
 	Log            Log                           `yaml:"log"`
-	domainsCache   map[string]*Configuration
+	domainsCache   map[string]Configuration
 }
 
 // Domains - Overrides per domain.

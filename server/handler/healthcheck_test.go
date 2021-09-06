@@ -52,14 +52,22 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 			Interval:    time.Duration(1),
 			Timeout:     time.Duration(1), // clears state immediately
 		},
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "testing.local",
+				Scheme:    "https",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_80", "localhost:40080")},
+			},
+		},
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 	engine.GetConn(domainID).Close()
 
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
+	req.Host = "testing.local"
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -72,7 +80,7 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	assert.Contains(t, rr.Body.String(), `REDIS KO`)
 	assert.NotContains(t, rr.Body.String(), `REDIS OK`)
 
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 }
 
 func TestHealthcheckWithRedis(t *testing.T) {
@@ -90,17 +98,25 @@ func TestHealthcheckWithRedis(t *testing.T) {
 			Interval:    time.Duration(1),
 			Timeout:     time.Duration(1), // clears state immediately
 		},
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "testing.local",
+				Scheme:    "http",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_80", "localhost:40080")},
+			},
+		},
 	}
 
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
+
 	req, err := http.NewRequest("GET", "/healthcheck", nil)
+	req.Host = "testing.local"
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
 	h := http.HandlerFunc(handler.HandleHealthcheck(config.Config))
-
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
 
 	h.ServeHTTP(rr, req)
 

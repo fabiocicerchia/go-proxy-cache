@@ -1,6 +1,4 @@
-// +build all unit
-
-package msgpack_test
+package response
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -12,22 +10,23 @@ package msgpack_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
-
-	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
-func TestEncodeDecode(t *testing.T) {
-	str := []byte("test string")
+type DataChunks [][]byte
 
-	encoded, err := msgpack.Encode(str)
-	assert.Nil(t, err)
+// Bytes - Returns flat slice of bytes.
+func (dc DataChunks) Bytes() []byte {
+	bytes := []byte{}
 
-	var decoded []byte
-	err = msgpack.Decode(encoded, &decoded)
-	assert.Nil(t, err)
+	for _, c := range dc {
+		bytes = append(bytes, c...)
+	}
 
-	assert.Equal(t, str, decoded)
+	return bytes
+}
+
+// Len - Returns total length.
+func (dc DataChunks) Len() int {
+	return slice.LenSliceBytes(([][]byte)(dc))
 }

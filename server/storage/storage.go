@@ -22,19 +22,20 @@ import (
 
 // RequestCallDTO - DTO object containing request and response.
 type RequestCallDTO struct {
+	ReqID       string
 	Response    response.LoggedResponseWriter
 	Request     http.Request
 	CacheObject cache.Object
 }
 
 // RetrieveCachedContent - Retrives the cached response.
-func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
+func RetrieveCachedContent(rc RequestCallDTO, logger *log.Entry) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
 		if err == cache.ErrEmptyValue {
-			log.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
+			logger.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		} else {
-			log.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
+			logger.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		}
 
 		return cache.URIObj{}, err
@@ -50,8 +51,9 @@ func RetrieveCachedContent(rc RequestCallDTO) (cache.URIObj, error) {
 
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
-	ttl := ttl.GetTTL(rc.Response.Header(), domainConfigCache.TTL)
-	done, err := rc.CacheObject.StoreFullPage(ttl)
+	// Use the static rc.CacheObject.CurrentURIObject.ResponseHeaders to avoid data race
+	currentTTL := ttl.GetTTL(rc.CacheObject.CurrentURIObject.ResponseHeaders, domainConfigCache.TTL)
+	done, err := rc.CacheObject.StoreFullPage(currentTTL)
 
 	return done, err
 }

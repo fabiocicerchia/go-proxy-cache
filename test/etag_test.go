@@ -25,6 +25,10 @@ func TestETagValidResponse(t *testing.T) {
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", "http://testing.local:50080/", nil)
+	// Need to fetch fresh content to verify the ETag.
+	req.Header = http.Header{
+		"X-Go-Proxy-Cache-Force-Fresh": []string{"1"},
+	}
 	assert.Nil(t, err)
 	req.Host = "www.w3.org"
 	res, err := client.Do(req)
@@ -40,6 +44,7 @@ func TestETagValidResponse(t *testing.T) {
 	res.Body.Close()
 
 	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
+	// this is the real ETag from w3.org
 	assert.Regexp(t, regexp.MustCompile(`^\"[0-9a-f]{4}-[0-9a-f]{13};[0-9a-f]{2}-[0-9a-f]{13}-gzip\"$`), res.Header.Get("ETag"))
 
 	assert.Equal(t, "HTTP/1.1", res.Proto)
@@ -50,6 +55,8 @@ func TestETagValidResponse(t *testing.T) {
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, string(body), "</body>\n</html>\n")
+
+	tearDownETag()
 }
 
 func TestETagIfModifiedSinceWhenChanged(t *testing.T) {
@@ -208,4 +215,11 @@ func TestETagIfMatchAsMatch(t *testing.T) {
 
 func TestETagIfMatchAsNotMatch(t *testing.T) {
 	t.Skip("Need to be implemented.")
+}
+
+func tearDownETag() {
+	req, _ := http.NewRequest("PURGE", "http://testing.local:50080/", nil)
+	req.Host = "www.w3.org"
+	client := &http.Client{}
+	_, _ = client.Do(req)
 }

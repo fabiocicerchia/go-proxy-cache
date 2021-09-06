@@ -14,8 +14,9 @@ package base64_test
 import (
 	"testing"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
 )
 
 func TestEncodeDecode(t *testing.T) {

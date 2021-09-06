@@ -16,8 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
 func TestGetTTLFromCacheControlWithMaxage(t *testing.T) {

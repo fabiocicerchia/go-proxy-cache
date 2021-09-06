@@ -1,4 +1,4 @@
-package server
+package response
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -10,21 +10,12 @@ package server
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/http"
-
-	"github.com/go-http-utils/etag"
-	"github.com/yhat/wsutil"
+	log "github.com/sirupsen/logrus"
 )
 
-// ConditionalETag - Add HTTP header ETag only on HTTP(S) requests.
-func ConditionalETag(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
-		// ETag wrapper doesn't work well with WebSocket and HTTP/2.
-		if !wsutil.IsWebSocketRequest(req) && req.ProtoMajor != 2 {
-			etagHandler := etag.Handler(h, false)
-			etagHandler.ServeHTTP(res, req)
-		} else {
-			h.ServeHTTP(res, req)
-		}
+// LoggedResponseWriter - Decorator for http.ResponseWriter.
+func (lwr LoggedResponseWriter) GetLogger() *log.Entry {
+	return log.WithFields(log.Fields{
+		"ReqID": lwr.ReqID,
 	})
 }

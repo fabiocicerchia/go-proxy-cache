@@ -16,8 +16,7 @@ import (
 	"os"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
@@ -41,9 +40,9 @@ var CacheStatusLabel = map[int]string{
 	CacheStatusStale: "STALE",
 }
 
-var enableStoringResponse = true
-var enableCachedResponse = true
-var enableLoggingRequest = true
+const enableStoringResponse = true
+const enableCachedResponse = true
+const enableLoggingRequest = true
 
 // DefaultTransportMaxIdleConns - Default value used for http.Transport.MaxIdleConns.
 var DefaultTransportMaxIdleConns int = 1000
@@ -61,28 +60,32 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 func (rc RequestCall) HandleHTTPRequestAndProxy() {
 	cached := CacheStatusMiss
 
-	if enableCachedResponse {
+	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
+	if forceFresh {
+		rc.GetLogger().Warningf("Forcing Fresh Content on %v", rc.Request.URL.String())
+	}
+
+	if enableCachedResponse && !forceFresh {
 		cached = rc.serveCachedContent()
 	}
 
 	if cached == CacheStatusMiss {
+		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 		rc.serveReverseProxyHTTP()
 	}
 
 	if enableLoggingRequest {
 		// HIT and STALE considered the same.
-		logger.LogRequest(*rc.Request, *rc.Response, cached != CacheStatusMiss, CacheStatusLabel[cached])
+		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, cached != CacheStatusMiss, CacheStatusLabel[cached])
 	}
 }
 
 func (rc RequestCall) serveCachedContent() int {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	uriObj, err := storage.RetrieveCachedContent(rcDTO)
+	uriObj, err := storage.RetrieveCachedContent(rcDTO, rc.GetLogger())
 	if err != nil {
-		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
-
-		log.Warnf("Error on serving cached content: %s", err)
+		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
 
 		return CacheStatusMiss
 	}
@@ -103,9 +106,9 @@ func (rc RequestCall) serveCachedContent() int {
 func (rc RequestCall) serveReverseProxyHTTP() {
 	proxyURL := rc.GetUpstreamURL()
 
-	log.Debugf("ProxyURL: %s", proxyURL.String())
-	log.Debugf("Req URL: %s", rc.Request.URL.String())
-	log.Debugf("Req Host: %s", rc.Request.Host)
+	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
+	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
+	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()
@@ -119,8 +122,17 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 		gpcDirector(req)
 	}
 
-	// Forward Original Request
-	proxy.ServeHTTP(rc.Response, rc.Request)
+	serveNotModified := rc.GetResponseWithETag(proxy)
+	if serveNotModified {
+		rc.Response.SendNotModifiedResponse()
+		return
+	}
+
+	if rc.DomainConfig.Server.GZip {
+		WrapResponseForGZip(rc.Response, &rc.Request)
+	}
+
+	rc.Response.SendResponse()
 
 	rc.storeResponse()
 }
@@ -130,26 +142,27 @@ func (rc RequestCall) storeResponse() {
 		return
 	}
 
+	rcDTO := ConvertToRequestCallDTO(rc)
+
 	// Make it sync for testing
 	// TODO: Make it customizable?
 	if os.Getenv("GPC_SYNC_STORING") == "1" {
-		log.Debugf("Sync Store Response: %s", rc.Request.URL.String())
+		rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
 
-		rc.doStoreResponse()
+		doStoreResponse(rcDTO, rc.DomainConfig.Cache)
 		return
 	}
 
-	log.Debugf("Async Store Response: %s", rc.Request.URL.String())
+	rc.GetLogger().Debugf("Async Store Response: %s", rc.Request.URL.String())
+	// go rc.doStoreResponse()
 	queue.Dispatcher.Do(func() {
-		rc.doStoreResponse()
+		doStoreResponse(rcDTO, rc.DomainConfig.Cache)
 	})
 }
 
-func (rc RequestCall) doStoreResponse() {
-	rcDTO := ConvertToRequestCallDTO(rc)
-
-	stored, err := storage.StoreGeneratedPage(rcDTO, rc.DomainConfig.Cache)
+func doStoreResponse(rcDTO storage.RequestCallDTO, configCache config.Cache) {
+	stored, err := storage.StoreGeneratedPage(rcDTO, configCache)
 	if !stored || err != nil {
-		logger.Log(*rc.Request, fmt.Sprintf("Not Stored: %v", err))
+		logger.Log(rcDTO.Request, rcDTO.ReqID, fmt.Sprintf("Not Stored: %v", err))
 	}
 }

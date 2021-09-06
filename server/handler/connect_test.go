@@ -18,13 +18,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEndToEndCallConnect(t *testing.T) {
@@ -56,7 +58,7 @@ func TestEndToEndCallConnect(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("CONNECT", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
@@ -66,7 +68,7 @@ func TestEndToEndCallConnect(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(config.Config))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 

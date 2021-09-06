@@ -20,11 +20,11 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
-	log "github.com/sirupsen/logrus"
 )
 
 var errMissingRedisConnection = errors.New("missing redis connection")
@@ -50,6 +50,7 @@ const FreshSuffix = "/fresh"
 
 // Object - Contains cache settings and current cached/cacheable object.
 type Object struct {
+	ReqID            string
 	AllowedStatuses  []int
 	AllowedMethods   []string
 	CurrentURIObject URIObj
@@ -135,7 +136,9 @@ func (c Object) handleMetadata(domainID string, targetURL url.URL, expiration ti
 // StoreFullPage - Stores the whole page response in cache.
 func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
-		log.Debugf(
+		log.WithFields(log.Fields{
+			"ReqID": c.ReqID,
+		}).Debugf(
 			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v",
 			c.IsStatusAllowed(),
 			c.IsMethodAllowed(),
@@ -192,7 +195,9 @@ func (c *Object) RetrieveFullPage() error {
 	}
 
 	key := StorageKey(c.CurrentURIObject, meta)
-	log.Debugf("StorageKey: %s", key)
+	log.WithFields(log.Fields{
+		"ReqID": c.ReqID,
+	}).Debugf("StorageKey: %s", key)
 
 	var stale bool = false
 	encoded, err := conn.Get(key + FreshSuffix)

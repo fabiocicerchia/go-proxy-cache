@@ -25,7 +25,7 @@ import (
 )
 
 func TestProxyCallOneItemInLB(t *testing.T) {
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "developer.mozilla.org",
@@ -35,7 +35,7 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 		},
 	}
 
-	reqMock := &http.Request{
+	reqMock := http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
 		RemoteAddr: "127.0.0.1",
@@ -45,12 +45,12 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	domainID := cfg.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: &config.Config}
+	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
 	proxyURL := r.GetUpstreamURL()
-	r.ProxyDirector(r.Request)
+	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -61,7 +61,7 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 }
 
 func TestProxyCallOneItemWithPortInLB(t *testing.T) {
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "developer.mozilla.org",
@@ -71,7 +71,7 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 		},
 	}
 
-	reqMock := &http.Request{
+	reqMock := http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
 		RemoteAddr: "127.0.0.1",
@@ -81,12 +81,12 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	domainID := cfg.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: &config.Config}
+	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
 	proxyURL := r.GetUpstreamURL()
-	r.ProxyDirector(r.Request)
+	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -97,7 +97,7 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 }
 
 func TestProxyCallThreeItemsInLB(t *testing.T) {
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "developer.mozilla.org",
@@ -107,12 +107,12 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	domainID := cfg.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
 	// --- FIRST ROUND
 
-	reqMock := &http.Request{
+	reqMock := http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
 		RemoteAddr: "127.0.0.1",
@@ -122,9 +122,9 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: &config.Config}
+	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
 	proxyURL := r.GetUpstreamURL()
-	r.ProxyDirector(r.Request)
+	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -135,7 +135,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 
 	// --- SECOND ROUND
 
-	reqMock = &http.Request{
+	reqMock = http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
 		RemoteAddr: "127.0.0.1",
@@ -145,9 +145,9 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	r = handler.RequestCall{Request: reqMock, DomainConfig: &config.Config}
+	r = handler.RequestCall{Request: reqMock, DomainConfig: cfg}
 	proxyURL = r.GetUpstreamURL()
-	r.ProxyDirector(r.Request)
+	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -158,7 +158,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 }
 
 func TestXForwardedFor(t *testing.T) {
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "developer.mozilla.org",
@@ -168,7 +168,7 @@ func TestXForwardedFor(t *testing.T) {
 		},
 	}
 
-	reqMock := &http.Request{
+	reqMock := http.Request{
 		Proto:      "HTTPS",
 		Method:     "POST",
 		RemoteAddr: "127.0.0.1",
@@ -180,12 +180,12 @@ func TestXForwardedFor(t *testing.T) {
 		TLS: &tls.ConnectionState{}, // mock a fake https
 	}
 
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	domainID := cfg.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: &config.Config}
+	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
 	_ = r.GetUpstreamURL()
-	r.ProxyDirector(r.Request)
+	r.ProxyDirector(&r.Request)
 
 	assert.Equal(t, "https", r.Request.Header.Get("X-Forwarded-Proto"))
 	assert.Equal(t, "192.168.1.1, 127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))

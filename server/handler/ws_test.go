@@ -18,13 +18,15 @@ import (
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
@@ -56,7 +58,7 @@ func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	// --- WEBSOCKET
 
@@ -71,7 +73,7 @@ func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(config.Config))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
@@ -114,7 +116,7 @@ func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
-	engine.InitConn(domainID, config.Config.Cache)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	// --- WEBSOCKET
 
@@ -130,7 +132,7 @@ func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(config.Config))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	_, err = engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)

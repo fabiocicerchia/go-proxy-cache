@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -34,9 +35,28 @@ var SchemeWSS string = "wss"
 
 // RequestCall - Main object containing request and response.
 type RequestCall struct {
+	ReqID        string
 	Response     *response.LoggedResponseWriter
-	Request      *http.Request
-	DomainConfig *config.Configuration
+	Request      http.Request
+	DomainConfig config.Configuration
+}
+
+// GetLogger - Get logger instance with RequestID.
+func (rc RequestCall) GetLogger() *log.Entry {
+	return log.WithFields(log.Fields{
+		"ReqID": rc.ReqID,
+	})
+}
+
+// IsLegitRequest - Check whether a request is bound on the right Host and Port.
+func (rc RequestCall) IsLegitRequest(listeningPort string) bool {
+	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
+	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
+
+	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
+	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
+
+	return hostMatch && legitPort
 }
 
 // GetRequestURL - Returns the valid Request URL (with Scheme and Host).
@@ -76,12 +96,7 @@ func (rc RequestCall) GetScheme() string {
 	return SchemeHTTP
 }
 
-// GetConfiguredScheme - Returns configured request scheme (could be wildcard).
-func (rc RequestCall) GetConfiguredScheme() string {
-	return rc.DomainConfig.Server.Upstream.Scheme
-}
-
 // IsWebSocket - Checks whether a request is a websocket.
 func (rc RequestCall) IsWebSocket() bool {
-	return wsutil.IsWebSocketRequest(rc.Request)
+	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
 }

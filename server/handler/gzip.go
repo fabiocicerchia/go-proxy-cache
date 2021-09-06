@@ -1,6 +1,4 @@
-// +build all unit
-
-package msgpack_test
+package handler
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -12,22 +10,19 @@ package msgpack_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"testing"
+	"net/http"
+	"strings"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/go-http-utils/headers"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
+	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
-func TestEncodeDecode(t *testing.T) {
-	str := []byte("test string")
+// HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
+func WrapResponseForGZip(res *response.LoggedResponseWriter, req *http.Request) {
+	if !strings.Contains(req.Header.Get(headers.AcceptEncoding), "gzip") {
+		return
+	}
 
-	encoded, err := msgpack.Encode(str)
-	assert.Nil(t, err)
-
-	var decoded []byte
-	err = msgpack.Decode(encoded, &decoded)
-	assert.Nil(t, err)
-
-	assert.Equal(t, str, decoded)
+	res.Header().Set(headers.ContentEncoding, "gzip")
 }

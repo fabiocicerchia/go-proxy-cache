@@ -12,13 +12,13 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"fmt"
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -57,25 +57,25 @@ func getCommonConfig() config.Configuration {
 // --- HTTP
 
 func TestHTTPEndToEndCallRedirect(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 1
-	cfg.Server.Upstream.Host = "testing.local"
-	cfg.Server.Upstream.Scheme = "http"
-	cfg.Server.Upstream.HTTP2HTTPS = true
-	cfg.Server.Upstream.RedirectStatusCode = 301
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 1
+	config.Config.Server.Upstream.Host = "testing.local"
+	config.Config.Server.Upstream.Scheme = "http"
+	config.Config.Server.Upstream.HTTP2HTTPS = true
+	config.Config.Server.Upstream.RedirectStatusCode = 301
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -87,32 +87,32 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 }
 
 func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 2
-	cfg.Domains = make(config.Domains)
-	conf := cfg
-	cfg.Server.Upstream = config.Upstream{
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 2
+	config.Config.Domains = make(config.Domains)
+	conf := config.Config
+	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "https",
 		Endpoints: []string{"www.w3.org"},
 	}
-	cfg.Domains["www.w3.org"] = conf
+	config.Config.Domains["www.w3.org"] = conf
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -130,30 +130,30 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 }
 
 func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 3
-	cfg.Server.Upstream = config.Upstream{
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 3
+	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "http",
 		Endpoints: []string{"www.w3.org"},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, err := engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -171,7 +171,7 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 }
 
 func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
@@ -194,25 +194,23 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 		},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
-
-	time.Sleep(1 * time.Second)
 
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -229,9 +227,9 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	// --- HIT
 
 	req, err = http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -250,8 +248,111 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	tearDownHTTPFunctional()
 }
 
+func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "www.w3.org",
+				Scheme:    "http",
+				Endpoints: []string{"www.w3.org"},
+			},
+		},
+		Cache: config.Cache{
+			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
+			Port:            "6379",
+			DB:              4,
+			AllowedStatuses: []int{200, 301, 302},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5,              // 1 out of 2 fails, or more
+			Interval:    time.Duration(1), // clears counts immediately
+			Timeout:     time.Duration(1), // clears state immediately
+		},
+	}
+
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
+
+	_, _ = engine.GetConn(domainID).PurgeAll()
+
+	// --- MISS
+
+	req, err := http.NewRequest("GET", "/", nil)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+	assert.Nil(t, err)
+
+	rr := httptest.NewRecorder()
+	h := http.HandlerFunc(handler.HandleRequest)
+
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body := rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
+
+	// --- HIT
+
+	req, err = http.NewRequest("GET", "/", nil)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "HIT", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
+
+	// --- BYPASS
+
+	req, err = http.NewRequest("GET", "/", nil)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+	// Need to fetch fresh content.
+	req.Header = http.Header{
+		"X-Go-Proxy-Cache-Force-Fresh": []string{"1"},
+	}
+	assert.Nil(t, err)
+
+	rr = httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+
+	body = rr.Body.String()
+
+	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
+	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
+	assert.Contains(t, body, "</body>\n</html>\n")
+
+	tearDownHTTPFunctional()
+}
+
 func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
@@ -274,26 +375,23 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 		},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
-
-	time.Sleep(1 * time.Second)
 
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/standards/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
-	fmt.Println(req.URL)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -310,9 +408,9 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	// --- HIT
 
 	req, err = http.NewRequest("GET", "/standards/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -328,18 +426,15 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	assert.Contains(t, body, `<title>Standards - W3C</title>`)
 	assert.Contains(t, body, "</div></body></html>\n")
 
-	time.Sleep(10 * time.Second)
-
 	// Manual Timeout All Fresh Keys
 	_, _ = engine.GetConn(domainID).DelWildcard("DATA@@GET@@http://www.w3.org/standards/@@*/fresh")
-	time.Sleep(10 * time.Second)
 
 	// --- STALE
 
 	req, err = http.NewRequest("GET", "/standards/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr = httptest.NewRecorder()
@@ -359,7 +454,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 }
 
 func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:               "testing.local",
@@ -370,19 +465,19 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 			},
 		},
 	}
-	cfg.Cache.DB = 6
+	config.Config.Cache.DB = 6
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -394,21 +489,21 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 }
 
 func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 7
-	cfg.Domains = make(config.Domains)
-	conf := cfg
-	cfg.Server.Upstream = config.Upstream{
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 7
+	config.Config.Domains = make(config.Domains)
+	conf := config.Config
+	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "http",
 		Endpoints: []string{"www.w3.org"},
 	}
-	cfg.Domains["www.w3.org"] = conf
+	config.Config.Domains["www.w3.org"] = conf
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
@@ -419,7 +514,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -431,31 +526,31 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 // --- HTTPS
 
 func TestHTTPSEndToEndCallRedirect(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 8
-	cfg.Server.Upstream.Host = "testing.local"
-	cfg.Server.Upstream.Scheme = "http"
-	cfg.Server.Upstream.HTTP2HTTPS = true
-	cfg.Server.Upstream.RedirectStatusCode = 301
-	cfg.Server.Upstream.Endpoints = []string{utils.GetEnv("NGINX_HOST_443", "localhost:40443")}
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 8
+	config.Config.Server.Upstream.Host = "testing.local"
+	config.Config.Server.Upstream.Scheme = "http"
+	config.Config.Server.Upstream.HTTP2HTTPS = true
+	config.Config.Server.Upstream.RedirectStatusCode = 301
+	config.Config.Server.Upstream.Endpoints = []string{utils.GetEnv("NGINX_HOST_443", "localhost:40443")}
 	// This is because there's no client sending their certificate, so the handshake will be broken with a
 	// `remote error: tls: bad certificate`.
 	// More details on: https://www.prakharsrivastav.com/posts/from-http-to-https-using-go/
-	cfg.Server.Upstream.InsecureBridge = true
+	config.Config.Server.Upstream.InsecureBridge = true
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -467,32 +562,32 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 }
 
 func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 9
-	cfg.Domains = make(config.Domains)
-	conf := cfg
-	cfg.Server.Upstream = config.Upstream{
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 9
+	config.Config.Domains = make(config.Domains)
+	conf := config.Config
+	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "https",
 		Endpoints: []string{"www.w3.org"},
 	}
-	cfg.Domains["www.w3.org"] = conf
+	config.Config.Domains["www.w3.org"] = conf
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -510,30 +605,30 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 }
 
 func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 10
-	cfg.Server.Upstream = config.Upstream{
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 10
+	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "https",
 		Endpoints: []string{"www.w3.org"},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, err := engine.GetConn(domainID).PurgeAll()
 	assert.Nil(t, err)
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -551,7 +646,7 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 }
 
 func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
-	cfg := config.Configuration{
+	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
@@ -574,24 +669,24 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 		},
 	}
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
 
 	// --- MISS
 
 	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 
@@ -605,14 +700,12 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, body, "</body>\n</html>\n")
 
-	time.Sleep(1 * time.Second)
-
 	// --- HIT
 
 	req, err = http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = cfg.Server.Upstream.Scheme
-	req.URL.Host = cfg.Server.Upstream.Host
-	req.Host = cfg.Server.Upstream.Host
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
 	req.TLS = &tls.ConnectionState{} // mock a fake https
 	assert.Nil(t, err)
 
@@ -633,21 +726,21 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 }
 
 func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
-	cfg := getCommonConfig()
-	cfg.Cache.DB = 12
-	cfg.Domains = make(config.Domains)
-	conf := cfg
-	cfg.Server.Upstream = config.Upstream{
+	config.Config = getCommonConfig()
+	config.Config.Cache.DB = 12
+	config.Config.Domains = make(config.Domains)
+	conf := config.Config
+	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
 		Scheme:    "https",
 		Endpoints: []string{"www.w3.org"},
 	}
-	cfg.Domains["www.w3.org"] = conf
+	config.Config.Domains["www.w3.org"] = conf
 
-	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints)
-	circuit_breaker.InitCircuitBreaker(domainID, cfg.CircuitBreaker)
-	engine.InitConn(domainID, cfg.Cache)
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
 
@@ -658,7 +751,7 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest(cfg))
+	h := http.HandlerFunc(handler.HandleRequest)
 
 	h.ServeHTTP(rr, req)
 

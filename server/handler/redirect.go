@@ -11,8 +11,6 @@ package handler
 
 import (
 	"net/http"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // RedirectToHTTPS - Redirects from HTTP to HTTPS.
@@ -20,7 +18,8 @@ func (rc RequestCall) RedirectToHTTPS() {
 	targetURL := rc.GetRequestURL()
 	targetURL.Scheme = SchemeHTTPS
 
-	log.Infof("Redirect to: %s", targetURL.String())
+	rc.GetLogger().Infof("Redirect to: %s", targetURL.String())
 
-	http.Redirect(rc.Response, rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	// Just write to client, no need to cache this response.
+	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }

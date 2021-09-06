@@ -20,10 +20,15 @@ import (
 // HandleHealthcheck - Returns healthcheck status.
 func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		rc := initRequestParams(res, req, cfg)
+		rc, err := initRequestParams(res, req)
+		if err != nil {
+			rc.GetLogger().Errorf(err.Error())
+			return
+		}
+
 		domainID := rc.DomainConfig.Server.Upstream.GetDomainID()
 
-		lwr := response.NewLoggedResponseWriter(res)
+		lwr := response.NewLoggedResponseWriter(res, rc.ReqID)
 
 		lwr.WriteHeader(http.StatusOK)
 		_ = lwr.WriteBody("HTTP OK\n")

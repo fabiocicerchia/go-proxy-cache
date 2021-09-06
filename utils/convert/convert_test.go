@@ -15,8 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fabiocicerchia/go-proxy-cache/utils/convert"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils/convert"
 )
 
 // --- ToDuration

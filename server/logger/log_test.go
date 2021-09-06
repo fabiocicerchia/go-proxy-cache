@@ -49,9 +49,9 @@ func TestLogMessage(t *testing.T) {
 		},
 	}
 
-	logger.Log(reqMock, "message")
+	logger.Log(reqMock, "TestLogMessage", "message")
 
-	expectedOut := `time=" " level=info msg="HTTPS POST /path/to/file - message"` + "\n"
+	expectedOut := `time=" " level=info msg="HTTPS POST /path/to/file - message" ReqID=TestLogMessage` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -88,9 +88,9 @@ func TestLogRequest(t *testing.T) {
 		},
 	}
 
-	logger.LogRequest(reqMock, lwrMock, true, "HIT")
+	logger.LogRequest(reqMock, lwrMock, "TestLogRequest", true, "HIT")
 
-	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT"` + "\n"
+	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT" ReqID=TestLogRequest` + "\n"
 
 	assert.Equal(t, expectedOut, buf.String())
 
@@ -106,7 +106,7 @@ func TestLogSetup(t *testing.T) {
 		log.SetOutput(os.Stderr)
 	}()
 
-	config.Config = config.Configuration{
+	cfg := config.Configuration{
 		Server: config.Server{
 			Port: config.Port{
 				HTTP:  "80",
@@ -118,16 +118,54 @@ func TestLogSetup(t *testing.T) {
 				Endpoints: []string{"1.2.3.4", "8.8.8.8"},
 			},
 		},
+	}
+	config.Config = config.Configuration{
 		Log: config.Log{
 			TimeFormat: "2006/01/02 15:04:05",
 			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status $cached_status_label`,
 		},
 	}
 
-	logger.LogSetup(config.Config.Server)
+	logger.LogSetup(cfg.Server)
 
-	expectedOut := `time=" " level=info msg="Server will run on: 80 and 443\n"` + "\n" +
-		`time=" " level=info msg="Redirecting to url: https://www.google.com -> [1.2.3.4 8.8.8.8]\n"` + "\n"
+	expectedOut := `time=" " level=info msg="Server will run on :80 and :443 and redirects to url: https://www.google.com -> [1.2.3.4 8.8.8.8]\n"` + "\n"
+	assert.Equal(t, expectedOut, buf.String())
+
+	tearDownLog()
+}
+
+func TestLogSetupWithoutEndpoints(t *testing.T) {
+	setUpLog()
+
+	var buf bytes.Buffer
+	log.SetOutput(&buf)
+	defer func() {
+		log.SetOutput(os.Stderr)
+	}()
+
+	cfg := config.Configuration{
+		Server: config.Server{
+			Port: config.Port{
+				HTTP:  "80",
+				HTTPS: "443",
+			},
+			Upstream: config.Upstream{
+				Host:      "www.google.com",
+				Scheme:    "https",
+				Endpoints: []string{},
+			},
+		},
+	}
+	config.Config = config.Configuration{
+		Log: config.Log{
+			TimeFormat: "2006/01/02 15:04:05",
+			Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status $cached_status_label`,
+		},
+	}
+
+	logger.LogSetup(cfg.Server)
+
+	expectedOut := `time=" " level=info msg="Server will run on :80 and :443 and redirects to url: https://www.google.com -> VOID\n"` + "\n"
 	assert.Equal(t, expectedOut, buf.String())
 
 	tearDownLog()

@@ -50,7 +50,7 @@ func cbReadyToTrip(config CircuitBreaker) func(counts gobreaker.Counts) bool {
 }
 
 func cbOnStateChange(name string, from gobreaker.State, to gobreaker.State) {
-	log.Warnf("Circuit Breaker - Changed from %s to %s", from.String(), to.String())
+	log.Warnf("Circuit Breaker '%s' - Changed from %s to %s", name, from.String(), to.String())
 }
 
 // CB - Returns instance of gobreaker.CircuitBreaker.

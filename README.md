@@ -223,7 +223,7 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 ## OpenSSL
 
 This product includes software developed by the OpenSSL Project for use in the
-OpenSSL Toolkit. (http://www.openssl.org/)
+OpenSSL Toolkit. ([http://www.openssl.org/](http://www.openssl.org/))
 
 ## Go Proxy Cache
 

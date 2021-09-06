@@ -15,7 +15,6 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -85,14 +84,6 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 	// Ref: https://golang.org/pkg/crypto/tls/#Config.GetCertificate
 	for _, c := range certificates {
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
-	}
-
-	// TODO: THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
-	if domainConfigTLS.Override != nil {
-		tlsConfig.CurvePreferences = domainConfigTLS.Override.CurvePreferences
-		tlsConfig.MinVersion = domainConfigTLS.Override.MinVersion
-		tlsConfig.MaxVersion = domainConfigTLS.Override.MaxVersion
-		tlsConfig.CipherSuites = domainConfigTLS.Override.CipherSuites
 	}
 
 	return tlsConfig, nil

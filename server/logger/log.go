@@ -21,18 +21,17 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
-	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
 // Log - Logs against a requested URL.
-func Log(req http.Request, message string) {
+func Log(req http.Request, reqID string, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
 
-	log.Info(logLine)
+	log.WithFields(log.Fields{"ReqID": reqID}).Info(logLine)
 }
 
 // LogRequest - Logs the requested URL.
-func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool, cached_label string) {
+func LogRequest(req http.Request, lwr response.LoggedResponseWriter, reqID string, cached bool, cached_label string) {
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	logLine := config.Config.Log.Format
@@ -56,7 +55,7 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 		`$request_method`, method,
 		`$request`, req.URL.String(),
 		`$status`, strconv.Itoa(lwr.StatusCode),
-		`$body_bytes_sent`, strconv.Itoa(slice.LenSliceBytes(lwr.Content)),
+		`$body_bytes_sent`, strconv.Itoa(lwr.Content.Len()),
 		`$http_referer`, req.Referer(),
 		`$http_user_agent`, req.UserAgent(),
 		`$cached_status_label`, cached_label,
@@ -65,21 +64,18 @@ func LogRequest(req http.Request, lwr response.LoggedResponseWriter, cached bool
 
 	logLine = r.Replace(logLine)
 
-	log.Info(logLine)
+	log.WithFields(log.Fields{"ReqID": reqID}).Info(logLine)
 }
 
 // LogSetup - Logs the env variables required for a reverse proxy.
 func LogSetup(server config.Server) {
 	forwardHost := utils.IfEmpty(server.Upstream.Host, "*")
 	forwardProto := server.Upstream.Scheme
-	lbEndpointList := server.Upstream.Endpoints
 
-	log.Infof("Server will run on: %s and %s\n", server.Port.HTTP, server.Port.HTTPS)
-
-	if len(lbEndpointList) == 0 {
-		log.Infof("Redirecting to url: %s://%s -> VOID\n", forwardProto, forwardHost)
-		return
+	lbEndpointList := fmt.Sprintf("%v", server.Upstream.Endpoints)
+	if len(server.Upstream.Endpoints) == 0 {
+		lbEndpointList = "VOID"
 	}
 
-	log.Infof("Redirecting to url: %s://%s -> %v\n", forwardProto, forwardHost, lbEndpointList)
+	log.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
 }

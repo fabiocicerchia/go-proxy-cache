@@ -58,6 +58,8 @@ func TestHTTP2ClientCall(t *testing.T) {
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
 	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
 	assert.Contains(t, string(body), "</body>\n</html>\n")
+
+	tearDownHttp2()
 }
 
 func TestHTTP2ClientCallToMissingDomain(t *testing.T) {
@@ -84,4 +86,19 @@ func TestHTTP2ClientCallToMissingDomain(t *testing.T) {
 	assert.Equal(t, 0, res.ProtoMinor)
 
 	assert.Equal(t, http.StatusNotImplemented, res.StatusCode)
+}
+
+func tearDownHttp2() {
+	req, _ := http.NewRequest("PURGE", "https://testing.local:50443/", nil)
+	req.Host = "www.w3.org"
+	client := &http.Client{
+		Transport: &http2.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			DisableCompression: true,
+			AllowHTTP:          false,
+		},
+	}
+	_, _ = client.Do(req)
 }

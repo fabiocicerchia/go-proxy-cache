@@ -14,9 +14,9 @@ package transport_test
 import (
 	"testing"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
-
 	"github.com/stretchr/testify/assert"
+
+	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
 )
 
 func TestParseSimple(t *testing.T) {
