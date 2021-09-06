@@ -14,6 +14,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1
+	github.com/rs/dnscache v0.0.0-20210201191234-295bba877686
 	github.com/rs/xid v1.3.0
 	github.com/sdeoras/dispatcher v1.0.2
 	github.com/sirupsen/logrus v1.3.0

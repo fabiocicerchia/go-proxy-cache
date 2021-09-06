@@ -19,6 +19,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/dnscache"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
@@ -27,6 +28,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
+
+var r *dnscache.Resolver = &dnscache.Resolver{}
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
@@ -85,8 +88,26 @@ func (rc RequestCall) patchProxyTransport() *http.Transport {
 		MaxIdleConns:        DefaultTransportMaxIdleConns,
 		MaxIdleConnsPerHost: DefaultTransportMaxIdleConnsPerHost,
 		MaxConnsPerHost:     DefaultTransportMaxConnsPerHost,
-		Dial: func(network, addr string) (net.Conn, error) {
-			return net.DialTimeout(network, addr, DefaultTransportDialTimeout)
+		DialContext: func(ctx context.Context, network string, address string) (conn net.Conn, err error) {
+			// DNS Cache
+			host, port, err := net.SplitHostPort(address)
+			if err != nil {
+				return nil, err
+			}
+			ips, err := r.LookupHost(ctx, host)
+			if err != nil {
+				return nil, err
+			}
+			for _, ip := range ips {
+				var dialer net.Dialer
+				conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
+				if err == nil {
+					break
+				}
+			}
+
+			d := net.Dialer{Timeout: DefaultTransportDialTimeout}
+			return d.DialContext(ctx, network, address)
 		},
 		DisableKeepAlives: false,
 		TLSClientConfig: &tls.Config{
@@ -135,7 +156,8 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 	if scheme == config.SchemeWildcard {
 		scheme = rc.GetScheme()
 	}
-	if balancedURL.Scheme != "" && balancedURL.Scheme != scheme {
+	// use scheme only when full scheme + domain (+ port) is provided as endpoint.
+	if balancedURL.Scheme != "" && balancedURL.Host != "" {
 		scheme = balancedURL.Scheme
 	}
 

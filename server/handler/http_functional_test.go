@@ -13,7 +13,6 @@ package handler_test
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"

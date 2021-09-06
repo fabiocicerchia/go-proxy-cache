@@ -17,11 +17,22 @@ import (
 	"net/url"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
+
+func initLogs() {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006/01/02 15:04:05",
+	})
+}
 
 // HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
 func TestWrapResponseForGZipWhenNoAcceptEncoding(t *testing.T) {

@@ -27,16 +27,6 @@ import (
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
-func initLogs() {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:     true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006/01/02 15:04:05",
-	})
-}
-
 func TestHealthcheckWithoutRedis(t *testing.T) {
 	initLogs()
 
