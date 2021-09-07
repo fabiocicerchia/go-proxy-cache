@@ -21,7 +21,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
-	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
 // CacheStatusHit - Value for HIT.
@@ -158,10 +157,7 @@ func (rc RequestCall) storeResponse() {
 	}
 
 	rc.GetLogger().Debugf("Async Store Response: %s", rc.Request.URL.String())
-	// go rc.doStoreResponse()
-	queue.Dispatcher.Do(func() {
-		doStoreResponse(rcDTO, rc.DomainConfig.Cache)
-	})
+	go doStoreResponse(rcDTO, rc.DomainConfig.Cache)
 }
 
 func doStoreResponse(rcDTO storage.RequestCallDTO, configCache config.Cache) {

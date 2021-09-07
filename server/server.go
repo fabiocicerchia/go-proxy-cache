@@ -26,7 +26,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
-	"github.com/fabiocicerchia/go-proxy-cache/utils/queue"
 )
 
 const enableTimeoutHandler = true
@@ -45,6 +44,8 @@ type Servers struct {
 	HTTPS map[string]Server
 }
 
+var servers *Servers
+
 // Run - Starts the GoProxyCache servers' listeners.
 func Run(configFile string) {
 	log.Infof("Starting...\n")
@@ -53,7 +54,7 @@ func Run(configFile string) {
 	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
 
-	servers := &Servers{
+	servers = &Servers{
 		HTTP:  make(map[string]Server),
 		HTTPS: make(map[string]Server),
 	}
@@ -61,9 +62,6 @@ func Run(configFile string) {
 	for _, domain := range config.GetDomains() {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
-
-	// init queue
-	queue.Init()
 
 	// start server http & https
 	servers.startListeners()
@@ -80,9 +78,6 @@ func Run(configFile string) {
 	// Attempt a graceful shutdown
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeoutShutdown)
 	defer cancel()
-
-	log.Error("Finishing processing queue...")
-	queue.Init()
 
 	log.Error("Shutting down servers...")
 	servers.shutdownServers(ctx)

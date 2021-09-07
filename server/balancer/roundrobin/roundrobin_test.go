@@ -34,7 +34,7 @@ func initLogs() {
 func TestPickEmpty(t *testing.T) {
 	initLogs()
 
-	b := roundrobin.New([]string{})
+	b := roundrobin.New("TestPickEmpty", []string{}, false)
 
 	value, err := b.Pick()
 
@@ -48,11 +48,11 @@ func TestPickEmpty(t *testing.T) {
 func TestPickWithData(t *testing.T) {
 	initLogs()
 
-	b := roundrobin.New([]string{
+	b := roundrobin.New("TestPickWithData", []string{
 		"item1",
 		"item2",
 		"item3",
-	})
+	}, false)
 
 	value, err := b.Pick()
 
@@ -66,11 +66,11 @@ func TestPickWithData(t *testing.T) {
 func TestPickCorrectness(t *testing.T) {
 	initLogs()
 
-	b := roundrobin.New([]string{
+	b := roundrobin.New("TestPickCorrectness", []string{
 		"item1",
 		"item2",
 		"item3",
-	})
+	}, false)
 
 	// first round (shuffling)
 	var value1, value2, value3, value4 interface{}

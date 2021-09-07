@@ -13,7 +13,9 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer/roundrobin"
 )
 
-var lb map[string]*roundrobin.Balancer
+type LoadBalancing map[string]*roundrobin.Balancer
+
+var lb LoadBalancing
 
 // InitRoundRobin - Initialise the LB algorithm for round robin.
 func InitRoundRobin(name string, endpoints []string) {
@@ -21,7 +23,7 @@ func InitRoundRobin(name string, endpoints []string) {
 		lb = make(map[string]*roundrobin.Balancer)
 	}
 
-	lb[name] = roundrobin.New(endpoints)
+	lb[name] = roundrobin.New(name, endpoints, true)
 }
 
 // GetLBRoundRobin - Returns backend server using RoundRobin algorithm.
