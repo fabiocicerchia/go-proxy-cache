@@ -21,24 +21,24 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 )
 
-func TestGetLBRoundRobinUndefined(t *testing.T) {
+func TestGetUpstreamNodeUndefined(t *testing.T) {
 	setUp()
 
 	var endpoints []string
-	balancer.InitRoundRobin("testing", endpoints)
-	endpoint := balancer.GetLBRoundRobin("testing", "8.8.8.8")
+	balancer.InitRoundRobin("testing", endpoints, false)
+	endpoint := balancer.GetUpstreamNode("testing", "8.8.8.8")
 
 	assert.Equal(t, "8.8.8.8", endpoint)
 
 	tearDown()
 }
 
-func TestGetLBRoundRobinDefined(t *testing.T) {
+func TestGetUpstreamNodeDefined(t *testing.T) {
 	setUp()
 
 	var endpoints = []string{"1.2.3.4"}
-	balancer.InitRoundRobin("testing", endpoints)
-	endpoint := balancer.GetLBRoundRobin("testing", "8.8.8.8")
+	balancer.InitRoundRobin("testing", endpoints, false)
+	endpoint := balancer.GetUpstreamNode("testing", "8.8.8.8")
 
 	assert.Equal(t, "1.2.3.4", endpoint)
 

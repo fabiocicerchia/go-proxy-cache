@@ -64,11 +64,6 @@ jobs:
         with:
           args: docker logs "${{ job.services.node.id }}"
 
-      - name: Start npm
-        uses: docker://docker
-        with:
-          args: docker exec "${{ job.services.node.id }}" "npm start"
-
       - name: Install Dependencies
         run: |
           apk update

@@ -1,6 +1,6 @@
 // +build all unit
 
-package roundrobin_test
+package balancer_test
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -15,26 +15,15 @@ import (
 	"fmt"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/balancer/roundrobin"
+	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 )
-
-func initLogs() {
-	log.SetReportCaller(true)
-	log.SetLevel(log.DebugLevel)
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:     true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006/01/02 15:04:05",
-	})
-}
 
 func TestPickEmpty(t *testing.T) {
 	initLogs()
 
-	b := roundrobin.New("TestPickEmpty", []string{}, false)
+	b := balancer.NewRoundRobinBalancer("TestPickEmpty", []balancer.Item{})
 
 	value, err := b.Pick()
 
@@ -48,11 +37,11 @@ func TestPickEmpty(t *testing.T) {
 func TestPickWithData(t *testing.T) {
 	initLogs()
 
-	b := roundrobin.New("TestPickWithData", []string{
-		"item1",
-		"item2",
-		"item3",
-	}, false)
+	b := balancer.NewRoundRobinBalancer("TestPickWithData", []balancer.Item{
+		balancer.Item{Endpoint: "item1", Healthy: true},
+		balancer.Item{Endpoint: "item2", Healthy: true},
+		balancer.Item{Endpoint: "item3", Healthy: true},
+	})
 
 	value, err := b.Pick()
 
@@ -66,11 +55,11 @@ func TestPickWithData(t *testing.T) {
 func TestPickCorrectness(t *testing.T) {
 	initLogs()
 
-	b := roundrobin.New("TestPickCorrectness", []string{
-		"item1",
-		"item2",
-		"item3",
-	}, false)
+	b := balancer.NewRoundRobinBalancer("TestPickCorrectness", []balancer.Item{
+		balancer.Item{Endpoint: "item1", Healthy: true},
+		balancer.Item{Endpoint: "item2", Healthy: true},
+		balancer.Item{Endpoint: "item3", Healthy: true},
+	})
 
 	// first round (shuffling)
 	var value1, value2, value3, value4 interface{}

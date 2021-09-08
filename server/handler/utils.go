@@ -145,7 +145,7 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 	// Override Hostname with Destination Hostname.
 	hostname := upstream.Host + overridePort
 
-	balancedEndpoint := balancer.GetLBRoundRobin(upstream.GetDomainID(), hostname)
+	balancedEndpoint := balancer.GetUpstreamNode(upstream.GetDomainID(), hostname)
 	balancedURL, err := url.Parse(balancedEndpoint)
 	if err != nil {
 		return url.URL{}, err

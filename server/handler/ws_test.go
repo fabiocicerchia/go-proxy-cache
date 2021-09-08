@@ -56,7 +56,7 @@ func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -114,7 +114,7 @@ func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
