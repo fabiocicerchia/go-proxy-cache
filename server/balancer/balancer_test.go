@@ -12,6 +12,7 @@ package balancer_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"net/url"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -24,9 +25,11 @@ import (
 func TestGetUpstreamNodeUndefined(t *testing.T) {
 	setUp()
 
+	requestURL, _ := url.Parse("https://example.com")
+
 	var endpoints []string
 	balancer.InitRoundRobin("testing", endpoints, false)
-	endpoint := balancer.GetUpstreamNode("testing", "8.8.8.8")
+	endpoint := balancer.GetUpstreamNode("testing", *requestURL, "8.8.8.8")
 
 	assert.Equal(t, "8.8.8.8", endpoint)
 
@@ -36,9 +39,11 @@ func TestGetUpstreamNodeUndefined(t *testing.T) {
 func TestGetUpstreamNodeDefined(t *testing.T) {
 	setUp()
 
+	requestURL, _ := url.Parse("https://example.com")
+
 	var endpoints = []string{"1.2.3.4"}
 	balancer.InitRoundRobin("testing", endpoints, false)
-	endpoint := balancer.GetUpstreamNode("testing", "8.8.8.8")
+	endpoint := balancer.GetUpstreamNode("testing", *requestURL, "8.8.8.8")
 
 	assert.Equal(t, "1.2.3.4", endpoint)
 

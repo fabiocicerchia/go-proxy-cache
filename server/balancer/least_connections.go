@@ -10,31 +10,34 @@ package balancer
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"math/rand"
 	"sync"
+	"time"
 )
 
-// RandomBalancer instance.
-type RandomBalancer struct {
+// LeastConnectionsBalancer instance.
+type LeastConnectionsBalancer struct {
 	NodeBalancer
 
-	next int
+	connections map[string]int64
 }
 
 // New - Creates a new instance.
-func NewRandomBalancer(name string, items []Item) *RandomBalancer {
-	return &RandomBalancer{
+func NewLeastConnectionsBalancer(name string, items []Item) *LeastConnectionsBalancer {
+	b := &LeastConnectionsBalancer{
 		NodeBalancer: NodeBalancer{
 			Id:    name,
 			M:     sync.RWMutex{},
 			Items: items,
 		},
-		next: 0,
+		connections: make(map[string]int64),
 	}
+	b.ResetCounter(LeastConnectionsResetInterval)
+
+	return b
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
-func (b RandomBalancer) GetHealthyNodes() []Item {
+func (b LeastConnectionsBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
 	for _, v := range b.NodeBalancer.Items {
@@ -47,16 +50,41 @@ func (b RandomBalancer) GetHealthyNodes() []Item {
 }
 
 // Pick - Chooses next available item.
-func (b *RandomBalancer) Pick(requestURL string) (string, error) {
+func (b *LeastConnectionsBalancer) Pick(requestURL string) (string, error) {
 	healthyNodes := b.GetHealthyNodes()
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem
 	}
 
-	rnd := rand.Intn(len(healthyNodes))
+	elected_node := healthyNodes[0].Endpoint
+
+	b.NodeBalancer.M.RLock()
+	least_connection := b.connections[elected_node]
+
+	for _, v := range healthyNodes {
+		if b.connections[v.Endpoint] < least_connection {
+			least_connection = b.connections[v.Endpoint]
+			elected_node = v.Endpoint
+		}
+	}
+	b.NodeBalancer.M.RUnlock()
+
 	b.NodeBalancer.M.Lock()
-	r := healthyNodes[rnd]
+	b.connections[elected_node]++
 	b.NodeBalancer.M.Unlock()
 
-	return r.Endpoint, nil
+	return elected_node, nil
+}
+
+// CheckHealth() - Period check on nodes status.
+func (b *LeastConnectionsBalancer) ResetCounter(period time.Duration) {
+	go func() {
+		t := time.NewTicker(period)
+
+		for {
+			<-t.C
+
+			b.connections = make(map[string]int64)
+		}
+	}()
 }

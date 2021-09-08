@@ -25,7 +25,7 @@ func TestPickEmpty(t *testing.T) {
 
 	b := balancer.NewRoundRobinBalancer("TestPickEmpty", []balancer.Item{})
 
-	value, err := b.Pick()
+	value, err := b.Pick("https://example.com")
 
 	assert.NotNil(t, err)
 	assert.Equal(t, "*errors.errorString", fmt.Sprintf("%T", err))
@@ -43,7 +43,7 @@ func TestPickWithData(t *testing.T) {
 		balancer.Item{Endpoint: "item3", Healthy: true},
 	})
 
-	value, err := b.Pick()
+	value, err := b.Pick("https://example.com")
 
 	assert.Nil(t, err)
 
@@ -63,21 +63,21 @@ func TestPickCorrectness(t *testing.T) {
 
 	// first round (shuffling)
 	var value1, value2, value3, value4 interface{}
-	value1, err := b.Pick()
+	value1, err := b.Pick("https://example.com")
 	assert.Nil(t, err)
 
 	// second round (sequential)
 	switch value1 {
 	case "item1":
-		value2, err = b.Pick()
+		value2, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item2", value2)
 	case "item2":
-		value2, err = b.Pick()
+		value2, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item3", value2)
 	case "item3":
-		value2, err = b.Pick()
+		value2, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item1", value2)
 	}
@@ -85,15 +85,15 @@ func TestPickCorrectness(t *testing.T) {
 	// third round (sequential)
 	switch value2 {
 	case "item1":
-		value3, err = b.Pick()
+		value3, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item2", value3)
 	case "item2":
-		value3, err = b.Pick()
+		value3, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item3", value3)
 	case "item3":
-		value3, err = b.Pick()
+		value3, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item1", value3)
 	}
@@ -101,15 +101,15 @@ func TestPickCorrectness(t *testing.T) {
 	// fourth round (sequential)
 	switch value3 {
 	case "item1":
-		value4, err = b.Pick()
+		value4, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item2", value4)
 	case "item2":
-		value4, err = b.Pick()
+		value4, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item3", value4)
 	case "item3":
-		value4, err = b.Pick()
+		value4, err = b.Pick("https://example.com")
 		assert.Nil(t, err)
 		assert.Equal(t, "item1", value4)
 	}

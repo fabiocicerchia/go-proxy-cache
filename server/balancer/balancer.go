@@ -12,22 +12,51 @@ package balancer
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-// InitRoundRobin - Initialise the LB algorithm for round robin.
-func InitRoundRobin(name string, endpoints []string, enableHealthchecks bool) {
+const lBIpHash = "ip-hash"
+const lBLeastConnections = "least-connections"
+const lBRandom = "random"
+const lBRoundRobin = "round-robin"
+
+func initLB() {
 	if len(lb) == 0 {
 		lb = make(LoadBalancing)
 	}
+}
 
+func convertEndpoints(endpoints []string) []Item {
 	items := []Item{}
 	for _, v := range endpoints {
 		item := Item{Healthy: true, Endpoint: v}
 		items = append(items, item)
 	}
+
+	return items
+}
+
+// Init - Initialise the LB algorithm.
+func Init(name string, balancingAlgorithm string, endpoints []string) {
+	switch balancingAlgorithm {
+	case lBIpHash:
+		InitIpHash(name, endpoints, true)
+	case lBLeastConnections:
+		InitLeastConnection(name, endpoints, true)
+	case lBRandom:
+		InitRandom(name, endpoints, true)
+	default: // round-robin (default)
+		InitRoundRobin(name, endpoints, true)
+	}
+}
+
+// InitRoundRobin - Initialise the LB algorithm for round robin selection.
+func InitRoundRobin(name string, endpoints []string, enableHealthchecks bool) {
+	initLB()
+	items := convertEndpoints(endpoints)
 
 	lb[name] = NewRoundRobinBalancer(name, items)
 
@@ -36,14 +65,50 @@ func InitRoundRobin(name string, endpoints []string, enableHealthchecks bool) {
 	}
 }
 
+// InitRandom - Initialise the LB algorithm for random selection.
+func InitRandom(name string, endpoints []string, enableHealthchecks bool) {
+	initLB()
+	items := convertEndpoints(endpoints)
+
+	lb[name] = NewRandomBalancer(name, items)
+
+	if enableHealthchecks {
+		CheckHealth(lb[name].(*RandomBalancer).Items, HealthCheckInterval) // todo customize
+	}
+}
+
+// InitLeastConnection - Initialise the LB algorithm for least-connection selection.
+func InitLeastConnection(name string, endpoints []string, enableHealthchecks bool) {
+	initLB()
+	items := convertEndpoints(endpoints)
+
+	lb[name] = NewLeastConnectionsBalancer(name, items)
+
+	if enableHealthchecks {
+		CheckHealth(lb[name].(*LeastConnectionsBalancer).Items, HealthCheckInterval) // todo customize
+	}
+}
+
+// InitIpHash - Initialise the LB algorithm for ip-hash selection.
+func InitIpHash(name string, endpoints []string, enableHealthchecks bool) {
+	initLB()
+	items := convertEndpoints(endpoints)
+
+	lb[name] = NewIpHashBalancer(name, items)
+
+	if enableHealthchecks {
+		CheckHealth(lb[name].(*IpHashBalancer).Items, HealthCheckInterval) // todo customize
+	}
+}
+
 // GetUpstreamNode - Returns backend server using current algorithm.
-func GetUpstreamNode(name string, defaultHost string) string {
+func GetUpstreamNode(name string, requestURL url.URL, defaultHost string) string {
 	var err error
 
 	endpoint := ""
 
 	if lbDomain, ok := lb[name]; ok {
-		endpoint, err = lbDomain.Pick()
+		endpoint, err = lbDomain.Pick(requestURL.String())
 	}
 
 	if err != nil || endpoint == "" {

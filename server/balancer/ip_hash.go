@@ -10,30 +10,32 @@ package balancer
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"math/rand"
 	"sync"
 )
 
-// BestOfBalancer instance.
-type BestOfBalancer struct {
+// IpHashBalancer instance.
+type IpHashBalancer struct {
 	NodeBalancer
 
-	next int
+	hashMap map[string]int
 }
 
 // New - Creates a new instance.
-func NewBestOfBalancer(name string, items []Item) *BestOfBalancer {
-	return &BestOfBalancer{
+func NewIpHashBalancer(name string, items []Item) *IpHashBalancer {
+	return &IpHashBalancer{
 		NodeBalancer: NodeBalancer{
 			Id:    name,
-			M:     sync.Mutex{},
+			M:     sync.RWMutex{},
 			Items: items,
 		},
-		next: 0,
 	}
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
-func (b BestOfBalancer) GetHealthyNodes() []Item {
+func (b IpHashBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
 	for _, v := range b.NodeBalancer.Items {
@@ -46,16 +48,27 @@ func (b BestOfBalancer) GetHealthyNodes() []Item {
 }
 
 // Pick - Chooses next available item.
-func (b *BestOfBalancer) Pick() (string, error) {
+func (b *IpHashBalancer) Pick(requestURL string) (string, error) {
 	healthyNodes := b.GetHealthyNodes()
-
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem
 	}
 
+	h := sha256.New()
+	h.Write([]byte(requestURL))
+	hash := fmt.Sprintf("%x", h.Sum(nil))
+
+	b.NodeBalancer.M.RLock()
+	if pos, ok := b.hashMap[hash]; ok {
+		b.NodeBalancer.M.RUnlock()
+		return healthyNodes[pos].Endpoint, nil
+	}
+	b.NodeBalancer.M.RUnlock()
+
+	rnd := rand.Intn(len(healthyNodes))
+	r := healthyNodes[rnd]
 	b.NodeBalancer.M.Lock()
-	r := healthyNodes[b.next]
-	b.next = (b.next + 1) % len(healthyNodes)
+	b.hashMap[hash] = rnd
 	b.NodeBalancer.M.Unlock()
 
 	return r.Endpoint, nil

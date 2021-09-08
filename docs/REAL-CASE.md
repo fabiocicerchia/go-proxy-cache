@@ -195,8 +195,11 @@ server:
     # Default: incoming connection.
     # Values: http, https, ws, wsss.
     scheme: https
+    # Load Balancing Algorithm to be used when present multiple endpoints.
+    # Allowed formats: ip-hash, least-connections, random, round-robin (default).
+    balancing_algorithm: round-robin
     # List of IPs/Hostnames to be used as load balanced backend servers.
-    # They'll be selected using a round robin algorithm.
+    # They'll be selected using the chosen algorithm (or round-robin).
     endpoints:
       - 127.0.0.1
     # Forces redirect from HTTP to HTTPS.

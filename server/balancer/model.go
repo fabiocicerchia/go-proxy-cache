@@ -15,7 +15,12 @@ import (
 )
 
 // TODO: make it customizable
+// HealthCheckInterval - Health Check Frequency
 const HealthCheckInterval time.Duration = 30 * time.Second
+
+// TODO: make it customizable
+// LeastConnectionsResetInterval - How often reset internal counter for Least Connection LoadBalancer.
+const LeastConnectionsResetInterval time.Duration = 5 * time.Minute
 
 type LoadBalancing map[string]Balancer
 
@@ -27,7 +32,7 @@ type Item struct {
 }
 
 type NodeBalancer struct {
-	M sync.Mutex
+	M sync.RWMutex
 
 	Id    string
 	Items []Item
@@ -36,5 +41,5 @@ type NodeBalancer struct {
 // Balancer instance.
 type Balancer interface {
 	GetHealthyNodes() []Item
-	Pick() (string, error)
+	Pick(requestURL string) (string, error)
 }

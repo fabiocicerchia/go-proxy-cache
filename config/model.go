@@ -91,6 +91,7 @@ type Upstream struct {
 	Host               string   `yaml:"host" envconfig:"FORWARD_HOST"`
 	Port               string   `yaml:"port" envconfig:"FORWARD_PORT"`
 	Scheme             string   `yaml:"scheme" envconfig:"FORWARD_SCHEME"`
+	BalancingAlgorithm string   `yaml:"balancing_algorithm" envconfig:"BALANCING_ALGORITHM" default:"round-robin"`
 	Endpoints          []string `yaml:"endpoints" envconfig:"LB_ENDPOINT_LIST" split_words:"true"`
 	InsecureBridge     bool     `yaml:"insecure_bridge"`
 	HTTP2HTTPS         bool     `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`

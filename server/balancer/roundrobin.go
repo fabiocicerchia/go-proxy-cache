@@ -29,7 +29,7 @@ func NewRoundRobinBalancer(name string, items []Item) *RoundRobinBalancer {
 	return &RoundRobinBalancer{
 		NodeBalancer: NodeBalancer{
 			Id:    name,
-			M:     sync.Mutex{},
+			M:     sync.RWMutex{},
 			Items: items,
 		},
 		next: 0,
@@ -37,6 +37,7 @@ func NewRoundRobinBalancer(name string, items []Item) *RoundRobinBalancer {
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
+// TODO: MOVE UP TO BE COMMON
 func (b RoundRobinBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
@@ -50,8 +51,10 @@ func (b RoundRobinBalancer) GetHealthyNodes() []Item {
 }
 
 // Pick - Chooses next available item.
-func (b *RoundRobinBalancer) Pick() (string, error) {
+func (b *RoundRobinBalancer) Pick(requestURL string) (string, error) {
+	b.NodeBalancer.M.RLock()
 	healthyNodes := b.GetHealthyNodes()
+	b.NodeBalancer.M.RUnlock()
 
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem
