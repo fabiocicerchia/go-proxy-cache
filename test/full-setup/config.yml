@@ -14,6 +14,14 @@ server:
     write: 5s
     idle: 20s
     handler: -1
+  upstream:
+    health_check:
+      status_codes:
+       - 200
+       - 301
+       - 400
+       - 404
+       - 426
 
 cache:
   host: redis

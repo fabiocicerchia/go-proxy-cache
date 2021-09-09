@@ -106,7 +106,7 @@ func (u Upstream) GetDomainID() string {
 
 // HealthCheck - Defines the health check settings.
 type HealthCheck struct {
-	StatusCodes []int         `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
+	StatusCodes []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
 	Timeout     time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
 	Interval    time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
 	Scheme      string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
@@ -193,7 +193,7 @@ var Config Configuration = Configuration{
 			RedirectStatusCode: http.StatusPermanentRedirect,
 			BalancingAlgorithm: "round-robin",
 			HealthCheck: HealthCheck{
-				StatusCodes: []int{200},
+				StatusCodes: []string{"200"},
 				Scheme:      "https",
 			},
 		},

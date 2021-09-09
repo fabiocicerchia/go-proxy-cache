@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -159,7 +160,7 @@ func getClient(timeout time.Duration) *http.Client {
 }
 
 // TODO: move to utils
-func contains(s []int, val int) bool {
+func contains(s []string, val string) bool {
 	for _, v := range s {
 		if v == val {
 			return true
@@ -183,7 +184,7 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 	if err != nil {
 		log.Errorf("Healthcheck failed for %s: %s", endpointURL, err)
 	} else {
-		v.Healthy = contains(config.StatusCodes, res.StatusCode)
+		v.Healthy = contains(config.StatusCodes, strconv.Itoa(res.StatusCode))
 
 		if !v.Healthy {
 			log.Errorf("Endpoint %s is not healthy (%d).", endpointURL, res.StatusCode)
