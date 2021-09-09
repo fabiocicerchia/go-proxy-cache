@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,64 +41,64 @@ func convertEndpoints(endpoints []string) []Item {
 }
 
 // Init - Initialise the LB algorithm.
-func Init(name string, balancingAlgorithm string, endpoints []string) {
-	switch balancingAlgorithm {
+func Init(name string, config config.Upstream) {
+	switch config.BalancingAlgorithm {
 	case lBIpHash:
-		InitIpHash(name, endpoints, true)
+		InitIpHash(name, config, true)
 	case lBLeastConnections:
-		InitLeastConnection(name, endpoints, true)
+		InitLeastConnection(name, config, true)
 	case lBRandom:
-		InitRandom(name, endpoints, true)
+		InitRandom(name, config, true)
 	default: // round-robin (default)
-		InitRoundRobin(name, endpoints, true)
+		InitRoundRobin(name, config, true)
 	}
 }
 
 // InitRoundRobin - Initialise the LB algorithm for round robin selection.
-func InitRoundRobin(name string, endpoints []string, enableHealthchecks bool) {
+func InitRoundRobin(name string, config config.Upstream, enableHealthchecks bool) {
 	initLB()
-	items := convertEndpoints(endpoints)
+	items := convertEndpoints(config.Endpoints)
 
 	lb[name] = NewRoundRobinBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(lb[name].(*RoundRobinBalancer).Items, HealthCheckInterval) // todo customize
+		CheckHealth(&lb[name].(*RoundRobinBalancer).NodeBalancer, config.HealthCheck)
 	}
 }
 
 // InitRandom - Initialise the LB algorithm for random selection.
-func InitRandom(name string, endpoints []string, enableHealthchecks bool) {
+func InitRandom(name string, config config.Upstream, enableHealthchecks bool) {
 	initLB()
-	items := convertEndpoints(endpoints)
+	items := convertEndpoints(config.Endpoints)
 
 	lb[name] = NewRandomBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(lb[name].(*RandomBalancer).Items, HealthCheckInterval) // todo customize
+		CheckHealth(&lb[name].(*RandomBalancer).NodeBalancer, config.HealthCheck)
 	}
 }
 
 // InitLeastConnection - Initialise the LB algorithm for least-connection selection.
-func InitLeastConnection(name string, endpoints []string, enableHealthchecks bool) {
+func InitLeastConnection(name string, config config.Upstream, enableHealthchecks bool) {
 	initLB()
-	items := convertEndpoints(endpoints)
+	items := convertEndpoints(config.Endpoints)
 
 	lb[name] = NewLeastConnectionsBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(lb[name].(*LeastConnectionsBalancer).Items, HealthCheckInterval) // todo customize
+		CheckHealth(&lb[name].(*LeastConnectionsBalancer).NodeBalancer, config.HealthCheck)
 	}
 }
 
 // InitIpHash - Initialise the LB algorithm for ip-hash selection.
-func InitIpHash(name string, endpoints []string, enableHealthchecks bool) {
+func InitIpHash(name string, config config.Upstream, enableHealthchecks bool) {
 	initLB()
-	items := convertEndpoints(endpoints)
+	items := convertEndpoints(config.Endpoints)
 
 	lb[name] = NewIpHashBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(lb[name].(*IpHashBalancer).Items, HealthCheckInterval) // todo customize
+		CheckHealth(&lb[name].(*IpHashBalancer).NodeBalancer, config.HealthCheck)
 	}
 }
 
@@ -119,49 +120,70 @@ func GetUpstreamNode(name string, requestURL url.URL, defaultHost string) string
 }
 
 // CheckHealth() - Period check on nodes status.
-func CheckHealth(items []Item, period time.Duration) {
+func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
+	period := config.Interval
+	if period == 0 {
+		period = HealthCheckInterval
+	}
+
 	go func() {
 		t := time.NewTicker(period)
 
 		for {
 			<-t.C
 
-			for k, v := range items {
-				doHealthCheck(&v)
+			for k, v := range b.Items {
+				doHealthCheck(&v, config)
+				// v.Healthy = false // TODO: CHECK IF BY REF
 
-				// b.m.Lock()
-				items[k] = v // TODO: CHECK IF BY REF
-				// b.m.Unlock()
+				b.M.Lock()
+				b.Items[k] = v
+				b.M.Unlock()
 			}
 		}
 	}()
 }
 
-func getClient() *http.Client {
+func getClient(timeout time.Duration) *http.Client {
+	if timeout == 0 {
+		timeout = 5 * time.Second // TODO: move to const
+	}
+
 	return &http.Client{
 		// return the 301/302
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
-		Timeout: 5 * time.Second, // TODO: make it custom
+		Timeout: timeout,
 	}
 }
 
-func doHealthCheck(v *Item) {
-	endpointURL := fmt.Sprintf("http://%s", v.Endpoint) // todo fix
+// TODO: move to utils
+func contains(s []int, val int) bool {
+	for _, v := range s {
+		if v == val {
+			return true
+		}
+	}
 
-	req, err := http.NewRequest("GET", endpointURL, nil)
+	return false
+}
+
+func doHealthCheck(v *Item, config config.HealthCheck) {
+	endpointURL := fmt.Sprintf("http://%s", v.Endpoint) // todo fix scheme
+
+	req, err := http.NewRequest("HEAD", endpointURL, nil)
 	if err != nil {
 		log.Errorf("Healthcheck request failed for %s: %s", endpointURL, err)
 		return
 	}
-	res, err := getClient().Do(req)
+	res, err := getClient(config.Timeout).Do(req)
 
 	v.Healthy = err == nil
 	if err != nil {
 		log.Errorf("Healthcheck failed for %s: %s", endpointURL, err)
 	} else {
-		v.Healthy = res.StatusCode < http.StatusInternalServerError // todo customize status code
+		v.Healthy = contains(config.StatusCodes, res.StatusCode)
 
 		if !v.Healthy {
 			log.Errorf("Endpoint %s is not healthy (%d).", endpointURL, res.StatusCode)

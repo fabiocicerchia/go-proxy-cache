@@ -27,8 +27,8 @@ func TestGetUpstreamNodeUndefined(t *testing.T) {
 
 	requestURL, _ := url.Parse("https://example.com")
 
-	var endpoints []string
-	balancer.InitRoundRobin("testing", endpoints, false)
+	conf := config.Upstream{}
+	balancer.InitRoundRobin("testing", conf, false)
 	endpoint := balancer.GetUpstreamNode("testing", *requestURL, "8.8.8.8")
 
 	assert.Equal(t, "8.8.8.8", endpoint)
@@ -41,8 +41,10 @@ func TestGetUpstreamNodeDefined(t *testing.T) {
 
 	requestURL, _ := url.Parse("https://example.com")
 
-	var endpoints = []string{"1.2.3.4"}
-	balancer.InitRoundRobin("testing", endpoints, false)
+	conf := config.Upstream{
+		Endpoints: []string{"1.2.3.4"},
+	}
+	balancer.InitRoundRobin("testing", conf, false)
 	endpoint := balancer.GetUpstreamNode("testing", *requestURL, "8.8.8.8")
 
 	assert.Equal(t, "1.2.3.4", endpoint)

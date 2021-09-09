@@ -213,6 +213,17 @@ server:
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirect_status_code: 301
+    health_check:
+      # Status codes for healthy node.
+      # A list of space-separated status codes.
+      # Default: 200
+      status_codes: 200
+      # Timeout request time.
+      timeout: ~
+      # Interval frequency for health checks.
+      interval: ~
+      # Fallback scheme if endpoint doesn't provide it.
+      scheme: https
 
 # --- CACHE
 cache:

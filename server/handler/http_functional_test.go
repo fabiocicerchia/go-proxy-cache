@@ -64,7 +64,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	config.Config.Server.Upstream.HTTP2HTTPS = true
 	config.Config.Server.Upstream.RedirectStatusCode = 301
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -99,7 +99,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -140,7 +140,7 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -196,7 +196,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -274,7 +274,7 @@ func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -377,7 +377,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -472,7 +472,7 @@ func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
 	config.Config.Cache.DB = 6
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
@@ -505,7 +505,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -543,7 +543,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	config.Config.Server.Upstream.InsecureBridge = true
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -578,7 +578,7 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -619,7 +619,7 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -676,7 +676,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
@@ -744,7 +744,7 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 	config.Config.Domains["www.w3.org"] = conf
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 

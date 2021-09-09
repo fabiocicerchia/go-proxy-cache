@@ -88,19 +88,28 @@ type TLS struct {
 
 // Upstream - Defines the upstream settings.
 type Upstream struct {
-	Host               string   `yaml:"host" envconfig:"FORWARD_HOST"`
-	Port               string   `yaml:"port" envconfig:"FORWARD_PORT"`
-	Scheme             string   `yaml:"scheme" envconfig:"FORWARD_SCHEME"`
-	BalancingAlgorithm string   `yaml:"balancing_algorithm" envconfig:"BALANCING_ALGORITHM" default:"round-robin"`
-	Endpoints          []string `yaml:"endpoints" envconfig:"LB_ENDPOINT_LIST" split_words:"true"`
-	InsecureBridge     bool     `yaml:"insecure_bridge"`
-	HTTP2HTTPS         bool     `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`
-	RedirectStatusCode int      `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE" default:"301"`
+	Host               string      `yaml:"host" envconfig:"FORWARD_HOST"`
+	Port               string      `yaml:"port" envconfig:"FORWARD_PORT"`
+	Scheme             string      `yaml:"scheme" envconfig:"FORWARD_SCHEME"`
+	BalancingAlgorithm string      `yaml:"balancing_algorithm" envconfig:"BALANCING_ALGORITHM" default:"round-robin"`
+	Endpoints          []string    `yaml:"endpoints" envconfig:"LB_ENDPOINT_LIST" split_words:"true"`
+	InsecureBridge     bool        `yaml:"insecure_bridge"`
+	HTTP2HTTPS         bool        `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`
+	RedirectStatusCode int         `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE" default:"301"`
+	HealthCheck        HealthCheck `yaml:"health_check"`
 }
 
 // GetDomainID - Returns the unique ID for the upstream.
 func (u Upstream) GetDomainID() string {
 	return utils.IfEmpty(u.Host, "*") + utils.StringSeparatorOne + u.Scheme
+}
+
+// HealthCheck - Defines the health check settings.
+type HealthCheck struct {
+	StatusCodes []int         `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
+	Timeout     time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
+	Interval    time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	Scheme      string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
 }
 
 // Timeout - Defines the server timeouts.
@@ -182,6 +191,11 @@ var Config Configuration = Configuration{
 			HTTP2HTTPS:         false,
 			InsecureBridge:     false,
 			RedirectStatusCode: http.StatusPermanentRedirect,
+			BalancingAlgorithm: "round-robin",
+			HealthCheck: HealthCheck{
+				StatusCodes: []int{200},
+				Scheme:      "https",
+			},
 		},
 		GZip:        false,
 		Healthcheck: true,

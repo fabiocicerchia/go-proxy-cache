@@ -44,7 +44,7 @@ func TestGetUpstreamURLWithWildcard(t *testing.T) {
 	}
 
 	domainID := cfg.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, cfg.Server.Upstream.Endpoints, false)
+	balancer.InitRoundRobin(domainID, cfg.Server.Upstream, false)
 
 	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
 	proxyURL, _ := r.GetUpstreamURL()

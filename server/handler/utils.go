@@ -29,7 +29,9 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-var r *dnscache.Resolver = &dnscache.Resolver{}
+var r *dnscache.Resolver = &dnscache.Resolver{
+	// TODO: Customize timeout
+}
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
@@ -106,6 +108,7 @@ func (rc RequestCall) patchProxyTransport() *http.Transport {
 				}
 			}
 
+			// Timeout Dial
 			d := net.Dialer{Timeout: DefaultTransportDialTimeout}
 			return d.DialContext(ctx, network, address)
 		},

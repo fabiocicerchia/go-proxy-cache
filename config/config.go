@@ -171,10 +171,15 @@ func (c *Configuration) copyOverWithUpstream(overrides Server) {
 	c.Server.Upstream.Host = utils.Coalesce(overrides.Upstream.Host, c.Server.Upstream.Host).(string)
 	c.Server.Upstream.Port = utils.Coalesce(overrides.Upstream.Port, c.Server.Upstream.Port).(string)
 	c.Server.Upstream.Scheme = utils.Coalesce(overrides.Upstream.Scheme, c.Server.Upstream.Scheme).(string)
+	c.Server.Upstream.BalancingAlgorithm = utils.Coalesce(overrides.Upstream.BalancingAlgorithm, c.Server.Upstream.BalancingAlgorithm).(string)
 	c.Server.Upstream.Endpoints = utils.Coalesce(overrides.Upstream.Endpoints, c.Server.Upstream.Endpoints).([]string)
 	c.Server.Upstream.HTTP2HTTPS = utils.Coalesce(overrides.Upstream.HTTP2HTTPS, c.Server.Upstream.HTTP2HTTPS).(bool)
 	c.Server.Upstream.InsecureBridge = utils.Coalesce(overrides.Upstream.InsecureBridge, c.Server.Upstream.InsecureBridge).(bool)
 	c.Server.Upstream.RedirectStatusCode = utils.Coalesce(overrides.Upstream.RedirectStatusCode, c.Server.Upstream.RedirectStatusCode).(int)
+	c.Server.Upstream.HealthCheck.StatusCodes = utils.Coalesce(overrides.Upstream.HealthCheck.StatusCodes, c.Server.Upstream.HealthCheck.StatusCodes).([]int)
+	c.Server.Upstream.HealthCheck.Timeout = utils.Coalesce(overrides.Upstream.HealthCheck.Timeout, c.Server.Upstream.HealthCheck.Timeout).(time.Duration)
+	c.Server.Upstream.HealthCheck.Interval = utils.Coalesce(overrides.Upstream.HealthCheck.Interval, c.Server.Upstream.HealthCheck.Interval).(time.Duration)
+	c.Server.Upstream.HealthCheck.Scheme = utils.Coalesce(overrides.Upstream.HealthCheck.Scheme, c.Server.Upstream.HealthCheck.Scheme).(string)
 
 	c.Server.Upstream.Scheme = utils.IfEmpty(c.Server.Upstream.Scheme, SchemeWildcard)
 }

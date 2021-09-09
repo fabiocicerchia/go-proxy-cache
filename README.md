@@ -226,6 +226,7 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [Introducing HTTP/2 Server Push with NGINX 1.13.9](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push)
 - [Preload - W3C Editor's Draft 20 August 2020](https://w3c.github.io/preload/#server-push)
 - [Web Linking](https://tools.ietf.org/html/rfc5988)
+- [HTTP Health Checks](https://docs.nginx.com/nginx/admin-guide/load-balancer/http-health-check/)
 - [Types of load balancing algorithms](https://www.cloudflare.com/en-gb/learning/performance/types-of-load-balancing-algorithms/)
 
 ## License
