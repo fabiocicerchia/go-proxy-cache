@@ -20,10 +20,10 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 )
 
-func TestPickEmpty(t *testing.T) {
+func TestRoundRobinPickEmpty(t *testing.T) {
 	initLogs()
 
-	b := balancer.NewRoundRobinBalancer("TestPickEmpty", []balancer.Item{})
+	b := balancer.NewRoundRobinBalancer("TestRoundRobinPickEmpty", []balancer.Item{})
 
 	value, err := b.Pick("https://example.com")
 
@@ -34,10 +34,10 @@ func TestPickEmpty(t *testing.T) {
 	assert.Empty(t, value)
 }
 
-func TestPickWithData(t *testing.T) {
+func TestRoundRobinPickWithData(t *testing.T) {
 	initLogs()
 
-	b := balancer.NewRoundRobinBalancer("TestPickWithData", []balancer.Item{
+	b := balancer.NewRoundRobinBalancer("TestRoundRobinPickWithData", []balancer.Item{
 		balancer.Item{Endpoint: "item1", Healthy: true},
 		balancer.Item{Endpoint: "item2", Healthy: true},
 		balancer.Item{Endpoint: "item3", Healthy: true},
@@ -52,19 +52,20 @@ func TestPickWithData(t *testing.T) {
 	assert.Regexp(t, "^(item1|item2|item3)$", value)
 }
 
-func TestPickCorrectness(t *testing.T) {
+func TestRoundRobinPickCorrectness(t *testing.T) {
 	initLogs()
 
-	b := balancer.NewRoundRobinBalancer("TestPickCorrectness", []balancer.Item{
+	b := balancer.NewRoundRobinBalancer("TestRoundRobinPickCorrectness", []balancer.Item{
 		balancer.Item{Endpoint: "item1", Healthy: true},
 		balancer.Item{Endpoint: "item2", Healthy: true},
 		balancer.Item{Endpoint: "item3", Healthy: true},
 	})
 
 	// first round (shuffling)
-	var value1, value2, value3, value4 interface{}
+	var value1, value2, value3, value4 string
 	value1, err := b.Pick("https://example.com")
 	assert.Nil(t, err)
+	assert.Regexp(t, "^(item1|item2|item3)$", value1)
 
 	// second round (sequential)
 	switch value1 {

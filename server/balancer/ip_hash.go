@@ -31,6 +31,7 @@ func NewIpHashBalancer(name string, items []Item) *IpHashBalancer {
 			M:     sync.RWMutex{},
 			Items: items,
 		},
+		hashMap: make(map[string]int),
 	}
 }
 
