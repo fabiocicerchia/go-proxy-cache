@@ -10,20 +10,25 @@ package balancer
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 
-	"github.com/fabiocicerchia/go-proxy-cache/config"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
 const lBIpHash = "ip-hash"
 const lBLeastConnections = "least-connections"
 const lBRandom = "random"
 const lBRoundRobin = "round-robin"
+const enableHealthchecks = true
+const defaultClientTimeout = 5 * time.Second
 
 func initLB() {
 	if len(lb) == 0 {
@@ -45,13 +50,13 @@ func convertEndpoints(endpoints []string) []Item {
 func Init(name string, config config.Upstream) {
 	switch config.BalancingAlgorithm {
 	case lBIpHash:
-		InitIpHash(name, config, true)
+		InitIpHash(name, config, enableHealthchecks)
 	case lBLeastConnections:
-		InitLeastConnection(name, config, true)
+		InitLeastConnection(name, config, enableHealthchecks)
 	case lBRandom:
-		InitRandom(name, config, true)
+		InitRandom(name, config, enableHealthchecks)
 	default: // round-robin (default)
-		InitRoundRobin(name, config, true)
+		InitRoundRobin(name, config, enableHealthchecks)
 	}
 }
 
@@ -135,7 +140,6 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 
 			for k, v := range b.Items {
 				doHealthCheck(&v, config)
-				// v.Healthy = false // TODO: CHECK IF BY REF
 
 				b.M.Lock()
 				b.Items[k] = v
@@ -145,49 +149,67 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 	}()
 }
 
-func getClient(timeout time.Duration) *http.Client {
+func getClient(timeout time.Duration, tlsFlag bool) *http.Client {
 	if timeout == 0 {
-		timeout = 5 * time.Second // TODO: move to const
+		timeout = defaultClientTimeout
 	}
 
-	return &http.Client{
+	c := &http.Client{
 		// return the 301/302
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			return http.ErrUseLastResponse
 		},
 		Timeout: timeout,
 	}
-}
 
-// TODO: move to utils
-func contains(s []string, val string) bool {
-	for _, v := range s {
-		if v == val {
-			return true
+	if tlsFlag {
+		c.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // TODO: Customize it
+			},
 		}
 	}
 
-	return false
+	return c
 }
 
 func doHealthCheck(v *Item, config config.HealthCheck) {
-	endpointURL := fmt.Sprintf("http://%s", v.Endpoint) // todo fix scheme
+	url, _ := url.Parse(v.Endpoint)
+	scheme := url.Scheme
+	if scheme == "" || (scheme != "http" && scheme != "https") {
+		scheme = config.Scheme
+	}
+
+	endpointURL := fmt.Sprintf("%s://%s", scheme, v.Endpoint)
 
 	req, err := http.NewRequest("HEAD", endpointURL, nil)
 	if err != nil {
 		log.Errorf("Healthcheck request failed for %s: %s", endpointURL, err)
 		return
 	}
-	res, err := getClient(config.Timeout).Do(req)
+	res, err := getClient(config.Timeout, scheme == "https").Do(req)
 
 	v.Healthy = err == nil
 	if err != nil {
 		log.Errorf("Healthcheck failed for %s: %s", endpointURL, err)
 	} else {
-		v.Healthy = contains(config.StatusCodes, strconv.Itoa(res.StatusCode))
+		v.Healthy = slice.ContainsString(config.StatusCodes, strconv.Itoa(res.StatusCode))
 
 		if !v.Healthy {
 			log.Errorf("Endpoint %s is not healthy (%d).", endpointURL, res.StatusCode)
 		}
 	}
+}
+
+// GetHealthyNodes - Retrieves healthy nodes.
+func (b NodeBalancer) GetHealthyNodes() []Item {
+	healthyNodes := []Item{}
+
+	for _, v := range b.Items {
+		if v.Healthy {
+			healthyNodes = append(healthyNodes, v)
+		}
+	}
+
+	return healthyNodes
 }

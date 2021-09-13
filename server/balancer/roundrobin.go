@@ -36,24 +36,10 @@ func NewRoundRobinBalancer(name string, items []Item) *RoundRobinBalancer {
 	}
 }
 
-// GetHealthyNodes - Retrieves healthy nodes.
-// TODO: MOVE UP TO BE COMMON
-func (b RoundRobinBalancer) GetHealthyNodes() []Item {
-	healthyNodes := []Item{}
-
-	for _, v := range b.NodeBalancer.Items {
-		if v.Healthy {
-			healthyNodes = append(healthyNodes, v)
-		}
-	}
-
-	return healthyNodes
-}
-
 // Pick - Chooses next available item.
 func (b *RoundRobinBalancer) Pick(requestURL string) (string, error) {
 	b.NodeBalancer.M.RLock()
-	healthyNodes := b.GetHealthyNodes()
+	healthyNodes := b.NodeBalancer.GetHealthyNodes()
 	b.NodeBalancer.M.RUnlock()
 
 	if len(healthyNodes) == 0 {

@@ -33,22 +33,9 @@ func NewRandomBalancer(name string, items []Item) *RandomBalancer {
 	}
 }
 
-// GetHealthyNodes - Retrieves healthy nodes.
-func (b RandomBalancer) GetHealthyNodes() []Item {
-	healthyNodes := []Item{}
-
-	for _, v := range b.NodeBalancer.Items {
-		if v.Healthy {
-			healthyNodes = append(healthyNodes, v)
-		}
-	}
-
-	return healthyNodes
-}
-
 // Pick - Chooses next available item.
 func (b *RandomBalancer) Pick(requestURL string) (string, error) {
-	healthyNodes := b.GetHealthyNodes()
+	healthyNodes := b.NodeBalancer.GetHealthyNodes()
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem
 	}

@@ -50,7 +50,7 @@ func (b IpHashBalancer) GetHealthyNodes() []Item {
 
 // Pick - Chooses next available item.
 func (b *IpHashBalancer) Pick(requestURL string) (string, error) {
-	healthyNodes := b.GetHealthyNodes()
+	healthyNodes := b.NodeBalancer.GetHealthyNodes()
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem
 	}
