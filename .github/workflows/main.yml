@@ -77,7 +77,7 @@ jobs:
 
       - name: Test
         run: |
-          echo "127.0.0.1 testing.local www.testing.local" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
           cd test/full-setup
           ./gen-selfsigned-cert.sh
           ./gen-selfsigned-cert.sh www.w3.org
