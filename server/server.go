@@ -173,7 +173,7 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 	s.InitServers(domain, domainConfig)
 
 	// lb
-	balancer.InitRoundRobin(domainID, domainConfig.Server.Upstream.Endpoints)
+	balancer.Init(domainID, domainConfig.Server.Upstream)
 }
 
 func (s Servers) startListeners() {

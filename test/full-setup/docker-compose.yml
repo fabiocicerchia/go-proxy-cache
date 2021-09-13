@@ -52,9 +52,10 @@ services:
     image: node:16.7.0-alpine3.14
     restart: always
     command: "npm start"
-    working_dir: /home/node/app
+    user: "1000:1000"
+    working_dir: /home/app
     volumes:
-      - ./:/home/node/app
+      - ./:/home/app
     ports:
       - "9001:9001" # ws
       - "9002:9002" # wss

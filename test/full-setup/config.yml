@@ -14,6 +14,14 @@ server:
     write: 5s
     idle: 20s
     handler: -1
+  upstream:
+    health_check:
+      status_codes:
+       - 200
+       - 301
+       - 400
+       - 404
+       - 426
 
 cache:
   host: redis
@@ -23,11 +31,15 @@ domains:
     server:
       upstream:
         host: example.com
+        health_check:
+          scheme: http
 
   example_org:
     server:
       upstream:
         host: example.org
+        health_check:
+          scheme: http
 
   www_w3_org:
     server:
@@ -46,6 +58,8 @@ domains:
         scheme: http
         endpoints:
         - nginx:40080
+        health_check:
+          scheme: http
 
   testing_local:
     server:
@@ -54,6 +68,8 @@ domains:
         scheme: http
         endpoints:
         - nginx:40080
+        health_check:
+          scheme: http
 
   testing_local_https:
     server:
@@ -63,6 +79,8 @@ domains:
         insecure_bridge: true
         endpoints:
         - nginx:40443
+        health_check:
+          scheme: https
 
   testing_local_ws:
     server:
@@ -71,6 +89,8 @@ domains:
         scheme: ws
         endpoints:
         - nginx:40081
+        health_check:
+          scheme: http
 
   testing_local_wss:
     server:
@@ -80,3 +100,5 @@ domains:
         insecure_bridge: true
         endpoints:
         - nginx:40082
+        health_check:
+          scheme: http
