@@ -109,7 +109,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream.Endpoints)
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 

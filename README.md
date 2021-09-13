@@ -80,17 +80,21 @@ you --->|---->----|--->---|---'     |       |     |   |
 
 - **Full Page Caching**, via Redis.
 - **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI.
+- **Cache Bypass**, by using the HTTP Header `X-Go-Proxy-Cache-Force-Fresh` the request will always be fresh.
 - **Support Chunking**, by replicating exactly the same original amount.
 - **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
 - **ETag Support**, generating non-weak tags, handling `304 Not Modified`, managing HTTP headers `If-Modified-Since`, `If-Unmodified-Since`, `If-None-Match`, `If-Match`.  
   ETag wrapper doesn't work well with WebSocket and HTTP/2.
 - **Cache Stampede Prevention**, delaying invalidation request to the backend using an extra small random TTL (between 5s and 10s).
 - **Serving Stale Content**, used mainly for avoiding cache stampede, for maximum 10s.
+- **Upstream DNS Resolution Cache**, the upstream hostname will be cached to speed up the response and avoid the DNS resolution at each request.
 
 ### Load Balancing
 
 - **HTTP & HTTPS Forward Traffic**
-- **Load Balancing**, uses a list of IPs/Hostnames as load balanced backend servers (supported only Round-Robin).
+- **Load Balancing**, uses a list of IPs/Hostnames as load balanced backend servers.
+- **Multiple Algorithms Available**, choose among IP Hash, Least Connections, Random or Round-Robin.
+- **Support for HTTP Basic Auth**, it's possible to provide the HTTP Basic Auth for each endpoint (by specify user:pass in the URL).
 
 ### Security
 
@@ -101,6 +105,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 ### Reliability
 
 - **Healthcheck Endpoint**, exposes the route `/healthcheck` (optional).
+- **Upstream Healthcheck**, verifies periodically if upstream nodes are healthy.
 - **Respecting HTTP Cache Headers**, `Vary`, `ETag`, `Cache-Control` and `Expires`.
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
 - **Cache Circuit Breaker**, bypassing Redis when not available.
@@ -117,6 +122,10 @@ you --->|---->----|--->---|---'     |       |     |   |
 - **Fine tuning circuit-breaker and TLS settings**, it is possible to adjust the settings about thresholds, timeouts and failure rate.
 - **Configure error handler**, stdout or file.
 - **Debug/Verbose mode**, it is possible to have additional levels of details by settings the flags `-verbose` or `-debug`.
+
+### Logging
+
+- **Request Tracing**, each line in logs has a RequestID to easily identify the response flow.
 
 ## Configuration
 
@@ -217,6 +226,8 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - [Introducing HTTP/2 Server Push with NGINX 1.13.9](https://www.nginx.com/blog/nginx-1-13-9-http2-server-push)
 - [Preload - W3C Editor's Draft 20 August 2020](https://w3c.github.io/preload/#server-push)
 - [Web Linking](https://tools.ietf.org/html/rfc5988)
+- [HTTP Health Checks](https://docs.nginx.com/nginx/admin-guide/load-balancer/http-health-check/)
+- [Types of load balancing algorithms](https://www.cloudflare.com/en-gb/learning/performance/types-of-load-balancing-algorithms/)
 
 ## License
 

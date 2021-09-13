@@ -13,7 +13,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"os"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -147,17 +146,8 @@ func (rc RequestCall) storeResponse() {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	// Make it sync for testing
-	// TODO: Make it customizable?
-	if os.Getenv("GPC_SYNC_STORING") == "1" {
-		rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
-
-		doStoreResponse(rcDTO, rc.DomainConfig.Cache)
-		return
-	}
-
-	rc.GetLogger().Debugf("Async Store Response: %s", rc.Request.URL.String())
-	go doStoreResponse(rcDTO, rc.DomainConfig.Cache)
+	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
+	doStoreResponse(rcDTO, rc.DomainConfig.Cache)
 }
 
 func doStoreResponse(rcDTO storage.RequestCallDTO, configCache config.Cache) {
