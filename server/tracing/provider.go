@@ -38,6 +38,8 @@ type OpenTelemetryProvider struct {
 	provider trace.TracerProvider
 }
 
+var tracer trace.TracerProvider
+
 // Close shuts down the Jaeger provider.
 func (otp OpenTelemetryProvider) Close(ctx context.Context) error {
 	if prv, ok := otp.provider.(*sdktrace.TracerProvider); ok {
@@ -84,7 +86,13 @@ func NewJaegerProvider(ctx context.Context, config Config) (OpenTelemetryProvide
 		sdktrace.WithResource(resource),
 	)
 
+	tracer = tp
+
 	return OpenTelemetryProvider{
 		provider: tp,
 	}, nil
+}
+
+func GetTracer() trace.TracerProvider {
+	return tracer
 }

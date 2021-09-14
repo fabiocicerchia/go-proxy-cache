@@ -10,6 +10,7 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -20,7 +21,7 @@ import (
 )
 
 // HandlePurge - Purges the cache for the requested URI.
-func (rc RequestCall) HandlePurge() {
+func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
 	status, err := storage.PurgeCachedContent(rc.DomainConfig.Server.Upstream, rcDTO)
@@ -30,14 +31,14 @@ func (rc RequestCall) HandlePurge() {
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
-		tracing.AddTagsToSpan(rc.TracingSpan, map[string]string{
+		tracing.AddTagsToSpan(tracing.SpanFromContext(ctx), map[string]string{
 			"purge.status":         fmt.Sprintf("%v", status),
 			"response.status_code": strconv.Itoa(http.StatusNotFound),
 		})
 
 		if err != nil {
-			tracing.AddErrorToSpan(rc.TracingSpan, err)
-			tracing.Fail(rc.TracingSpan, "internal error")
+			tracing.AddErrorToSpan(tracing.SpanFromContext(ctx), err)
+			tracing.Fail(tracing.SpanFromContext(rc.Request.Context()), "internal error")
 		}
 
 		return
@@ -46,7 +47,7 @@ func (rc RequestCall) HandlePurge() {
 	rc.Response.ForceWriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
 
-	tracing.AddTagsToSpan(rc.TracingSpan, map[string]string{
+	tracing.AddTagsToSpan(tracing.SpanFromContext(ctx), map[string]string{
 		"purge.status":         fmt.Sprintf("%v", status),
 		"response.status_code": strconv.Itoa(http.StatusOK),
 	})

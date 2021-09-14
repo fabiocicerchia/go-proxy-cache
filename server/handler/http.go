@@ -10,6 +10,7 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -57,8 +58,8 @@ var DefaultTransportMaxConnsPerHost int = 1000
 var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
-func (rc RequestCall) HandleHTTPRequestAndProxy() {
-	_, tracingSpan := tracing.NewSpan(rc.Request.Context(), "handler.handle_http_request_and_proxy")
+func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
+	_, tracingSpan := tracing.NewSpan(ctx, "handler.handle_http_request_and_proxy")
 	defer tracingSpan.End()
 
 	cached := CacheStatusMiss
@@ -81,7 +82,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy() {
 
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
-		rc.serveReverseProxyHTTP()
+		rc.serveReverseProxyHTTP(ctx)
 	}
 
 	if enableLoggingRequest {
@@ -121,8 +122,8 @@ func (rc RequestCall) serveCachedContent() int {
 	return cached
 }
 
-func (rc RequestCall) serveReverseProxyHTTP() {
-	_, tracingSpan := tracing.NewSpan(rc.Request.Context(), "handler.serve_reverse_proxy_http")
+func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
+	_, tracingSpan := tracing.NewSpan(ctx, "handler.serve_reverse_proxy_http")
 	defer tracingSpan.End()
 
 	proxyURL, err := rc.GetUpstreamURL()
@@ -150,7 +151,7 @@ func (rc RequestCall) serveReverseProxyHTTP() {
 	proxy.Transport = rc.patchProxyTransport()
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector
+	gpcDirector := rc.ProxyDirector(ctx)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.

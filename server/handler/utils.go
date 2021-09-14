@@ -21,6 +21,8 @@ import (
 
 	"github.com/rs/dnscache"
 	log "github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -195,30 +197,35 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 }
 
 // ProxyDirector - Add extra behaviour to request.
-func (rc RequestCall) ProxyDirector(req *http.Request) {
-	upstream := rc.DomainConfig.Server.Upstream
-	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
-	host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
+func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request) {
+	return func(req *http.Request) {
+		upstream := rc.DomainConfig.Server.Upstream
+		overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
+		host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
 
-	// The value of r.URL.Host and r.Host are almost always different. On a
-	// proxy server, r.URL.Host is the host of the target server and r.Host is
-	// the host of the proxy server itself.
-	// Ref: https://stackoverflow.com/a/42926149/888162
-	req.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
+		// The value of r.URL.Host and r.Host are almost always different. On a
+		// proxy server, r.URL.Host is the host of the target server and r.Host is
+		// the host of the proxy server itself.
+		// Ref: https://stackoverflow.com/a/42926149/888162
+		req.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
 
-	req.Header.Set("X-Forwarded-Proto", rc.GetScheme())
+		req.Header.Set("X-Forwarded-Proto", rc.GetScheme())
 
-	req.Header.Set(RequestIDHeader, rc.ReqID)
+		req.Header.Set(RequestIDHeader, rc.ReqID)
 
-	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
-	clientIP := utils.StripPort(rc.Request.RemoteAddr)
+		previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
+		clientIP := utils.StripPort(rc.Request.RemoteAddr)
 
-	xForwardedFor := net.ParseIP(clientIP).String()
-	if previousXForwardedFor != "" {
-		xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
+		xForwardedFor := net.ParseIP(clientIP).String()
+		if previousXForwardedFor != "" {
+			xForwardedFor = previousXForwardedFor + ", " + xForwardedFor
+		}
+
+		req.Header.Set("X-Forwarded-For", xForwardedFor)
+
+		req.Host = host
+
+		// tracing
+		otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 	}
-
-	req.Header.Set("X-Forwarded-For", xForwardedFor)
-
-	req.Host = host
 }

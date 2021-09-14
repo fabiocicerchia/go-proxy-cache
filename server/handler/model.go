@@ -18,6 +18,7 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -43,7 +44,8 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration
-	TracingSpan  trace.Span // TODO: REMOVE
+	propagators  propagation.TextMapPropagator
+	tracer       trace.TracerProvider
 }
 
 // GetLogger - Get logger instance with RequestID.
@@ -92,7 +94,7 @@ func (rc RequestCall) GetHostname() string {
 // GetScheme - Returns current request scheme.
 // For server requests the URL is parsed from the URI supplied on the
 // Request-Line as stored in RequestURI. For most requests, fields other than
-// Path and RawQuery will be empty. (TracingSpan RFC 7230, Section 5.3)
+// Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
 	if rc.IsWebSocket() && rc.Request.TLS != nil {

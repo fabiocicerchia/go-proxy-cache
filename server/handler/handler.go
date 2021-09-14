@@ -14,7 +14,8 @@ import (
 	"net/http"
 
 	"github.com/rs/xid"
-	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
@@ -27,7 +28,7 @@ const HttpMethodPurge = "PURGE"
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	ctx := req.Context()
+	ctx := otel.GetTextMapPropagator().Extract(req.Context(), propagation.HeaderCarrier(req.Header))
 
 	ctx, tracingSpan := tracing.NewSpan(ctx, "server.handle_request")
 	defer tracingSpan.End()
@@ -36,7 +37,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		"request.url":  req.URL.String(),
 	})
 
-	rc, err := initRequestParams(res, req, tracingSpan)
+	rc, err := initRequestParams(res, req)
 	if err != nil {
 		tracing.AddErrorToSpan(tracingSpan, err)
 		tracing.Fail(tracingSpan, "internal error")
@@ -65,23 +66,23 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	}
 
 	if rc.GetScheme() == SchemeHTTP && rc.DomainConfig.Server.Upstream.HTTP2HTTPS {
-		rc.RedirectToHTTPS()
+		rc.RedirectToHTTPS(ctx)
 		return
 	}
 
 	if rc.Request.Method == HttpMethodPurge {
-		rc.HandlePurge()
+		rc.HandlePurge(ctx)
 		return
 	}
 
 	if rc.IsWebSocket() {
-		rc.HandleWSRequestAndProxy()
+		rc.HandleWSRequestAndProxy(ctx)
 	} else {
-		rc.HandleHTTPRequestAndProxy()
+		rc.HandleHTTPRequestAndProxy(ctx)
 	}
 }
 
-func initRequestParams(res http.ResponseWriter, req *http.Request, tracingSpan trace.Span) (RequestCall, error) {
+func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, error) {
 	var configFound bool
 
 	reqID := xid.New().String()
@@ -89,7 +90,8 @@ func initRequestParams(res http.ResponseWriter, req *http.Request, tracingSpan t
 		ReqID:       reqID,
 		Response:    response.NewLoggedResponseWriter(res, reqID),
 		Request:     *req,
-		TracingSpan: tracingSpan,
+		propagators: otel.GetTextMapPropagator(),
+		tracer:      tracing.GetTracer(),
 	}
 
 	listeningPort := getListeningPort(req.Context())

@@ -10,6 +10,7 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -20,16 +21,16 @@ import (
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.
-func (rc RequestCall) HandleWSRequestAndProxy() {
-	rc.serveReverseProxyWS()
+func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
+	rc.serveReverseProxyWS(ctx)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, CacheStatusLabel[CacheStatusMiss])
 	}
 }
 
-func (rc RequestCall) serveReverseProxyWS() {
-	_, tracingSpan := tracing.NewSpan(rc.Request.Context(), "handler.serve_reverse_proxy_ws")
+func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
+	_, tracingSpan := tracing.NewSpan(ctx, "handler.serve_reverse_proxy_ws")
 	defer tracingSpan.End()
 
 	proxyURL, err := rc.GetUpstreamURL()
@@ -53,7 +54,7 @@ func (rc RequestCall) serveReverseProxyWS() {
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector
+	gpcDirector := rc.ProxyDirector(ctx)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.
