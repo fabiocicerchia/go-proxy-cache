@@ -27,7 +27,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		ctx, tracingSpan := tracing.NewSpan(ctx, "server.handle_healthcheck")
 		defer tracingSpan.End()
 
-		rc, err := initRequestParams(res, req, tracingSpan)
+		rc, err := initRequestParams(res, req)
 		if err != nil {
 			tracing.AddErrorToSpan(tracingSpan, err)
 			tracing.Fail(tracingSpan, "internal error")
