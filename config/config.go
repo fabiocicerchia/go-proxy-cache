@@ -136,6 +136,7 @@ func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
 	c.copyOverWithTimeout(overrides.Server)
 	c.copyOverWithUpstream(overrides.Server)
 	c.copyOverWithCache(overrides.Cache)
+	c.copyOverWithTracing(overrides.Tracing)
 }
 
 // --- SERVER.
@@ -196,6 +197,12 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 
 	c.Cache.AllowedMethods = append(c.Cache.AllowedMethods, "HEAD", "GET")
 	c.Cache.AllowedMethods = slice.Unique(c.Cache.AllowedMethods)
+}
+
+// --- TRACING.
+func (c *Configuration) copyOverWithTracing(overrides Tracing) {
+	c.Tracing.JaegerEndpoint = utils.Coalesce(overrides.JaegerEndpoint, c.Tracing.JaegerEndpoint).(string)
+	c.Tracing.Enabled = utils.Coalesce(overrides.Enabled, c.Tracing.Enabled).(bool)
 }
 
 // Print - Shows the current configuration.

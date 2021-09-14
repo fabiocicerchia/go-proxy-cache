@@ -18,8 +18,13 @@ services:
       args:
         BUILD_CMD: build-race
     command: ["go-proxy-cache", "-debug"]
+    environment:
+      ENV: test
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
     ports:
       - "50080:50080"
       - "50443:50443"
@@ -35,6 +40,11 @@ services:
       # WARNING: The TCP backlog setting of 511 cannot be enforced because
       # /proc/sys/net/core/somaxconn is set to the lower value of 128.
       net.core.somaxconn: 1024
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
 
   nginx:
     image: nginx:1.21.1-alpine
@@ -59,3 +69,14 @@ services:
     ports:
       - "9001:9001" # ws
       - "9002:9002" # wss
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.26.0
+    ports:
+      - "14268:14268" # jaeger-collector HTTP server (tracer provider)
+      - "16686:16686" # HTTP server (browser UI)
+    healthcheck:
+      test: ["CMD", "/go/bin/all-in-one-linux", "status"]
+      timeout: 5s
+      retries: 5
+      start_period: 10s

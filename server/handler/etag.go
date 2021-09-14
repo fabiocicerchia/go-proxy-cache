@@ -12,6 +12,7 @@ package handler
 import (
 	"net/http/httputil"
 
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	"github.com/go-http-utils/fresh"
 	"github.com/yhat/wsutil"
 )
@@ -25,6 +26,7 @@ func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNo
 
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
 	if wsutil.IsWebSocketRequest(&rc.Request) || rc.Request.ProtoMajor == HttpVersion2 {
+		tracing.AddEventsToSpan(tracing.SpanFromContext(rc.Request.Context()), "request.etag.not_supported", map[string]string{})
 		rc.GetLogger().Info("Current request doesn't support ETag.")
 
 		// Serve existing response.
@@ -33,6 +35,7 @@ func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNo
 
 	// Serve existing response.
 	if rc.Response.MustServeOriginalResponse(&rc.Request) {
+		tracing.AddEventsToSpan(tracing.SpanFromContext(rc.Request.Context()), "request.etag.serve_origina", map[string]string{})
 		rc.GetLogger().Info("Serving original response as cannot be handled with ETag.")
 		return false
 	}

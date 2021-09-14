@@ -11,6 +11,9 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
+
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 // RedirectToHTTPS - Redirects from HTTP to HTTPS.
@@ -22,4 +25,9 @@ func (rc RequestCall) RedirectToHTTPS() {
 
 	// Just write to client, no need to cache this response.
 	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+
+	tracing.AddTagsToSpan(rc.TracingSpan, map[string]string{
+		"response.location":    targetURL.String(),
+		"response.status_code": strconv.Itoa(rc.DomainConfig.Server.Upstream.RedirectStatusCode),
+	})
 }

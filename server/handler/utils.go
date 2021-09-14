@@ -29,6 +29,9 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
+// RequestIDHeader - HTTP Header to be forwarded to the upstream backend.
+const RequestIDHeader = "X-Go-Proxy-Cache-Request-ID"
+
 var r *dnscache.Resolver = &dnscache.Resolver{
 	// TODO: Customize timeout
 }
@@ -204,6 +207,8 @@ func (rc RequestCall) ProxyDirector(req *http.Request) {
 	req.Header.Set("X-Forwarded-Host", rc.Request.Header.Get("Host"))
 
 	req.Header.Set("X-Forwarded-Proto", rc.GetScheme())
+
+	req.Header.Set(RequestIDHeader, rc.ReqID)
 
 	previousXForwardedFor := rc.Request.Header.Get("X-Forwarded-For")
 	clientIP := utils.StripPort(rc.Request.RemoteAddr)

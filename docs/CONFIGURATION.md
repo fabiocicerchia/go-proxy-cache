@@ -6,30 +6,38 @@
 
 ## Environment Variables
 
-- `SERVER_HTTPS_PORT` = 443
-- `SERVER_HTTP_PORT` = 80
-- `TLS_AUTO_CERT` = 0
-- `TLS_EMAIL`
-- `TLS_CERT_FILE`
-- `TLS_KEY_FILE`
-- `TIMEOUT_READ` = 5s
-- `TIMEOUT_READ_HEADER` = 2s
-- `TIMEOUT_WRITE` = 5s
-- `TIMEOUT_IDLE` = 20s
-- `TIMEOUT_HANDLER` = 5s
+- `BALANCING_ALGORITHM` = `round-robin`
+- `CACHE_ALLOWED_METHODS`
+- `CACHE_ALLOWED_STATUSES`
+- `DEFAULT_TTL`
 - `FORWARD_HOST`
+- `FORWARD_PORT`
 - `FORWARD_SCHEME`
+- `GZIP_ENABLED`
+- `HEALTHCHECK_INTERVAL`
+- `HEALTHCHECK_SCHEME` = `https`
+- `HEALTHCHECK_STATUS_CODES` = `200`
+- `HEALTHCHECK_TIMEOUT`
+- `HTTP2HTTPS`
 - `LB_ENDPOINT_LIST`
-- `HTTP2HTTPS` = 0
-- `REDIRECT_STATUS_CODE` = 301
-- `GZIP_ENABLED` = 0
-- `REDIS_DB` = 0
+- `REDIRECT_STATUS_CODE` = `301`
+- `REDIS_DB`
 - `REDIS_HOST`
 - `REDIS_PASSWORD`
-- `REDIS_PORT` = 6379
-- `DEFAULT_TTL` = 0
-- `CACHE_ALLOWED_STATUSES` = 200 301 302
-- `CACHE_ALLOWED_METHODS` = HEAD GET
+- `REDIS_PORT`
+- `SERVER_HTTPS_PORT`
+- `SERVER_HTTP_PORT`
+- `TIMEOUT_HANDLER`
+- `TIMEOUT_IDLE`
+- `TIMEOUT_READ_HEADER`
+- `TIMEOUT_READ`
+- `TIMEOUT_WRITE`
+- `TLS_AUTO_CERT`
+- `TLS_CERT_FILE`
+- `TLS_EMAIL`
+- `TLS_KEY_FILE`
+- `TRACING_ENABLED`
+- `TRACING_JAEGER_ENDPOINT`
 
 ## YAML
 
@@ -301,6 +309,13 @@ log:
   # - $http_user_agent = user agent
   # - $cached_status   = cache flag
   format: $host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status
+
+# --- TRACING
+tracing:
+  # Endpoint for Jaeger (eg: http://jaeger:14268/api/traces)
+  jaeger_endpoint: ~
+  # Enable/Disable the tracing.
+  enabled: false
 
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################

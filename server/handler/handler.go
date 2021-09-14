@@ -14,10 +14,12 @@ import (
 	"net/http"
 
 	"github.com/rs/xid"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 // HttpMethodPurge - PURGE method.
@@ -25,18 +27,40 @@ const HttpMethodPurge = "PURGE"
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	rc, err := initRequestParams(res, req)
+	ctx := req.Context()
+
+	ctx, tracingSpan := tracing.NewSpan(ctx, "server.handle_request")
+	defer tracingSpan.End()
+	tracing.AddTagsToSpan(tracingSpan, map[string]string{
+		"request.host": req.Host,
+		"request.url":  req.URL.String(),
+	})
+
+	rc, err := initRequestParams(res, req, tracingSpan)
 	if err != nil {
+		tracing.AddErrorToSpan(tracingSpan, err)
+		tracing.Fail(tracingSpan, "internal error")
+
 		rc.GetLogger().Errorf(err.Error())
 		return
 	}
+
+	reqURL := rc.GetRequestURL()
+	tracing.AddTagsToSpan(tracingSpan, map[string]string{
+		"request.id":        rc.ReqID,
+		"request.full_url":  reqURL.String(),
+		"request.method":    rc.Request.Method,
+		"request.scheme":    rc.GetScheme(),
+		"request.websocket": fmt.Sprintf("%v", rc.IsWebSocket()),
+	})
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {
 			logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")
 		}
 
-		rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
+		rc.SendMethodNotAllowed()
+
 		return
 	}
 
@@ -57,28 +81,26 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, error) {
+func initRequestParams(res http.ResponseWriter, req *http.Request, tracingSpan trace.Span) (RequestCall, error) {
 	var configFound bool
 
 	reqID := xid.New().String()
 	rc := RequestCall{
-		ReqID:    reqID,
-		Response: response.NewLoggedResponseWriter(res, reqID),
-		Request:  *req,
+		ReqID:       reqID,
+		Response:    response.NewLoggedResponseWriter(res, reqID),
+		Request:     *req,
+		TracingSpan: tracingSpan,
 	}
 
 	listeningPort := getListeningPort(req.Context())
 
 	rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
 	if !configFound || !rc.IsLegitRequest(listeningPort) {
-		rc.Response.SendNotImplemented()
+		rc.SendNotImplemented()
 
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, CacheStatusLabel[CacheStatusMiss])
 
 		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed (mostly likely it's a configuration mismatch).", rc.Request.Host, listeningPort)
-	}
-
-	if rc.DomainConfig.Server.GZip {
 	}
 
 	return rc, nil

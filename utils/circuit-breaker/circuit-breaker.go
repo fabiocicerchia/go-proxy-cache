@@ -10,8 +10,10 @@ package circuitbreaker
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"time"
 
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
 )
@@ -50,6 +52,12 @@ func cbReadyToTrip(config CircuitBreaker) func(counts gobreaker.Counts) bool {
 }
 
 func cbOnStateChange(name string, from gobreaker.State, to gobreaker.State) {
+	tracing.AddEventsToSpan(tracing.SpanFromContext(context.Background()), "circuit_breaker.change_state", map[string]string{
+		"cb.name":    name,
+		"state.from": from.String(),
+		"state.to":   to.String(),
+	})
+
 	log.Warnf("Circuit Breaker '%s' - Changed from %s to %s", name, from.String(), to.String())
 }
 

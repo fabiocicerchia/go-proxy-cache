@@ -10,15 +10,19 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 // SchemeHTTPS - HTTPS scheme.
@@ -39,6 +43,7 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration
+	TracingSpan  trace.Span // TODO: REMOVE
 }
 
 // GetLogger - Get logger instance with RequestID.
@@ -52,6 +57,15 @@ func (rc RequestCall) GetLogger() *log.Entry {
 func (rc RequestCall) IsLegitRequest(listeningPort string) bool {
 	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
+
+	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
+		"request.is_legit.hostname_matches": fmt.Sprintf("%v", hostMatch),
+		"request.is_legit.port_matches":     fmt.Sprintf("%v", legitPort),
+		"request.is_legit.req_hostname":     rc.GetHostname(),
+		"request.is_legit.req_port":         listeningPort,
+		"request.is_legit.conf_hostname":    rc.DomainConfig.Server.Upstream.Host,
+		"request.is_legit.conf_port":        fmt.Sprintf("%v", rc.DomainConfig.Server.Port),
+	})
 
 	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
 	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
@@ -78,7 +92,7 @@ func (rc RequestCall) GetHostname() string {
 // GetScheme - Returns current request scheme.
 // For server requests the URL is parsed from the URI supplied on the
 // Request-Line as stored in RequestURI. For most requests, fields other than
-// Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
+// Path and RawQuery will be empty. (TracingSpan RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
 	if rc.IsWebSocket() && rc.Request.TLS != nil {
@@ -99,4 +113,36 @@ func (rc RequestCall) GetScheme() string {
 // IsWebSocket - Checks whether a request is a websocket.
 func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
+}
+
+func (rc RequestCall) SendNotImplemented() {
+	rc.Response.SendNotImplemented()
+
+	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
+		"response.status_code": strconv.Itoa(http.StatusNotImplemented),
+	})
+}
+
+func (rc RequestCall) SendMethodNotAllowed() {
+	rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
+
+	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
+		"response.status_code": strconv.Itoa(http.StatusMethodNotAllowed),
+	})
+}
+
+func (rc RequestCall) SendNotModifiedResponse() {
+	rc.Response.SendNotModifiedResponse()
+
+	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
+		"response.status_code": strconv.Itoa(http.StatusNotModified),
+	})
+}
+
+func (rc RequestCall) SendResponse() {
+	rc.Response.SendResponse()
+
+	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
+		"response.status_code": strconv.Itoa(rc.Response.StatusCode),
+	})
 }

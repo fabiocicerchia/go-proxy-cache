@@ -55,6 +55,7 @@ type Configuration struct {
 	CircuitBreaker circuitbreaker.CircuitBreaker `yaml:"circuit_breaker"`
 	Domains        Domains                       `yaml:"domains"`
 	Log            Log                           `yaml:"log"`
+	Tracing        Tracing                       `yaml:"tracing"`
 	domainsCache   map[string]Configuration
 }
 
@@ -136,6 +137,12 @@ type Cache struct {
 type Log struct {
 	TimeFormat string `yaml:"time_format"`
 	Format     string `yaml:"format"`
+}
+
+// Tracing - Defines the config for the OpenTelemetry tracing.
+type Tracing struct {
+	JaegerEndpoint string `yaml:"jaeger_endpoint" envconfig:"TRACING_JAEGER_ENDPOINT"`
+	Enabled        bool   `yaml:"enabled" envconfig:"TRACING_ENABLED"`
 }
 
 // DomainSet - Holds the uniqueness details of the domain.
