@@ -5,7 +5,7 @@
 ### docker-compose
 
 ```yaml
-version: '3.7'
+version: '3.8'
 
 services:
   goproxycache:
@@ -22,7 +22,7 @@ services:
       - "6379:6379"
 
   nginx:
-    image: nginx:1.19.5-alpine
+    image: nginx:alpine
     restart: always
     ports:
       - "8080:80"
@@ -31,12 +31,18 @@ services:
       - [...]
 
   phpfpm:
-    image: php:7.4-fpm-alpine
+    image: php:fpm-alpine
     restart: always
     ports:
       - "9000:9000"
     volumes:
       - [...]
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "14268:14268"
+      - "16686:16686"
 ```
 
 ### go-proxy-cache
@@ -224,6 +230,13 @@ server:
       interval: ~
       # Fallback scheme if endpoint doesn't provide it.
       scheme: https
+
+# --- TRACING
+tracing:
+  # Endpoint for Jaeger (eg: http://jaeger:14268/api/traces)
+  jaeger_endpoint: ~
+  # Enable/Disable the tracing.
+  enabled: false
 
 # --- CACHE
 cache:

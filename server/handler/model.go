@@ -10,15 +10,19 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 // SchemeHTTPS - HTTPS scheme.
@@ -39,6 +43,8 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration
+	propagators  propagation.TextMapPropagator
+	tracer       trace.Tracer
 }
 
 // GetLogger - Get logger instance with RequestID.
@@ -49,9 +55,17 @@ func (rc RequestCall) GetLogger() *log.Entry {
 }
 
 // IsLegitRequest - Check whether a request is bound on the right Host and Port.
-func (rc RequestCall) IsLegitRequest(listeningPort string) bool {
+func (rc RequestCall) IsLegitRequest(ctx context.Context, listeningPort string) bool {
 	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
+
+	tracing.SpanFromContext(ctx).
+		SetTag("request.is_legit.hostname_matches", hostMatch).
+		SetTag("request.is_legit.port_matches", legitPort).
+		SetTag("request.is_legit.req_hostname", rc.GetHostname()).
+		SetTag("request.is_legit.req_port", listeningPort).
+		SetTag("request.is_legit.conf_hostname", rc.DomainConfig.Server.Upstream.Host).
+		SetTag("request.is_legit.conf_port", rc.DomainConfig.Server.Port)
 
 	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
 	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
@@ -99,4 +113,32 @@ func (rc RequestCall) GetScheme() string {
 // IsWebSocket - Checks whether a request is a websocket.
 func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
+}
+
+func (rc RequestCall) SendNotImplemented(ctx context.Context) {
+	rc.Response.SendNotImplemented()
+
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", http.StatusNotImplemented)
+}
+
+func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
+	rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
+
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", http.StatusMethodNotAllowed)
+}
+
+func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
+	rc.Response.SendNotModifiedResponse()
+
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", http.StatusNotModified)
+}
+
+func (rc RequestCall) SendResponse(ctx context.Context) {
+	rc.Response.SendResponse()
+
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", rc.Response.StatusCode)
 }

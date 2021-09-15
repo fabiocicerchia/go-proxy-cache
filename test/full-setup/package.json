@@ -9,6 +9,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "jaeger-client": "^3.18.1",
+    "opentracing": "^0.14.5",
     "ws": "^7.5.3"
   }
 }

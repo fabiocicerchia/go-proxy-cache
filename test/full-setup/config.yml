@@ -26,6 +26,10 @@ server:
 cache:
   host: redis
 
+tracing:
+  jaeger_endpoint: jaeger:6831
+  enabled: true
+
 domains:
   example_com:
     server:

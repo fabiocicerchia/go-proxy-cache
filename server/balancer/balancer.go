@@ -184,19 +184,19 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 
 	req, err := http.NewRequest("HEAD", endpointURL, nil)
 	if err != nil {
-		log.Errorf("Healthcheck request failed for %s: %s", endpointURL, err)
+		log.Errorf("Healthcheck request failed for %s: %s", endpointURL, err) // TODO: Add to trace span?
 		return
 	}
 	res, err := getClient(config.Timeout, scheme == "https").Do(req)
 
 	v.Healthy = err == nil
 	if err != nil {
-		log.Errorf("Healthcheck failed for %s: %s", endpointURL, err)
+		log.Errorf("Healthcheck failed for %s: %s", endpointURL, err) // TODO: Add to trace span?
 	} else {
 		v.Healthy = slice.ContainsString(config.StatusCodes, strconv.Itoa(res.StatusCode))
 
 		if !v.Healthy {
-			log.Errorf("Endpoint %s is not healthy (%d).", endpointURL, res.StatusCode)
+			log.Errorf("Endpoint %s is not healthy (%d).", endpointURL, res.StatusCode) // TODO: Add to trace span?
 		}
 	}
 }

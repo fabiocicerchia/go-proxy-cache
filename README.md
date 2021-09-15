@@ -126,6 +126,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 ### Logging
 
 - **Request Tracing**, each line in logs has a RequestID to easily identify the response flow.
+- **OpenTelemetry Tracing**, each request has a deep tracing with Jaeger (optional).
 
 ## Configuration
 
