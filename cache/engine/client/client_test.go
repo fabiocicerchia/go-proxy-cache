@@ -1,3 +1,4 @@
+//go:build all || functional
 // +build all functional
 
 package client_test

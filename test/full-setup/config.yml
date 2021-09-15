@@ -27,7 +27,7 @@ cache:
   host: redis
 
 tracing:
-  jaeger_endpoint: http://jaeger:14268/api/traces
+  jaeger_endpoint: jaeger:6831
   enabled: true
 
 domains:

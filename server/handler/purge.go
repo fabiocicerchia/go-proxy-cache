@@ -11,9 +11,7 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
@@ -31,10 +29,9 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
-		tracing.AddTagsToSpan(tracing.SpanFromContext(ctx), map[string]string{
-			"purge.status":         fmt.Sprintf("%v", status),
-			"response.status_code": strconv.Itoa(http.StatusNotFound),
-		})
+		tracing.SpanFromContext(ctx).
+			SetTag("purge.status", status).
+			SetTag("response.status_code", http.StatusNotFound)
 
 		if err != nil {
 			tracing.AddErrorToSpan(tracing.SpanFromContext(ctx), err)
@@ -47,10 +44,9 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
 
-	tracing.AddTagsToSpan(tracing.SpanFromContext(ctx), map[string]string{
-		"purge.status":         fmt.Sprintf("%v", status),
-		"response.status_code": strconv.Itoa(http.StatusOK),
-	})
+	tracing.SpanFromContext(ctx).
+		SetTag("purge.status", status).
+		SetTag("response.status_code", http.StatusOK)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")

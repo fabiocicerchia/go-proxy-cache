@@ -13,9 +13,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
+
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 var cb map[string]*gobreaker.CircuitBreaker = make(map[string]*gobreaker.CircuitBreaker)

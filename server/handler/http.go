@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
-	"strconv"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -59,8 +58,8 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
-	_, tracingSpan := tracing.NewSpan(ctx, "handler.handle_http_request_and_proxy")
-	defer tracingSpan.End()
+	tracingSpan := tracing.NewSpan("handler.handle_http_request_and_proxy")
+	defer tracingSpan.Finish()
 
 	cached := CacheStatusMiss
 
@@ -73,12 +72,11 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 		cached = rc.serveCachedContent()
 	}
 
-	tracing.AddTagsToSpan(tracingSpan, map[string]string{
-		"cache.forced_fresh": fmt.Sprintf("%v", forceFresh),
-		"cache.cacheable":    fmt.Sprintf("%v", enableCachedResponse),
-		"cache.cached":       CacheStatusLabel[cached],
-		"cache.stale":        "false",
-	})
+	tracingSpan.
+		SetTag("cache.forced_fresh", forceFresh).
+		SetTag("cache.cacheable", enableCachedResponse).
+		SetTag("cache.cached", CacheStatusLabel[cached]).
+		SetTag("cache.stale", false)
 
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
@@ -92,8 +90,8 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 }
 
 func (rc RequestCall) serveCachedContent() int {
-	_, tracingSpan := tracing.NewSpan(rc.Request.Context(), "handler.serve_cached_content")
-	defer tracingSpan.End()
+	tracingSpan := tracing.NewSpan("handler.serve_cached_content")
+	defer tracingSpan.Finish()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
@@ -112,10 +110,9 @@ func (rc RequestCall) serveCachedContent() int {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 	}
 
-	tracing.AddTagsToSpan(tracingSpan, map[string]string{
-		"cache.stale":          fmt.Sprintf("%v", uriObj.Stale),
-		"response.status_code": strconv.Itoa(rc.Response.StatusCode),
-	})
+	tracingSpan.
+		SetTag("cache.stale", uriObj.Stale).
+		SetTag("response.status_code", rc.Response.StatusCode)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
@@ -123,8 +120,8 @@ func (rc RequestCall) serveCachedContent() int {
 }
 
 func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
-	_, tracingSpan := tracing.NewSpan(ctx, "handler.serve_reverse_proxy_http")
-	defer tracingSpan.End()
+	tracingSpan := tracing.NewSpan("handler.serve_reverse_proxy_http")
+	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()
 	if err != nil {
@@ -139,19 +136,18 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	tracing.AddTagsToSpan(tracingSpan, map[string]string{
-		"proxy.endpoint":     proxyURL.String(),
-		"cache.forced_fresh": "false",
-		"cache.cacheable":    fmt.Sprintf("%v", enableCachedResponse),
-		"cache.cached":       CacheStatusLabel[CacheStatusMiss],
-		"cache.stale":        "false",
-	})
+	tracingSpan.
+		SetTag("proxy.endpoint", proxyURL.String()).
+		SetTag("cache.forced_fresh", false).
+		SetTag("cache.cacheable", enableCachedResponse).
+		SetTag("cache.cached", CacheStatusLabel[CacheStatusMiss]).
+		SetTag("cache.stale", false)
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector(ctx)
+	gpcDirector := rc.ProxyDirector(tracingSpan)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.
@@ -159,9 +155,9 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 		gpcDirector(req)
 	}
 
-	serveNotModified := rc.GetResponseWithETag(proxy)
+	serveNotModified := rc.GetResponseWithETag(ctx, proxy)
 	if serveNotModified {
-		rc.SendNotModifiedResponse()
+		rc.SendNotModifiedResponse(ctx)
 		return
 	}
 
@@ -169,7 +165,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 		WrapResponseForGZip(rc.Response, &rc.Request)
 	}
 
-	rc.SendResponse()
+	rc.SendResponse(ctx)
 	rc.storeResponse()
 }
 
@@ -178,17 +174,15 @@ func (rc RequestCall) storeResponse() {
 		return
 	}
 
-	_, tracingSpan := tracing.NewSpan(rc.Request.Context(), "handler.store_response")
-	defer tracingSpan.End()
+	tracingSpan := tracing.NewSpan("handler.store_response")
+	defer tracingSpan.Finish()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
 	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
 	stored, err := doStoreResponse(rcDTO, rc.DomainConfig.Cache)
 
-	tracing.AddTagsToSpan(tracingSpan, map[string]string{
-		"storage.cached": fmt.Sprintf("%v", stored),
-	})
+	tracingSpan.SetTag("storage.cached", stored)
 
 	if err != nil {
 		tracing.AddErrorToSpan(tracingSpan, err)

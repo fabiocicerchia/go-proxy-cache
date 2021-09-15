@@ -11,23 +11,22 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/opentracing/opentracing-go"
 )
 
 // HandleHealthcheck - Returns healthcheck status.
 func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		ctx := req.Context()
+		tracingSpan := tracing.StartSpanFromRequest("server.handle_healthcheck", req)
+		defer tracingSpan.Finish()
+		ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
 
-		ctx, tracingSpan := tracing.NewSpan(ctx, "server.handle_healthcheck")
-		defer tracingSpan.End()
-
-		rc, err := initRequestParams(res, req)
+		rc, err := initRequestParams(ctx, res, req)
 		if err != nil {
 			tracing.AddErrorToSpan(tracingSpan, err)
 			tracing.Fail(tracingSpan, "internal error")
@@ -51,9 +50,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		lwr.WriteHeader(statusCode)
 		_ = lwr.WriteBody("HTTP OK\n")
 
-		tracing.AddTagsToSpan(tracingSpan, map[string]string{
-			"response.status_code": strconv.Itoa(statusCode),
-		})
+		tracingSpan.SetTag("response.status_code", statusCode)
 
 		if redisOK {
 			_ = lwr.WriteBody("REDIS OK\n")

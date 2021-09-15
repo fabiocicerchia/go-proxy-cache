@@ -10,10 +10,9 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	log "github.com/sirupsen/logrus"
@@ -45,7 +44,7 @@ type RequestCall struct {
 	Request      http.Request
 	DomainConfig config.Configuration
 	propagators  propagation.TextMapPropagator
-	tracer       trace.TracerProvider
+	tracer       trace.Tracer
 }
 
 // GetLogger - Get logger instance with RequestID.
@@ -56,18 +55,17 @@ func (rc RequestCall) GetLogger() *log.Entry {
 }
 
 // IsLegitRequest - Check whether a request is bound on the right Host and Port.
-func (rc RequestCall) IsLegitRequest(listeningPort string) bool {
+func (rc RequestCall) IsLegitRequest(ctx context.Context, listeningPort string) bool {
 	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
 
-	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
-		"request.is_legit.hostname_matches": fmt.Sprintf("%v", hostMatch),
-		"request.is_legit.port_matches":     fmt.Sprintf("%v", legitPort),
-		"request.is_legit.req_hostname":     rc.GetHostname(),
-		"request.is_legit.req_port":         listeningPort,
-		"request.is_legit.conf_hostname":    rc.DomainConfig.Server.Upstream.Host,
-		"request.is_legit.conf_port":        fmt.Sprintf("%v", rc.DomainConfig.Server.Port),
-	})
+	tracing.SpanFromContext(ctx).
+		SetTag("request.is_legit.hostname_matches", hostMatch).
+		SetTag("request.is_legit.port_matches", legitPort).
+		SetTag("request.is_legit.req_hostname", rc.GetHostname()).
+		SetTag("request.is_legit.req_port", listeningPort).
+		SetTag("request.is_legit.conf_hostname", rc.DomainConfig.Server.Upstream.Host).
+		SetTag("request.is_legit.conf_port", rc.DomainConfig.Server.Port)
 
 	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
 	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
@@ -117,34 +115,30 @@ func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
 }
 
-func (rc RequestCall) SendNotImplemented() {
+func (rc RequestCall) SendNotImplemented(ctx context.Context) {
 	rc.Response.SendNotImplemented()
 
-	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
-		"response.status_code": strconv.Itoa(http.StatusNotImplemented),
-	})
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", http.StatusNotImplemented)
 }
 
-func (rc RequestCall) SendMethodNotAllowed() {
+func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
 
-	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
-		"response.status_code": strconv.Itoa(http.StatusMethodNotAllowed),
-	})
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", http.StatusMethodNotAllowed)
 }
 
-func (rc RequestCall) SendNotModifiedResponse() {
+func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
 	rc.Response.SendNotModifiedResponse()
 
-	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
-		"response.status_code": strconv.Itoa(http.StatusNotModified),
-	})
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", http.StatusNotModified)
 }
 
-func (rc RequestCall) SendResponse() {
+func (rc RequestCall) SendResponse(ctx context.Context) {
 	rc.Response.SendResponse()
 
-	tracing.AddTagsToSpan(tracing.SpanFromContext(rc.Request.Context()), map[string]string{
-		"response.status_code": strconv.Itoa(rc.Response.StatusCode),
-	})
+	tracing.SpanFromContext(ctx).
+		SetTag("response.status_code", rc.Response.StatusCode)
 }

@@ -1,3 +1,4 @@
+//go:build all || unit
 // +build all unit
 
 package transport_test

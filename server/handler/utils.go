@@ -19,15 +19,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/dnscache"
 	log "github.com/sirupsen/logrus"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
@@ -197,7 +197,7 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 }
 
 // ProxyDirector - Add extra behaviour to request.
-func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request) {
+func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Request) {
 	return func(req *http.Request) {
 		upstream := rc.DomainConfig.Server.Upstream
 		overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
@@ -225,7 +225,6 @@ func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request)
 
 		req.Host = host
 
-		// tracing
-		otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
+		tracing.Inject(span, req)
 	}
 }

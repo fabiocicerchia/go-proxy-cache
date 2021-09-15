@@ -70,6 +70,9 @@ services:
     command: "npm start"
     user: "1000:1000"
     working_dir: /home/app
+    depends_on:
+      jaeger:
+        condition: service_healthy
     volumes:
       - ./:/home/app
     ports:

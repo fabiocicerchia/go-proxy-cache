@@ -11,7 +11,6 @@ package handler
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/yhat/wsutil"
@@ -30,8 +29,8 @@ func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
 }
 
 func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
-	_, tracingSpan := tracing.NewSpan(ctx, "handler.serve_reverse_proxy_ws")
-	defer tracingSpan.End()
+	tracingSpan := tracing.NewSpan("handler.serve_reverse_proxy_ws")
+	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()
 	if err != nil {
@@ -43,18 +42,17 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	tracing.AddTagsToSpan(tracingSpan, map[string]string{
-		"proxy.endpoint":     proxyURL.String(),
-		"cache.forced_fresh": "false",
-		"cache.cacheable":    fmt.Sprintf("%v", enableCachedResponse),
-		"cache.cached":       CacheStatusLabel[CacheStatusMiss],
-		"cache.stale":        "false",
-	})
+	tracingSpan.
+		SetTag("proxy.endpoint", proxyURL.String()).
+		SetTag("cache.forced_fresh", false).
+		SetTag("cache.cacheable", enableCachedResponse).
+		SetTag("cache.cached", CacheStatusLabel[CacheStatusMiss]).
+		SetTag("cache.stale", false)
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector(ctx)
+	gpcDirector := rc.ProxyDirector(tracingSpan)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.

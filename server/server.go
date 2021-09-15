@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -58,18 +59,16 @@ func Run(appVersion string, configFile string) {
 	config.Print()
 
 	// Init tracing
-	tracer, err := tracing.NewJaegerProvider(ctx, tracing.Config{
-		JaegerEndpoint: config.Config.Tracing.JaegerEndpoint,
-		ServiceName:    "go-proxy-cache",
-		ServiceVersion: appVersion,
-		Environment:    os.Getenv("TRACING_ENV"),
-		Enabled:        config.Config.Tracing.Enabled,
-	})
+	tracer, closer, err := tracing.NewJaegerProvider(
+		appVersion,
+		config.Config.Tracing.JaegerEndpoint,
+		config.Config.Tracing.Enabled,
+	)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer tracer.Close(ctx)
-	tracer.Start()
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
 
 	// init servers
 	servers = &Servers{

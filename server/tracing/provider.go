@@ -10,89 +10,35 @@ package tracing
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"context"
+	"io"
+	"os"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/trace/jaeger"
-	"go.opentelemetry.io/otel/propagation"
-	sdkresource "go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/semconv"
-	"go.opentelemetry.io/otel/trace"
+	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go"
+	jaegerConfig "github.com/uber/jaeger-client-go/config"
 )
 
 // TODO: Make it customizable
 const openTracingSampleRatio = 1.0
 
-// Config is the configuration for OpenTelemetry (Jaeger).
-type Config struct {
-	JaegerEndpoint string
-	ServiceName    string
-	ServiceVersion string
-	Environment    string
-	Enabled        bool
-}
-
-// OpenTelemetryProvider represents the tracer provider.
-type OpenTelemetryProvider struct {
-	provider trace.TracerProvider
-}
-
-var tracer trace.TracerProvider
-
-// Close shuts down the Jaeger provider.
-func (otp OpenTelemetryProvider) Close(ctx context.Context) error {
-	if prv, ok := otp.provider.(*sdktrace.TracerProvider); ok {
-		return prv.Shutdown(ctx)
-	}
-
-	return nil
-}
-
-// Start the Jaeger provider.
-func (otp OpenTelemetryProvider) Start() {
-	otel.SetTracerProvider(otp.provider)
-	propagator := propagation.NewCompositeTextMapPropagator(propagation.Baggage{}, propagation.TraceContext{})
-	otel.SetTextMapPropagator(propagator)
-}
-
 // NewJaegerProvider returns a new instance of Jaeger.
-func NewJaegerProvider(ctx context.Context, config Config) (OpenTelemetryProvider, error) {
-	if !config.Enabled {
-		return OpenTelemetryProvider{
-			provider: trace.NewNoopTracerProvider(),
-		}, nil
+func NewJaegerProvider(appVersion string, jaegerEndpoint string, enabled bool) (opentracing.Tracer, io.Closer, error) {
+	cfg := jaegerConfig.Configuration{
+		ServiceName: "go-proxy-cache",
+		Disabled:    !enabled,
+		Tags: []opentracing.Tag{
+			{Key: "service.version", Value: appVersion},
+			{Key: "service.env", Value: os.Getenv("TRACING_ENV")},
+		},
+		Sampler: &jaegerConfig.SamplerConfig{
+			Type:  "probabilistic",
+			Param: openTracingSampleRatio,
+		},
+		Reporter: &jaegerConfig.ReporterConfig{
+			LocalAgentHostPort: jaegerEndpoint,
+		},
 	}
 
-	rawExp, err := jaeger.NewRawExporter(
-		jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(config.JaegerEndpoint)),
-	)
-	if err != nil {
-		return OpenTelemetryProvider{}, err
-	}
-
-	resourceProcess, _ := sdkresource.New(context.Background(),
-		sdkresource.WithProcess(),
-	)
-	resourceApp := sdkresource.NewWithAttributes(
-		semconv.ServiceNameKey.String(config.ServiceName),
-		semconv.ServiceVersionKey.String(config.ServiceVersion),
-		semconv.DeploymentEnvironmentKey.String(config.Environment),
-	)
-	resource := sdkresource.Merge(resourceProcess, resourceApp)
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.TraceIDRatioBased(openTracingSampleRatio)),
-		sdktrace.WithBatcher(rawExp),
-		sdktrace.WithResource(resource),
-	)
-
-	tracer = tp
-
-	return OpenTelemetryProvider{
-		provider: tp,
-	}, nil
-}
-
-func GetTracer() trace.TracerProvider {
-	return tracer
+	tracer, closer, err := cfg.NewTracer(jaegerConfig.Logger(jaeger.StdLogger))
+	return tracer, closer, err
 }

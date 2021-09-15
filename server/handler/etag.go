@@ -10,6 +10,7 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"net/http/httputil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
@@ -20,7 +21,7 @@ import (
 const HttpVersion2 = 2
 
 // HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
-func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNotModified bool) {
+func (rc RequestCall) GetResponseWithETag(ctx context.Context, proxy *httputil.ReverseProxy) (serveNotModified bool) {
 	// Start buffering the response.
 	proxy.ServeHTTP(rc.Response, &rc.Request)
 
@@ -34,7 +35,7 @@ func (rc RequestCall) GetResponseWithETag(proxy *httputil.ReverseProxy) (serveNo
 	}
 
 	// Serve existing response.
-	if rc.Response.MustServeOriginalResponse(&rc.Request) {
+	if rc.Response.MustServeOriginalResponse(ctx, &rc.Request) {
 		tracing.AddEventsToSpan(tracing.SpanFromContext(rc.Request.Context()), "request.etag.serve_origina", map[string]string{})
 		rc.GetLogger().Info("Serving original response as cannot be handled with ETag.")
 		return false
