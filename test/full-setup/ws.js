@@ -1,11 +1,32 @@
 var https = require('https')
 var fs = require('fs')
 var WebSocket = require('ws')
+var opentracing = require('opentracing')
+var initTracer = require('jaeger-client').initTracer
 
-function onConnection (ws) {
+var tracer = initTracer({
+  serviceName: 'ws-server',
+  sampler: {
+    type: "const",
+    param: 1
+  },
+  reporter: {
+    collectorEndpoint: 'http://jaeger:14268/api/traces',
+  }
+}, {})
+
+function onConnection (ws, request) {
+  var headersCarrier = request.headers
+
   ws.on('message', function (message) {
+    const wireCtx = tracer.extract(opentracing.FORMAT_HTTP_HEADERS, headersCarrier)
+    const span = tracer.startSpan('http_request', {childOf: wireCtx})
+
+    span.log({'event': 'data_received'})
     console.log('Received from client: %s', message)
     ws.send('Server received from client: ' + message)
+
+    span.finish()
   })
 }
 

@@ -1,3 +1,4 @@
+//go:build all || functional
 // +build all functional
 
 package handler_test
@@ -20,6 +21,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
@@ -51,7 +53,11 @@ func TestGetResponseWithETagWithHTTP2(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	serveNotModified := rcMock.GetResponseWithETag(proxy)
+	tracingSpan := opentracing.GlobalTracer().StartSpan("")
+	defer tracingSpan.Finish()
+	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+
+	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
 	assert.False(t, serveNotModified)
 }
@@ -83,7 +89,11 @@ func TestGetResponseWithETagWithExistingETag(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	serveNotModified := rcMock.GetResponseWithETag(proxy)
+	tracingSpan := opentracing.GlobalTracer().StartSpan("")
+	defer tracingSpan.Finish()
+	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+
+	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
 	assert.False(t, serveNotModified)
 	assert.Equal(t, "TestGetResponseWithETagWithExistingETag", rr.Header().Get("ETag"))
@@ -115,7 +125,11 @@ func TestGetResponseWithETagGeneratedInternally(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	serveNotModified := rcMock.GetResponseWithETag(proxy)
+	tracingSpan := opentracing.GlobalTracer().StartSpan("")
+	defer tracingSpan.Finish()
+	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+
+	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
 	assert.False(t, serveNotModified)
 	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), rr.Header().Get("ETag"))
@@ -148,7 +162,11 @@ func TestGetResponseWithETagGeneratedInternallyAndFresh(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	serveNotModified := rcMock.GetResponseWithETag(proxy)
+	tracingSpan := opentracing.GlobalTracer().StartSpan("")
+	defer tracingSpan.Finish()
+	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+
+	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
 	assert.True(t, serveNotModified)
 	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), rr.Header().Get("ETag"))

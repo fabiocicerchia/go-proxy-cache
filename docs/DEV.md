@@ -18,6 +18,10 @@ $ ./gen-selfsigned-cert.sh www.w3.org
 $ docker-compose up
 ```
 
+## Tracing
+
+Jaeger is available by using the `test/full-setup` demo and browsing to `http://localhost:16686/`.
+
 ## Test
 
 **NOTE:** In order to have a fully working environment you need to put in the host file `127.0.0.1 nginx`.

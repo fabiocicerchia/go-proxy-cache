@@ -266,6 +266,13 @@ log:
   # - $cached_status   = cache flag
   format: $host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status
 
+# --- TRACING
+tracing:
+  # Endpoint for Jaeger (eg: http://jaeger:14268/api/traces)
+  jaeger_endpoint: ~
+  # Enable/Disable the tracing.
+  enabled: false
+
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################
 domains:

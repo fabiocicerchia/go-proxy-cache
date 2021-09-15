@@ -1,3 +1,4 @@
+//go:build all || unit
 // +build all unit
 
 package handler_test
@@ -14,9 +15,11 @@ package handler_test
 import (
 	"crypto/tls"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -48,9 +51,10 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 	domainID := cfg.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, cfg.Server.Upstream, false)
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
+	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
+	r.DomainConfig = cfg
 	proxyURL, _ := r.GetUpstreamURL()
-	r.ProxyDirector(&r.Request)
+	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -84,9 +88,10 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 	domainID := cfg.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, cfg.Server.Upstream, false)
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
+	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
+	r.DomainConfig = cfg
 	proxyURL, _ := r.GetUpstreamURL()
-	r.ProxyDirector(&r.Request)
+	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -122,9 +127,10 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
+	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
+	r.DomainConfig = cfg
 	proxyURL, _ := r.GetUpstreamURL()
-	r.ProxyDirector(&r.Request)
+	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -145,9 +151,10 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 		},
 	}
 
-	r = handler.RequestCall{Request: reqMock, DomainConfig: cfg}
+	r = handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
+	r.DomainConfig = cfg
 	proxyURL, _ = r.GetUpstreamURL()
-	r.ProxyDirector(&r.Request)
+	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -183,9 +190,10 @@ func TestXForwardedFor(t *testing.T) {
 	domainID := cfg.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, cfg.Server.Upstream, false)
 
-	r := handler.RequestCall{Request: reqMock, DomainConfig: cfg}
+	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
+	r.DomainConfig = cfg
 	_, _ = r.GetUpstreamURL()
-	r.ProxyDirector(&r.Request)
+	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "https", r.Request.Header.Get("X-Forwarded-Proto"))
 	assert.Equal(t, "192.168.1.1, 127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))

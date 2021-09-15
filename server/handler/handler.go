@@ -10,14 +10,17 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
+	"github.com/opentracing/opentracing-go"
 	"github.com/rs/xid"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 // HttpMethodPurge - PURGE method.
@@ -25,60 +28,81 @@ const HttpMethodPurge = "PURGE"
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	rc, err := initRequestParams(res, req)
+	tracingSpan := tracing.StartSpanFromRequest("server.handle_request", req)
+	defer tracingSpan.Finish()
+	ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
+
+	tracingSpan.
+		SetTag("request.host", req.Host).
+		SetTag("request.url", req.URL.String())
+
+	rc, err := initRequestParams(ctx, res, req)
 	if err != nil {
+		tracing.AddErrorToSpan(tracingSpan, err)
+		tracing.Fail(tracingSpan, "internal error")
+
 		rc.GetLogger().Errorf(err.Error())
 		return
 	}
+
+	reqURL := rc.GetRequestURL()
+	tracingSpan.
+		SetTag("request.id", rc.ReqID).
+		SetTag("request.full_url", reqURL.String()).
+		SetTag("request.method", rc.Request.Method).
+		SetTag("request.scheme", rc.GetScheme()).
+		SetTag("request.websocket", rc.IsWebSocket())
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {
 			logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")
 		}
 
-		rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
+		rc.SendMethodNotAllowed(ctx)
+
 		return
 	}
 
 	if rc.GetScheme() == SchemeHTTP && rc.DomainConfig.Server.Upstream.HTTP2HTTPS {
-		rc.RedirectToHTTPS()
+		rc.RedirectToHTTPS(ctx)
 		return
 	}
 
 	if rc.Request.Method == HttpMethodPurge {
-		rc.HandlePurge()
+		rc.HandlePurge(ctx)
 		return
 	}
 
 	if rc.IsWebSocket() {
-		rc.HandleWSRequestAndProxy()
+		rc.HandleWSRequestAndProxy(ctx)
 	} else {
-		rc.HandleHTTPRequestAndProxy()
+		rc.HandleHTTPRequestAndProxy(ctx)
 	}
 }
 
-func initRequestParams(res http.ResponseWriter, req *http.Request) (RequestCall, error) {
-	var configFound bool
-
+func NewRequestCall(res http.ResponseWriter, req *http.Request) RequestCall {
 	reqID := xid.New().String()
-	rc := RequestCall{
+	return RequestCall{
 		ReqID:    reqID,
 		Response: response.NewLoggedResponseWriter(res, reqID),
 		Request:  *req,
 	}
+}
+
+func initRequestParams(ctx context.Context, res http.ResponseWriter, req *http.Request) (RequestCall, error) {
+	var configFound bool
+
+	rc := NewRequestCall(res, req)
 
 	listeningPort := getListeningPort(req.Context())
 
 	rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
-	if !configFound || !rc.IsLegitRequest(listeningPort) {
-		rc.Response.SendNotImplemented()
+	if !configFound || !rc.IsLegitRequest(ctx, listeningPort) {
+		rc.SendNotImplemented(ctx)
 
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, CacheStatusLabel[CacheStatusMiss])
 
 		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed (mostly likely it's a configuration mismatch).", rc.Request.Host, listeningPort)
-	}
-
-	if rc.DomainConfig.Server.GZip {
 	}
 
 	return rc, nil

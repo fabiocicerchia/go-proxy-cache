@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -25,6 +26,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
@@ -47,13 +49,28 @@ type Servers struct {
 var servers *Servers
 
 // Run - Starts the GoProxyCache servers' listeners.
-func Run(configFile string) {
+func Run(appVersion string, configFile string) {
 	log.Infof("Starting...\n")
+
+	ctx := context.Background()
 
 	// Init configs
 	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
 
+	// Init tracing
+	tracer, closer, err := tracing.NewJaegerProvider(
+		appVersion,
+		config.Config.Tracing.JaegerEndpoint,
+		config.Config.Tracing.Enabled,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
+	// init servers
 	servers = &Servers{
 		HTTP:  make(map[string]Server),
 		HTTPS: make(map[string]Server),
@@ -76,11 +93,11 @@ func Run(configFile string) {
 	log.Error("SIGTERM or SIGINT caught, shutting down...")
 
 	// Attempt a graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeoutShutdown)
+	ctxDown, cancel := context.WithTimeout(ctx, DefaultTimeoutShutdown)
 	defer cancel()
 
 	log.Error("Shutting down servers...")
-	servers.shutdownServers(ctx)
+	servers.shutdownServers(ctxDown)
 
 	log.Error("All listeners shut down. Exiting.")
 }
@@ -91,10 +108,10 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 
 	// handlers
 	if domainConfig.Server.Healthcheck {
-		mux.HandleFunc("/healthcheck", handler.HandleHealthcheck(domainConfig))
+		mux.HandleFunc("/healthcheck", tracing.HTTPHandlerFunc(handler.HandleHealthcheck(domainConfig), "HandleHealthcheck"))
 	}
 
-	mux.HandleFunc("/", handler.HandleRequest)
+	mux.HandleFunc("/", tracing.HTTPHandlerFunc(handler.HandleRequest, "handle_request"))
 
 	// basic
 	var muxMiddleware http.Handler = mux

@@ -1,7 +1,4 @@
-//go:build all || unit
-// +build all unit
-
-package msgpack_test
+package tracing
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -13,22 +10,14 @@ package msgpack_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"testing"
+	"net/http"
 
-	"github.com/stretchr/testify/assert"
-
-	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 )
 
-func TestEncodeDecode(t *testing.T) {
-	str := []byte("test string")
+func HTTPHandlerFunc(handler http.HandlerFunc, operation string) http.HandlerFunc {
+	otelOpts := otelhttp.WithTracerProvider(otel.GetTracerProvider())
 
-	encoded, err := msgpack.Encode(str)
-	assert.Nil(t, err)
-
-	var decoded []byte
-	err = msgpack.Decode(encoded, &decoded)
-	assert.Nil(t, err)
-
-	assert.Equal(t, str, decoded)
+	return otelhttp.NewHandler(handler, operation, otelOpts).ServeHTTP
 }

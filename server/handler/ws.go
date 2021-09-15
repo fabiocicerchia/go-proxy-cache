@@ -10,23 +10,28 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.
-func (rc RequestCall) HandleWSRequestAndProxy() {
-	rc.serveReverseProxyWS()
+func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
+	rc.serveReverseProxyWS(ctx)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, CacheStatusLabel[CacheStatusMiss])
 	}
 }
 
-func (rc RequestCall) serveReverseProxyWS() {
+func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
+	tracingSpan := tracing.NewSpan("handler.serve_reverse_proxy_ws")
+	defer tracingSpan.Finish()
+
 	proxyURL, err := rc.GetUpstreamURL()
 	if err != nil {
 		rc.GetLogger().Errorf("Cannot process Upstream URL: %s", err.Error())
@@ -37,10 +42,17 @@ func (rc RequestCall) serveReverseProxyWS() {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
+	tracingSpan.
+		SetTag("proxy.endpoint", proxyURL.String()).
+		SetTag("cache.forced_fresh", false).
+		SetTag("cache.cacheable", enableCachedResponse).
+		SetTag("cache.cached", CacheStatusLabel[CacheStatusMiss]).
+		SetTag("cache.stale", false)
+
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector
+	gpcDirector := rc.ProxyDirector(tracingSpan)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.

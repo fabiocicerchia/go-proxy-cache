@@ -73,7 +73,7 @@ func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
 
 func (rdb *RedisClient) lock(key string) error {
 	if err := rdb.getMutex(key).Lock(); err != nil {
-		rdb.logger.Errorf("Lock Error on %s: %s", key, err)
+		rdb.logger.Errorf("Lock Error on %s: %s", key, err) // TODO: Add to trace span?
 		return err
 	}
 
@@ -82,7 +82,7 @@ func (rdb *RedisClient) lock(key string) error {
 
 func (rdb *RedisClient) unlock(key string) error {
 	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
-		rdb.logger.Errorf("Unlock Error on %s: %s", key, err)
+		rdb.logger.Errorf("Unlock Error on %s: %s", key, err) // TODO: Add to trace span?
 		return err
 	}
 
