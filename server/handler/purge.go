@@ -14,6 +14,7 @@ import (
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
@@ -32,10 +33,13 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 		tracing.SpanFromContext(ctx).
 			SetTag("purge.status", status).
 			SetTag("response.status_code", http.StatusNotFound)
+		metrics.IncStatusCode(http.StatusNotFound)
 
 		if err != nil {
 			tracing.AddErrorToSpan(tracing.SpanFromContext(ctx), err)
 			tracing.Fail(tracing.SpanFromContext(rc.Request.Context()), "internal error")
+
+			// TODO: Add tracing.Fail -> prometheus as failures
 		}
 
 		return
@@ -47,6 +51,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	tracing.SpanFromContext(ctx).
 		SetTag("purge.status", status).
 		SetTag("response.status_code", http.StatusOK)
+	metrics.IncStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")

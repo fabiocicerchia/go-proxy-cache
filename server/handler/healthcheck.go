@@ -14,6 +14,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
@@ -43,6 +44,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		_ = lwr.WriteBody("HTTP OK\n")
 
 		tracingSpan.SetTag("response.status_code", statusCode)
+		metrics.IncStatusCode(statusCode)
 
 		if redisOK {
 			_ = lwr.WriteBody("REDIS OK\n")

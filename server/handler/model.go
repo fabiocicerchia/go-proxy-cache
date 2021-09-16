@@ -21,6 +21,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
@@ -120,6 +121,7 @@ func (rc RequestCall) SendNotImplemented(ctx context.Context) {
 
 	tracing.SpanFromContext(ctx).
 		SetTag("response.status_code", http.StatusNotImplemented)
+	metrics.IncStatusCode(http.StatusNotImplemented)
 }
 
 func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
@@ -127,6 +129,7 @@ func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
 
 	tracing.SpanFromContext(ctx).
 		SetTag("response.status_code", http.StatusMethodNotAllowed)
+	metrics.IncStatusCode(http.StatusMethodNotAllowed)
 }
 
 func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
@@ -134,6 +137,7 @@ func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
 
 	tracing.SpanFromContext(ctx).
 		SetTag("response.status_code", http.StatusNotModified)
+	metrics.IncStatusCode(http.StatusNotModified)
 }
 
 func (rc RequestCall) SendResponse(ctx context.Context) {
@@ -141,4 +145,6 @@ func (rc RequestCall) SendResponse(ctx context.Context) {
 
 	tracing.SpanFromContext(ctx).
 		SetTag("response.status_code", rc.Response.StatusCode)
+	metrics.IncStatusCode(rc.Response.StatusCode)
+
 }

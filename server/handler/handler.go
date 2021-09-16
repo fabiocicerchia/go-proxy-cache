@@ -19,6 +19,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
@@ -31,6 +32,8 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	tracingSpan := tracing.StartSpanFromRequest("server.handle_request", req)
 	defer tracingSpan.Finish()
 	ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
+
+	metrics.IncRequestHost(req.Host)
 
 	tracingSpan.
 		SetTag("request.host", req.Host).
@@ -53,6 +56,8 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		SetTag("request.scheme", rc.GetScheme()).
 		SetTag("request.websocket", rc.IsWebSocket())
 
+	metrics.IncHttpMethod(rc.Request.Method)
+	metrics.IncUrlScheme(rc.GetScheme())
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {
 			logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")

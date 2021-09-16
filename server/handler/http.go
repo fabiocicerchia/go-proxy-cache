@@ -18,6 +18,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
@@ -98,6 +99,7 @@ func (rc RequestCall) serveCachedContent() int {
 	uriObj, err := storage.RetrieveCachedContent(rcDTO, rc.GetLogger())
 	if err != nil {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
+		metrics.IncCacheMiss()
 
 		return CacheStatusMiss
 	}
@@ -106,13 +108,18 @@ func (rc RequestCall) serveCachedContent() int {
 	if uriObj.Stale {
 		cached = CacheStatusStale
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderStale)
+
+		metrics.IncCacheStale()
 	} else {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
+
+		metrics.IncCacheHit()
 	}
 
 	tracingSpan.
 		SetTag("cache.stale", uriObj.Stale).
 		SetTag("response.status_code", rc.Response.StatusCode)
+	metrics.IncStatusCode(rc.Response.StatusCode)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 

@@ -13,6 +13,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 )
 
@@ -29,4 +30,5 @@ func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	tracing.SpanFromContext(ctx).
 		SetTag("response.location", targetURL.String()).
 		SetTag("response.status_code", rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	metrics.IncStatusCode(rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }
