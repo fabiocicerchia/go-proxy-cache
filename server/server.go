@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/opentracing/opentracing-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -25,12 +26,16 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
 const enableTimeoutHandler = true
+
+const GPCBindAddress = "0.0.0.0"
+const GPCPortNumber = "52021"
 
 // DefaultTimeoutShutdown - Default Timeout for shutting down a context.
 const DefaultTimeoutShutdown time.Duration = 5 * time.Second
@@ -79,6 +84,7 @@ func Run(appVersion string, configFile string) {
 	for _, domain := range config.GetDomains() {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
+	servers.AttachPlain(GPCBindAddress, GPCPortNumber, InitInternals())
 
 	// start server http & https
 	servers.startListeners()
@@ -102,14 +108,28 @@ func Run(appVersion string, configFile string) {
 	log.Error("All listeners shut down. Exiting.")
 }
 
+// InitInternals - Generates the internals endpoints (not exposed on public ports :80 :443).
+func InitInternals() http.Server {
+	mux := http.NewServeMux()
+
+	// TODO: must be accessed only from localhost
+
+	// handlers
+	// TODO: does it make sense to customize it per domain?
+	// if domainConfig.Server.Healthcheck {
+	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck(config.Config))
+	// }
+
+	// TODO: Flag to enable
+	metrics.Register()
+	mux.Handle("/metrics", promhttp.Handler())
+
+	return http.Server{Handler: mux}
+}
+
 // InitServer - Generates the http.Server configuration.
 func InitServer(domain string, domainConfig config.Configuration) http.Server {
 	mux := http.NewServeMux()
-
-	// handlers
-	if domainConfig.Server.Healthcheck {
-		mux.HandleFunc("/healthcheck", tracing.HTTPHandlerFunc(handler.HandleHealthcheck(domainConfig), "HandleHealthcheck"))
-	}
 
 	mux.HandleFunc("/", tracing.HTTPHandlerFunc(handler.HandleRequest, "handle_request"))
 

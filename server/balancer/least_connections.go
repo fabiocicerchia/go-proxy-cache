@@ -37,7 +37,7 @@ func NewLeastConnectionsBalancer(name string, items []Item) *LeastConnectionsBal
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
-func (b LeastConnectionsBalancer) GetHealthyNodes() []Item {
+func (b *LeastConnectionsBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
 	for _, v := range b.NodeBalancer.Items {

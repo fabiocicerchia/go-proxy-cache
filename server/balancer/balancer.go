@@ -165,7 +165,7 @@ func getClient(timeout time.Duration, tlsFlag bool) *http.Client {
 	if tlsFlag {
 		c.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // TODO: Customize it
+				InsecureSkipVerify: true, // TODO! Customize it
 			},
 		}
 	}
@@ -202,7 +202,7 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
-func (b NodeBalancer) GetHealthyNodes() []Item {
+func (b *NodeBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
 	for _, v := range b.Items {

@@ -16,7 +16,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
-	"github.com/opentracing/opentracing-go"
 )
 
 // HandleHealthcheck - Returns healthcheck status.
@@ -24,16 +23,9 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 	return func(res http.ResponseWriter, req *http.Request) {
 		tracingSpan := tracing.StartSpanFromRequest("server.handle_healthcheck", req)
 		defer tracingSpan.Finish()
-		ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
 
-		rc, err := initRequestParams(ctx, res, req)
-		if err != nil {
-			tracing.AddErrorToSpan(tracingSpan, err)
-			tracing.Fail(tracingSpan, "internal error")
-
-			rc.GetLogger().Errorf(err.Error())
-			return
-		}
+		rc := NewRequestCall(res, req)
+		rc.DomainConfig, _ = config.DomainConf(req.Host, rc.GetScheme())
 
 		domainID := rc.DomainConfig.Server.Upstream.GetDomainID()
 

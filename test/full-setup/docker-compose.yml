@@ -26,8 +26,9 @@ services:
       jaeger:
         condition: service_healthy
     ports:
-      - "50080:50080"
-      - "50443:50443"
+      - "50080:50080" # HTTP
+      - "50443:50443" # HTTPS
+      - "52021:52021" # GPC Internals
     volumes:
       - ./config.yml:/app/config.yml
       - ./certs:/app/certs
@@ -35,7 +36,7 @@ services:
   redis:
     image: redis:6.2.5-alpine3.14
     ports:
-      - 6379:6379
+      - "6379:6379" # Redis
     sysctls:
       # WARNING: The TCP backlog setting of 511 cannot be enforced because
       # /proc/sys/net/core/somaxconn is set to the lower value of 128.
@@ -59,10 +60,10 @@ services:
       - ./nginx/vhost.conf:/etc/nginx/conf.d/vhost.conf
       - ./certs:/certs
     ports:
-      - "40080:40080" # http
-      - "40081:40081" # ws
-      - "40082:40082" # wss
-      - "40443:40443" # https
+      - "40080:40080" # HTTP
+      - "40443:40443" # HTTPS
+      - "40081:40081" # WS
+      - "40082:40082" # WSS
 
   node:
     image: node:16.7.0-alpine3.14
@@ -76,8 +77,8 @@ services:
     volumes:
       - ./:/home/app
     ports:
-      - "9001:9001" # ws
-      - "9002:9002" # wss
+      - "9001:9001" # WS
+      - "9002:9002" # WSS
 
   jaeger:
     image: jaegertracing/all-in-one:1.26.0
@@ -95,3 +96,16 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090" # Prometheus
+    command: --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3001:3000" # Grafana
