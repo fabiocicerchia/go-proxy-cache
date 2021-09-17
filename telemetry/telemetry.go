@@ -9,28 +9,34 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	"github.com/go-http-utils/headers"
+	"github.com/opentracing/opentracing-go"
 )
 
-func RegisterRedirect(ctx context.Context, targetURL url.URL, statusCode int) {
-	tracing.SpanFromContext(ctx).
-		SetTag(tracing.TagResponseLocation, targetURL.String()).
-		SetTag(tracing.TagResponseStatusCode, statusCode)
-	metrics.IncStatusCode(statusCode)
+type TelemetryContext struct {
+	ctx         context.Context
+	tracingSpan opentracing.Span
 }
 
-func RegisterHostHealth(healthy int, unhealthy int) {
-	metrics.SetHostHealthy(float64(healthy))
-	metrics.SetHostUnhealthy(float64(unhealthy))
+func From(ctx context.Context) TelemetryContext {
+	return TelemetryContext{
+		ctx:         ctx,
+		tracingSpan: tracing.SpanFromContext(ctx),
+	}
 }
 
-func RegisterEvent(ctx context.Context, name string) {
-	tracing.AddEventsToSpan(tracing.SpanFromContext(ctx), name, map[string]string{})
+func (tc TelemetryContext) RegisterRedirect(targetURL url.URL) {
+	tc.tracingSpan.
+		SetTag(tracing.TagResponseLocation, targetURL.String())
 }
 
-func RegisterRequest(ctx context.Context, req http.Request) {
+func (tc TelemetryContext) RegisterEvent(name string) {
+	tracing.AddEventsToSpan(tc.tracingSpan, name, map[string]string{})
+}
+
+func (tc TelemetryContext) RegisterRequest(req http.Request) {
 	metrics.IncRequestHost(req.Host)
 
-	tracing.SpanFromContext(ctx).
+	tc.tracingSpan.
 		SetTag(tracing.TagRequestHost, req.Host).
 		SetTag(tracing.TagRequestUrl, req.URL.String()).
 		SetTag(tracing.TagRequestMethod, req.Method)
@@ -38,12 +44,10 @@ func RegisterRequest(ctx context.Context, req http.Request) {
 	metrics.IncHttpMethod(req.Method)
 }
 
-func RegisterRequestCall(ctx context.Context, reqID string, reqURL url.URL, scheme string, webSocket bool) {
-	tracingSpan := tracing.SpanFromContext(ctx)
+func (tc TelemetryContext) RegisterRequestCall(reqID string, reqURL url.URL, scheme string, webSocket bool) {
+	tc.tracingSpan.SetBaggageItem(tracing.BaggageRequestID, reqID)
 
-	tracingSpan.SetBaggageItem(tracing.BaggageRequestID, reqID)
-
-	tracingSpan.
+	tc.tracingSpan.
 		SetTag(tracing.TagRequestId, reqID).
 		SetTag(tracing.TagRequestFullUrl, reqURL.String()).
 		SetTag(tracing.TagRequestScheme, scheme).
@@ -52,35 +56,33 @@ func RegisterRequestCall(ctx context.Context, reqID string, reqURL url.URL, sche
 	metrics.IncUrlScheme(scheme)
 }
 
-func RegisterStatusCode(ctx context.Context, statusCode int) {
-	tracing.SpanFromContext(ctx).
+func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
+	tc.tracingSpan.
 		SetTag(tracing.TagResponseStatusCode, statusCode)
 	metrics.IncStatusCode(statusCode)
 }
 
-func RegisterRequestCacheStatus(ctx context.Context, forceFresh bool, enableCachedResponse bool, cached string) {
-	tracing.SpanFromContext(ctx).
+func (tc TelemetryContext) RegisterRequestCacheStatus(forceFresh bool, enableCachedResponse bool, cached string) {
+	tc.tracingSpan.
 		SetTag(tracing.TagCacheForcedFresh, forceFresh).
 		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
 		SetTag(tracing.TagCacheCached, cached).
 		SetTag(tracing.TagCacheStale, cached == "STALE") // TODO: Magic value
 }
 
-func RegisterCacheStaleOrHit(ctx context.Context, stale bool, statusCode int) {
+func (tc TelemetryContext) RegisterCacheStaleOrHit(stale bool) {
 	if stale {
 		metrics.IncCacheStale()
 	} else {
 		metrics.IncCacheHit()
 	}
 
-	tracing.SpanFromContext(ctx).
-		SetTag(tracing.TagCacheStale, stale).
-		SetTag(tracing.TagResponseStatusCode, statusCode)
-	metrics.IncStatusCode(statusCode)
+	tc.tracingSpan.
+		SetTag(tracing.TagCacheStale, stale)
 }
 
-func RegisterRequestUpstream(ctx context.Context, proxyURL url.URL, enableCachedResponse bool, cached string) {
-	tracing.SpanFromContext(ctx).
+func (tc TelemetryContext) RegisterRequestUpstream(proxyURL url.URL, enableCachedResponse bool, cached string) {
+	tc.tracingSpan.
 		SetTag(tracing.TagProxyEndpoint, proxyURL.String()).
 		SetTag(tracing.TagCacheForcedFresh, false).
 		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
@@ -88,8 +90,8 @@ func RegisterRequestUpstream(ctx context.Context, proxyURL url.URL, enableCached
 		SetTag(tracing.TagCacheStale, false)
 }
 
-func RegisterLegitRequest(ctx context.Context, hostMatch bool, legitPort bool, hostname string, listeningPort string, confHostname string, confPort interface{}) {
-	tracing.SpanFromContext(ctx).
+func (tc TelemetryContext) RegisterLegitRequest(hostMatch bool, legitPort bool, hostname string, listeningPort string, confHostname string, confPort interface{}) {
+	tc.tracingSpan.
 		SetTag(tracing.TagRequestIsLegitHostnameMatches, hostMatch).
 		SetTag(tracing.TagRequestIsLegitPortMatches, legitPort).
 		SetTag(tracing.TagRequestIsLegitRequestHostname, hostname).
@@ -98,24 +100,20 @@ func RegisterLegitRequest(ctx context.Context, hostMatch bool, legitPort bool, h
 		SetTag(tracing.TagRequestIsLegitConfPort, confPort)
 }
 
-func RegisterPurge(ctx context.Context, status bool, statusCode int, err error) {
-	tracingSpan := tracing.SpanFromContext(ctx)
-
-	tracingSpan.
-		SetTag(tracing.TagPurgeStatus, status).
-		SetTag(tracing.TagResponseStatusCode, statusCode)
-	metrics.IncStatusCode(statusCode)
+func (tc TelemetryContext) RegisterPurge(status bool, err error) {
+	tc.tracingSpan.
+		SetTag(tracing.TagPurgeStatus, status)
 
 	if err != nil {
-		tracing.AddErrorToSpan(tracingSpan, err)
-		tracing.Fail(tracingSpan, "internal error")
+		tracing.AddErrorToSpan(tc.tracingSpan, err)
+		tracing.Fail(tc.tracingSpan, "internal error")
 
 		// TODO: Add tracing.Fail -> prometheus as failures
 	}
 }
 
-func RegisterServeOriginal(ctx context.Context, hash hash.Hash, header http.Header, statusCode int, lenContent int) {
-	tracing.SpanFromContext(ctx).
+func (tc TelemetryContext) RegisterServeOriginal(hash hash.Hash, header http.Header, statusCode int, lenContent int) {
+	tc.tracingSpan.
 		SetTag(tracing.TagResponseMustServeOriginalResponseNoHashComputed, hash == nil).
 		SetTag(tracing.TagResponseMustServeOriginalResponseEtagPresent, header.Get(headers.ETag)).
 		SetTag(tracing.TagResponseMustServeOriginalResponseEtagAlreadyPresent, header.Get(headers.ETag) != "").
@@ -123,4 +121,9 @@ func RegisterServeOriginal(ctx context.Context, hash hash.Hash, header http.Head
 		SetTag(tracing.TagResponseMustServeOriginalResponseResponseNot2xx, (statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices)).
 		SetTag(tracing.TagResponseMustServeOriginalResponseResponse204, statusCode == http.StatusNoContent).
 		SetTag(tracing.TagResponseMustServeOriginalResponseNoBufferedContent, lenContent == 0)
+}
+
+func RegisterHostHealth(healthy int, unhealthy int) {
+	metrics.SetHostHealthy(float64(healthy))
+	metrics.SetHostUnhealthy(float64(unhealthy))
 }

@@ -74,7 +74,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 		cached = rc.serveCachedContent(ctx)
 	}
 
-	telemetry.RegisterRequestCacheStatus(ctx, forceFresh, enableCachedResponse, CacheStatusLabel[cached])
+	telemetry.From(ctx).RegisterRequestCacheStatus(forceFresh, enableCachedResponse, CacheStatusLabel[cached])
 
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
@@ -109,7 +109,8 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 	}
 
-	telemetry.RegisterCacheStaleOrHit(ctx, uriObj.Stale, rc.Response.StatusCode)
+	telemetry.From(ctx).RegisterCacheStaleOrHit(uriObj.Stale)
+	telemetry.From(ctx).RegisterStatusCode(rc.Response.StatusCode)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
@@ -133,7 +134,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	telemetry.RegisterRequestUpstream(ctx, proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
+	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()

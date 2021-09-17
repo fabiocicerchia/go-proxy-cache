@@ -185,7 +185,7 @@ func (lwr *LoggedResponseWriter) SetETag(weak bool) {
 
 // MustServeOriginalResponse - Check whether an ETag could be added.
 func (lwr LoggedResponseWriter) MustServeOriginalResponse(ctx context.Context, req *http.Request) bool {
-	telemetry.RegisterServeOriginal(ctx, lwr.hash, lwr.ResponseWriter.Header(), lwr.StatusCode, len(lwr.Content))
+	telemetry.From(ctx).RegisterServeOriginal(lwr.hash, lwr.ResponseWriter.Header(), lwr.StatusCode, len(lwr.Content))
 
 	return lwr.hash == nil || // no hash has been computed (maybe no Write has been invoked)
 		lwr.ResponseWriter.Header().Get(headers.ETag) != "" || // there's already an ETag from upstream

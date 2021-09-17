@@ -27,7 +27,7 @@ func (rc RequestCall) GetResponseWithETag(ctx context.Context, proxy *httputil.R
 
 	// ETag wrapper doesn't work well with WebSocket and HTTP/2.
 	if wsutil.IsWebSocketRequest(&rc.Request) || rc.Request.ProtoMajor == HttpVersion2 {
-		telemetry.RegisterEvent(ctx, "request.etag.not_supported")
+		telemetry.From(ctx).RegisterEvent("request.etag.not_supported")
 		rc.GetLogger().Info("Current request doesn't support ETag.")
 
 		// Serve existing response.
@@ -36,7 +36,7 @@ func (rc RequestCall) GetResponseWithETag(ctx context.Context, proxy *httputil.R
 
 	// Serve existing response.
 	if rc.Response.MustServeOriginalResponse(ctx, &rc.Request) {
-		telemetry.RegisterEvent(ctx, "request.etag.serve_original")
+		telemetry.From(ctx).RegisterEvent("request.etag.serve_original")
 		rc.GetLogger().Info("Serving original response as cannot be handled with ETag.")
 
 		return false

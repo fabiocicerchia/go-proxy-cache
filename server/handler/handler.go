@@ -33,7 +33,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	defer tracingSpan.Finish()
 	ctx := opentracing.ContextWithSpan(context.Background(), tracingSpan)
 
-	telemetry.RegisterRequest(ctx, *req)
+	telemetry.From(ctx).RegisterRequest(*req)
 
 	rc, err := initRequestParams(ctx, res, req)
 	if err != nil {
@@ -44,7 +44,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	telemetry.RegisterRequestCall(ctx, rc.ReqID, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
+	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {

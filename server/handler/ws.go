@@ -43,7 +43,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	telemetry.RegisterRequestUpstream(ctx, proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
+	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 

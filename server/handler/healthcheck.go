@@ -47,7 +47,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		lwr.WriteHeader(statusCode)
 		_ = lwr.WriteBody("HTTP OK\n")
 
-		telemetry.RegisterStatusCode(ctx, statusCode)
+		telemetry.From(ctx).RegisterStatusCode(statusCode)
 
 		if redisOK {
 			_ = lwr.WriteBody("REDIS OK\n")

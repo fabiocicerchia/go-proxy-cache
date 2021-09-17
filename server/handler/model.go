@@ -59,7 +59,7 @@ func (rc RequestCall) IsLegitRequest(ctx context.Context, listeningPort string) 
 	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
 
-	telemetry.RegisterLegitRequest(ctx, hostMatch, legitPort, rc.GetHostname(), listeningPort, rc.DomainConfig.Server.Upstream.Host, rc.DomainConfig.Server.Upstream.Port)
+	telemetry.From(ctx).RegisterLegitRequest(hostMatch, legitPort, rc.GetHostname(), listeningPort, rc.DomainConfig.Server.Upstream.Host, rc.DomainConfig.Server.Upstream.Port)
 
 	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
 	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
@@ -112,23 +112,23 @@ func (rc RequestCall) IsWebSocket() bool {
 func (rc RequestCall) SendNotImplemented(ctx context.Context) {
 	rc.Response.SendNotImplemented()
 
-	telemetry.RegisterStatusCode(ctx, http.StatusNotImplemented)
+	telemetry.From(ctx).RegisterStatusCode(http.StatusNotImplemented)
 }
 
 func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
 
-	telemetry.RegisterStatusCode(ctx, http.StatusMethodNotAllowed)
+	telemetry.From(ctx).RegisterStatusCode(http.StatusMethodNotAllowed)
 }
 
 func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
 	rc.Response.SendNotModifiedResponse()
 
-	telemetry.RegisterStatusCode(ctx, http.StatusNotModified)
+	telemetry.From(ctx).RegisterStatusCode(http.StatusNotModified)
 }
 
 func (rc RequestCall) SendResponse(ctx context.Context) {
 	rc.Response.SendResponse()
 
-	telemetry.RegisterStatusCode(ctx, rc.Response.StatusCode)
+	telemetry.From(ctx).RegisterStatusCode(rc.Response.StatusCode)
 }

@@ -29,7 +29,8 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
-		telemetry.RegisterPurge(ctx, status, http.StatusNotFound, err)
+		telemetry.From(ctx).RegisterPurge(status, err)
+		telemetry.From(ctx).RegisterStatusCode(http.StatusNotFound)
 
 		return
 	}
@@ -37,7 +38,8 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
 
-	telemetry.RegisterPurge(ctx, status, http.StatusOK, nil)
+	telemetry.From(ctx).RegisterPurge(status, nil)
+	telemetry.From(ctx).RegisterStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")
