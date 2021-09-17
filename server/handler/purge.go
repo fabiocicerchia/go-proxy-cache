@@ -15,7 +15,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 )
 
 // HandlePurge - Purges the cache for the requested URI.
@@ -29,14 +29,8 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
-		tracing.SpanFromContext(ctx).
-			SetTag("purge.status", status).
-			SetTag("response.status_code", http.StatusNotFound)
-
-		if err != nil {
-			tracing.AddErrorToSpan(tracing.SpanFromContext(ctx), err)
-			tracing.Fail(tracing.SpanFromContext(rc.Request.Context()), "internal error")
-		}
+		telemetry.From(ctx).RegisterPurge(status, err)
+		telemetry.From(ctx).RegisterStatusCode(http.StatusNotFound)
 
 		return
 	}
@@ -44,9 +38,8 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
 
-	tracing.SpanFromContext(ctx).
-		SetTag("purge.status", status).
-		SetTag("response.status_code", http.StatusOK)
+	telemetry.From(ctx).RegisterPurge(status, nil)
+	telemetry.From(ctx).RegisterStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")

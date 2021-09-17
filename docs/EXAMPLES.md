@@ -1,5 +1,17 @@
 # Examples
 
+## Playground
+
+In the folder `test/full-setup` there is complete working environment in Docker:
+
+- GoProxyCache
+- Redis
+- Nginx (for upstream)
+- NodeJS (for ws/wss server)
+- Jaeger (for OpenTracing)
+- Prometheus (for pulling metrics)
+- Grafana (for visualising metrics)
+
 ## CLI
 
 ```console

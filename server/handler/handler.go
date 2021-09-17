@@ -20,7 +20,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
 
 // HttpMethodPurge - PURGE method.
@@ -30,11 +31,9 @@ const HttpMethodPurge = "PURGE"
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	tracingSpan := tracing.StartSpanFromRequest("server.handle_request", req)
 	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
+	ctx := opentracing.ContextWithSpan(context.Background(), tracingSpan)
 
-	tracingSpan.
-		SetTag("request.host", req.Host).
-		SetTag("request.url", req.URL.String())
+	telemetry.From(ctx).RegisterRequest(*req)
 
 	rc, err := initRequestParams(ctx, res, req)
 	if err != nil {
@@ -45,13 +44,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	reqURL := rc.GetRequestURL()
-	tracingSpan.
-		SetTag("request.id", rc.ReqID).
-		SetTag("request.full_url", reqURL.String()).
-		SetTag("request.method", rc.Request.Method).
-		SetTag("request.scheme", rc.GetScheme()).
-		SetTag("request.websocket", rc.IsWebSocket())
+	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {

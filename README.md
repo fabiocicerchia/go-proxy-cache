@@ -104,7 +104,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 
 ### Reliability
 
-- **Healthcheck Endpoint**, exposes the route `/healthcheck` (optional).
+- **Healthcheck Endpoint**, exposes the route `/healthcheck` (internally).
 - **Upstream Healthcheck**, verifies periodically if upstream nodes are healthy.
 - **Respecting HTTP Cache Headers**, `Vary`, `ETag`, `Cache-Control` and `Expires`.
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
@@ -127,6 +127,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 
 - **Request Tracing**, each line in logs has a RequestID to easily identify the response flow.
 - **OpenTelemetry Tracing**, each request has a deep tracing with Jaeger (optional).
+- **Prometheus Endpoint**, exposes the route `/metrics` (internally) to serve Prometheus metrics.
 
 ## Configuration
 

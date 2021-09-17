@@ -16,7 +16,8 @@ import (
 	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.
@@ -29,7 +30,7 @@ func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
 }
 
 func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
-	tracingSpan := tracing.NewSpan("handler.serve_reverse_proxy_ws")
+	tracingSpan := tracing.NewChildSpan("handler.serve_reverse_proxy_ws", ctx)
 	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()
@@ -42,12 +43,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	tracingSpan.
-		SetTag("proxy.endpoint", proxyURL.String()).
-		SetTag("cache.forced_fresh", false).
-		SetTag("cache.cacheable", enableCachedResponse).
-		SetTag("cache.cached", CacheStatusLabel[CacheStatusMiss]).
-		SetTag("cache.stale", false)
+	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 

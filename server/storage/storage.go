@@ -33,9 +33,9 @@ func RetrieveCachedContent(rc RequestCallDTO, logger *log.Entry) (cache.URIObj, 
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
 		if err == cache.ErrEmptyValue {
-			logger.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err) // TODO: Add to trace span?
+			logger.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err) // TODO! Add to trace span?
 		} else {
-			logger.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err) // TODO: Add to trace span?
+			logger.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err) // TODO! Add to trace span?
 		}
 
 		return cache.URIObj{}, err

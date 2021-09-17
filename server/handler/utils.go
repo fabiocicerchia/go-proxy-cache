@@ -27,7 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
@@ -35,7 +35,7 @@ import (
 const RequestIDHeader = "X-Go-Proxy-Cache-Request-ID"
 
 var r *dnscache.Resolver = &dnscache.Resolver{
-	// TODO: Customize timeout
+	// TODO! Customize timeout
 }
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
@@ -191,7 +191,7 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 
 	return url.URL{
 		Scheme: scheme,
-		User:   balancedURL.User, // TODO: Add tests
+		User:   balancedURL.User, // TODO! Add tests
 		Host:   hostname + overridePort,
 	}, nil
 }

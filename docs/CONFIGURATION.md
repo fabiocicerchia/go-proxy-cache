@@ -312,7 +312,7 @@ log:
 
 # --- TRACING
 tracing:
-  # Endpoint for Jaeger (eg: http://jaeger:14268/api/traces)
+  # Endpoint for Local Jaeger Agent (eg: jaeger:6831)
   jaeger_endpoint: ~
   # Enable/Disable the tracing.
   enabled: false

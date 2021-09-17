@@ -10,7 +10,6 @@ package tls
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"context"
 	crypto_tls "crypto/tls"
 	"io/ioutil"
 	"net/http"
@@ -19,7 +18,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -97,10 +95,6 @@ func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate,
 	if val, ok := certificates[helloInfo.ServerName]; ok {
 		return val, nil
 	}
-
-	tracing.AddEventsToSpan(tracing.SpanFromContext(context.Background()), "server.tls.missing_cert", map[string]string{
-		"server.name": helloInfo.ServerName,
-	})
 
 	return nil, errors.Wrapf(errMissingCertificate, "ServerName %s", helloInfo.ServerName)
 }

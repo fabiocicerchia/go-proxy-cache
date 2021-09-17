@@ -20,7 +20,16 @@ $ docker-compose up
 
 ## Tracing
 
-Jaeger is available by using the `test/full-setup` demo and browsing to `http://localhost:16686/`.
+Jaeger is available by using the `test/full-setup` demo and browsing to `http://127.0.0.1:16686/`.
+
+Prometheus endpoint is available at `http://127.0.0.1:52021/metrics`. Its metrics are collected and available via Grafana
+at `http://localhost:3001`.
+
+There is a JSON export of the dashboard stored in `test/full-setup/grafana/gpc-dashboard.json`.
+
+![GPC Grafana Dashboard](grafana.png)
+
+Note: the Data Source must be configured in Grafana to point to `http://prometheus:9090`.
 
 ## Test
 
