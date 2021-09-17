@@ -20,7 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -155,8 +155,7 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 				b.M.Unlock()
 			}
 
-			metrics.SetHostHealthy(float64(healthyCounter))
-			metrics.SetHostUnhealthy(float64(unhealthyCounter))
+			telemetry.RegisterHostHealth(healthyCounter, unhealthyCounter)
 		}
 	}()
 }

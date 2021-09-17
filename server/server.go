@@ -26,9 +26,9 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 

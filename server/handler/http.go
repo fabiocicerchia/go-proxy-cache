@@ -18,11 +18,12 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
 
 // CacheStatusHit - Value for HIT.
@@ -73,11 +74,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 		cached = rc.serveCachedContent(ctx)
 	}
 
-	tracingSpan.
-		SetTag(tracing.TagCacheForcedFresh, forceFresh).
-		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
-		SetTag(tracing.TagCacheCached, CacheStatusLabel[cached]).
-		SetTag(tracing.TagCacheStale, false)
+	telemetry.RegisterRequestCacheStatus(ctx, forceFresh, enableCachedResponse, CacheStatusLabel[cached])
 
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
@@ -108,18 +105,11 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 	if uriObj.Stale {
 		cached = CacheStatusStale
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderStale)
-
-		metrics.IncCacheStale()
 	} else {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
-
-		metrics.IncCacheHit()
 	}
 
-	tracingSpan.
-		SetTag(tracing.TagCacheStale, uriObj.Stale).
-		SetTag(tracing.TagResponseStatusCode, rc.Response.StatusCode)
-	metrics.IncStatusCode(rc.Response.StatusCode)
+	telemetry.RegisterCacheStaleOrHit(ctx, uriObj.Stale, rc.Response.StatusCode)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
@@ -143,12 +133,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	tracingSpan.
-		SetTag(tracing.TagProxyEndpoint, proxyURL.String()).
-		SetTag(tracing.TagCacheForcedFresh, false).
-		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
-		SetTag(tracing.TagCacheCached, CacheStatusLabel[CacheStatusMiss]).
-		SetTag(tracing.TagCacheStale, false)
+	telemetry.RegisterRequestUpstream(ctx, proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()

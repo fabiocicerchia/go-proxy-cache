@@ -13,8 +13,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 )
 
 // RedirectToHTTPS - Redirects from HTTP to HTTPS.
@@ -27,8 +26,5 @@ func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	// Just write to client, no need to cache this response.
 	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 
-	tracing.SpanFromContext(ctx).
-		SetTag(tracing.TagResponseLocation, targetURL.String()).
-		SetTag(tracing.TagResponseStatusCode, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
-	metrics.IncStatusCode(rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	telemetry.RegisterRedirect(ctx, targetURL, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }

@@ -16,7 +16,8 @@ import (
 	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.
@@ -42,12 +43,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	tracingSpan.
-		SetTag(tracing.TagProxyEndpoint, proxyURL.String()).
-		SetTag(tracing.TagCacheForcedFresh, false).
-		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
-		SetTag(tracing.TagCacheCached, CacheStatusLabel[CacheStatusMiss]).
-		SetTag(tracing.TagCacheStale, false)
+	telemetry.RegisterRequestUpstream(ctx, proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 

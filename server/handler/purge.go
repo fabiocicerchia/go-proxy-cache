@@ -14,9 +14,8 @@ import (
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 )
 
 // HandlePurge - Purges the cache for the requested URI.
@@ -30,17 +29,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
-		tracing.SpanFromContext(ctx).
-			SetTag(tracing.TagPurgeStatus, status).
-			SetTag(tracing.TagResponseStatusCode, http.StatusNotFound)
-		metrics.IncStatusCode(http.StatusNotFound)
-
-		if err != nil {
-			tracing.AddErrorToSpan(tracing.SpanFromContext(ctx), err)
-			tracing.Fail(tracing.SpanFromContext(rc.Request.Context()), "internal error")
-
-			// TODO: Add tracing.Fail -> prometheus as failures
-		}
+		telemetry.RegisterPurge(ctx, status, http.StatusNotFound, err)
 
 		return
 	}
@@ -48,10 +37,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusOK)
 	_ = rc.Response.WriteBody("OK")
 
-	tracing.SpanFromContext(ctx).
-		SetTag(tracing.TagPurgeStatus, status).
-		SetTag(tracing.TagResponseStatusCode, http.StatusOK)
-	metrics.IncStatusCode(http.StatusOK)
+	telemetry.RegisterPurge(ctx, status, http.StatusOK, nil)
 
 	if enableLoggingRequest {
 		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, false, "-")

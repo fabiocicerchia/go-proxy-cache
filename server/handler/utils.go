@@ -27,7 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 

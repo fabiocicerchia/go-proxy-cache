@@ -21,7 +21,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/go-http-utils/headers"
 )
 
@@ -185,20 +185,7 @@ func (lwr *LoggedResponseWriter) SetETag(weak bool) {
 
 // MustServeOriginalResponse - Check whether an ETag could be added.
 func (lwr LoggedResponseWriter) MustServeOriginalResponse(ctx context.Context, req *http.Request) bool {
-	tracing.SpanFromContext(ctx).
-		SetTag(tracing.TagResponseMustServeOriginalResponseNoHashComputed, lwr.hash == nil).
-		SetTag(tracing.TagResponseMustServeOriginalResponseEtagPresent, lwr.ResponseWriter.Header().Get(headers.ETag)).
-		SetTag(tracing.TagResponseMustServeOriginalResponseEtagAlreadyPresent, lwr.ResponseWriter.Header().Get(headers.ETag) != "").
-		SetTag(tracing.TagResponseMustServeOriginalResponseResponseStatusCode, lwr.StatusCode).
-		SetTag(tracing.TagResponseMustServeOriginalResponseResponseNot2xx, (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices)).
-		SetTag(tracing.TagResponseMustServeOriginalResponseResponse204, lwr.StatusCode == http.StatusNoContent).
-		SetTag(tracing.TagResponseMustServeOriginalResponseNoBufferedContent, len(lwr.Content) == 0)
-
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - no hash has been computed (maybe no Write has been invoked): %v", lwr.hash == nil)
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - there's already an ETag from upstream: %v (%s)", lwr.ResponseWriter.Header().Get(headers.ETag) != "", lwr.ResponseWriter.Header().Get(headers.ETag))
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is not successful (2xx): %v (%d)", (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices), lwr.StatusCode)
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - response is without content (204): %v", lwr.StatusCode == http.StatusNoContent)
-	lwr.GetLogger().Debugf("MustServerOriginalResponse - there is no buffered content (maybe no Write has been invoked): %v", len(lwr.Content) == 0)
+	telemetry.RegisterServeOriginal(ctx, lwr.hash, lwr.ResponseWriter.Header(), lwr.StatusCode, len(lwr.Content))
 
 	return lwr.hash == nil || // no hash has been computed (maybe no Write has been invoked)
 		lwr.ResponseWriter.Header().Get(headers.ETag) != "" || // there's already an ETag from upstream
