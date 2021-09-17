@@ -5,7 +5,7 @@ if [ "$DOMAIN" == "" ]; then
   DOMAIN="default"
 fi
 
-cd certs/$DOMAIN
+cd $DOMAIN
 
 # CA
 openssl req \

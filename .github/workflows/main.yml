@@ -78,10 +78,10 @@ jobs:
       - name: Test
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
-          cd test/full-setup
+          cd test/full-setup/certs
           ./gen-selfsigned-cert.sh
           ./gen-selfsigned-cert.sh www.w3.org
-          cd ../..
+          cd ../../..
           ./go-proxy-cache -debug -config=test/full-setup/config.yml &
           make test
         env:

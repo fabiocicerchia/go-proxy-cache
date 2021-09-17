@@ -20,6 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -138,13 +139,23 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 		for {
 			<-t.C
 
+			healthyCounter := 0
+			unhealthyCounter := 0
 			for k, v := range b.Items {
 				doHealthCheck(&v, config)
+
+				if v.Healthy {
+					healthyCounter++
+				} else {
+					unhealthyCounter++
+				}
 
 				b.M.Lock()
 				b.Items[k] = v
 				b.M.Unlock()
 			}
+
+			telemetry.RegisterHostHealth(healthyCounter, unhealthyCounter)
 		}
 	}()
 }
@@ -165,7 +176,7 @@ func getClient(timeout time.Duration, tlsFlag bool) *http.Client {
 	if tlsFlag {
 		c.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // TODO: Customize it
+				InsecureSkipVerify: true, // TODO! Customize it
 			},
 		}
 	}
@@ -202,7 +213,7 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
-func (b NodeBalancer) GetHealthyNodes() []Item {
+func (b *NodeBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
 	for _, v := range b.Items {

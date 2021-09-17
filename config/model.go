@@ -64,12 +64,11 @@ type Domains map[string]Configuration
 
 // Server - Defines basic info for the server.
 type Server struct {
-	Port        Port     `yaml:"port"`
-	TLS         TLS      `yaml:"tls"`
-	Timeout     Timeout  `yaml:"timeout"`
-	Upstream    Upstream `yaml:"upstream"`
-	GZip        bool     `yaml:"gzip" envconfig:"GZIP_ENABLED"`
-	Healthcheck bool     `yaml:"healthcheck"`
+	Port     Port     `yaml:"port"`
+	TLS      TLS      `yaml:"tls"`
+	Timeout  Timeout  `yaml:"timeout"`
+	Upstream Upstream `yaml:"upstream"`
+	GZip     bool     `yaml:"gzip" envconfig:"GZIP_ENABLED"`
 }
 
 // Port - Defines the listening ports per protocol.
@@ -204,8 +203,7 @@ var Config Configuration = Configuration{
 				Scheme:      "https",
 			},
 		},
-		GZip:        false,
-		Healthcheck: true,
+		GZip: false,
 	},
 	Cache: Cache{
 		Port:            "6379",

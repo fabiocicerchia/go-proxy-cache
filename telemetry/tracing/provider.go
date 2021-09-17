@@ -18,7 +18,9 @@ import (
 	jaegerConfig "github.com/uber/jaeger-client-go/config"
 )
 
-// TODO: Make it customizable
+// TODO: Move from OpenTracing to OpenTelemetry
+
+// TODO! Make it customizable
 const openTracingSampleRatio = 1.0
 
 // NewJaegerProvider returns a new instance of Jaeger.

@@ -36,7 +36,7 @@ func NewIpHashBalancer(name string, items []Item) *IpHashBalancer {
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
-func (b IpHashBalancer) GetHealthyNodes() []Item {
+func (b *IpHashBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
 
 	for _, v := range b.NodeBalancer.Items {

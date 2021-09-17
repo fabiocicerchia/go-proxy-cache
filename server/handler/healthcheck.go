@@ -10,12 +10,14 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
-	"github.com/fabiocicerchia/go-proxy-cache/server/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	"github.com/opentracing/opentracing-go"
 )
 
@@ -24,16 +26,10 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 	return func(res http.ResponseWriter, req *http.Request) {
 		tracingSpan := tracing.StartSpanFromRequest("server.handle_healthcheck", req)
 		defer tracingSpan.Finish()
-		ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
+		ctx := opentracing.ContextWithSpan(context.Background(), tracingSpan)
 
-		rc, err := initRequestParams(ctx, res, req)
-		if err != nil {
-			tracing.AddErrorToSpan(tracingSpan, err)
-			tracing.Fail(tracingSpan, "internal error")
-
-			rc.GetLogger().Errorf(err.Error())
-			return
-		}
+		rc := NewRequestCall(res, req)
+		rc.DomainConfig, _ = config.DomainConf(req.Host, rc.GetScheme())
 
 		domainID := rc.DomainConfig.Server.Upstream.GetDomainID()
 
@@ -41,6 +37,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 
 		statusCode := http.StatusOK
 
+		// TODO: Loop through all domain connections and show status
 		conn := engine.GetConn(domainID)
 		redisOK := conn != nil && conn.Ping()
 		if !redisOK {
@@ -50,7 +47,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		lwr.WriteHeader(statusCode)
 		_ = lwr.WriteBody("HTTP OK\n")
 
-		tracingSpan.SetTag("response.status_code", statusCode)
+		telemetry.From(ctx).RegisterStatusCode(statusCode)
 
 		if redisOK {
 			_ = lwr.WriteBody("REDIS OK\n")
