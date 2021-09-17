@@ -34,6 +34,7 @@ import (
 
 const enableTimeoutHandler = true
 
+// TODO! customize it, so it can be just local
 const GPCBindAddress = "0.0.0.0"
 const GPCPortNumber = "52021"
 
@@ -112,15 +113,9 @@ func Run(appVersion string, configFile string) {
 func InitInternals() http.Server {
 	mux := http.NewServeMux()
 
-	// TODO: must be accessed only from localhost
-
 	// handlers
-	// TODO: does it make sense to customize it per domain?
-	// if domainConfig.Server.Healthcheck {
 	mux.HandleFunc("/healthcheck", handler.HandleHealthcheck(config.Config))
-	// }
 
-	// TODO: Flag to enable
 	metrics.Register()
 	mux.Handle("/metrics", promhttp.Handler())
 

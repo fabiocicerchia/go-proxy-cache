@@ -78,11 +78,17 @@ var (
 		},
 		[]string{"hostname", "env"},
 	)
-	// TODO: USE IT
-	hostHealth = prometheus.NewGaugeVec(
+	hostHealthy = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gpc_host_health",
-			Help: "Health state of hosts by clusters",
+			Name: "gpc_host_healthy",
+			Help: "Health state of hosts",
+		},
+		[]string{"hostname", "env"},
+	)
+	hostUnhealthy = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "gpc_host_unhealthy",
+			Help: "Health state of hosts",
 		},
 		[]string{"hostname", "env"},
 	)
@@ -201,11 +207,32 @@ func IncCacheHit() {
 	cacheHit.With(labels).Inc()
 }
 
+func SetHostHealthy(val float64) {
+	hostname, _ := os.Hostname()
+	labels := prometheus.Labels{
+		"hostname": hostname,
+		"env":      os.Getenv("ENV"),
+	}
+
+	hostHealthy.With(labels).Set(val)
+}
+
+func SetHostUnhealthy(val float64) {
+	hostname, _ := os.Hostname()
+	labels := prometheus.Labels{
+		"hostname": hostname,
+		"env":      os.Getenv("ENV"),
+	}
+
+	hostUnhealthy.With(labels).Set(val)
+}
+
 func Register() {
 	prometheus.MustRegister(
 		statusCodes, requestSum,
+		requestHost, httpMethods, urlScheme,
 		request1xx, request2xx, request3xx, request4xx, request5xx,
-		hostHealth,
+		hostHealthy, hostUnhealthy,
 		cacheHit, cacheMiss, cacheStale,
 	)
 }

@@ -29,7 +29,7 @@ func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
 }
 
 func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
-	tracingSpan := tracing.NewSpan("handler.serve_reverse_proxy_ws")
+	tracingSpan := tracing.NewChildSpan("handler.serve_reverse_proxy_ws", ctx)
 	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()
@@ -43,11 +43,11 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
 	tracingSpan.
-		SetTag("proxy.endpoint", proxyURL.String()).
-		SetTag("cache.forced_fresh", false).
-		SetTag("cache.cacheable", enableCachedResponse).
-		SetTag("cache.cached", CacheStatusLabel[CacheStatusMiss]).
-		SetTag("cache.stale", false)
+		SetTag(tracing.TagProxyEndpoint, proxyURL.String()).
+		SetTag(tracing.TagCacheForcedFresh, false).
+		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
+		SetTag(tracing.TagCacheCached, CacheStatusLabel[CacheStatusMiss]).
+		SetTag(tracing.TagCacheStale, false)
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 

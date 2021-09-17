@@ -28,7 +28,7 @@ func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 
 	tracing.SpanFromContext(ctx).
-		SetTag("response.location", targetURL.String()).
-		SetTag("response.status_code", rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+		SetTag(tracing.TagResponseLocation, targetURL.String()).
+		SetTag(tracing.TagResponseStatusCode, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 	metrics.IncStatusCode(rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 }

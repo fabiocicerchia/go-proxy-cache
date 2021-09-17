@@ -50,7 +50,7 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: Dockerfile.nginx
+      dockerfile: docker/Dockerfile.nginx
       network: host
     restart: always
     depends_on:
@@ -75,7 +75,8 @@ services:
       jaeger:
         condition: service_healthy
     volumes:
-      - ./:/home/app
+      - ./ws:/home/app
+      - ./certs:/home/app/certs
     ports:
       - "9001:9001" # WS
       - "9002:9002" # WSS
@@ -103,7 +104,7 @@ services:
       - "9090:9090" # Prometheus
     command: --config.file=/etc/prometheus/prometheus.yml
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
 
   grafana:
     image: grafana/grafana

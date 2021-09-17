@@ -100,8 +100,8 @@ test-endtoend: ## test endtoend
 	go test -v -race -count=1 --tags=endtoend ./...
 
 test-ws: ## test websocket
-	cd test/full-setup && npm install
-	node test/full-setup/ws_client.js
+	cd test/full-setup/ws && npm install
+	node test/full-setup/ws/ws_client.js
 
 test-http2: ## test HTTP2
 	MATCHING=$(shell nghttp -ans https://testing.local:50443/push 2> /dev/null | grep 200 | wc -l | xargs); \

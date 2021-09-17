@@ -59,7 +59,7 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
-	tracingSpan := tracing.NewSpan("handler.handle_http_request_and_proxy")
+	tracingSpan := tracing.NewChildSpan("handler.handle_http_request_and_proxy", ctx)
 	defer tracingSpan.Finish()
 
 	cached := CacheStatusMiss
@@ -70,14 +70,14 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 	}
 
 	if enableCachedResponse && !forceFresh {
-		cached = rc.serveCachedContent()
+		cached = rc.serveCachedContent(ctx)
 	}
 
 	tracingSpan.
-		SetTag("cache.forced_fresh", forceFresh).
-		SetTag("cache.cacheable", enableCachedResponse).
-		SetTag("cache.cached", CacheStatusLabel[cached]).
-		SetTag("cache.stale", false)
+		SetTag(tracing.TagCacheForcedFresh, forceFresh).
+		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
+		SetTag(tracing.TagCacheCached, CacheStatusLabel[cached]).
+		SetTag(tracing.TagCacheStale, false)
 
 	if cached == CacheStatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
@@ -90,8 +90,8 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 	}
 }
 
-func (rc RequestCall) serveCachedContent() int {
-	tracingSpan := tracing.NewSpan("handler.serve_cached_content")
+func (rc RequestCall) serveCachedContent(ctx context.Context) int {
+	tracingSpan := tracing.NewChildSpan("handler.serve_cached_content", ctx)
 	defer tracingSpan.Finish()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
@@ -117,8 +117,8 @@ func (rc RequestCall) serveCachedContent() int {
 	}
 
 	tracingSpan.
-		SetTag("cache.stale", uriObj.Stale).
-		SetTag("response.status_code", rc.Response.StatusCode)
+		SetTag(tracing.TagCacheStale, uriObj.Stale).
+		SetTag(tracing.TagResponseStatusCode, rc.Response.StatusCode)
 	metrics.IncStatusCode(rc.Response.StatusCode)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
@@ -127,7 +127,7 @@ func (rc RequestCall) serveCachedContent() int {
 }
 
 func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
-	tracingSpan := tracing.NewSpan("handler.serve_reverse_proxy_http")
+	tracingSpan := tracing.NewChildSpan("handler.serve_reverse_proxy_http", ctx)
 	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()
@@ -144,11 +144,11 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
 	tracingSpan.
-		SetTag("proxy.endpoint", proxyURL.String()).
-		SetTag("cache.forced_fresh", false).
-		SetTag("cache.cacheable", enableCachedResponse).
-		SetTag("cache.cached", CacheStatusLabel[CacheStatusMiss]).
-		SetTag("cache.stale", false)
+		SetTag(tracing.TagProxyEndpoint, proxyURL.String()).
+		SetTag(tracing.TagCacheForcedFresh, false).
+		SetTag(tracing.TagCacheCacheable, enableCachedResponse).
+		SetTag(tracing.TagCacheCached, CacheStatusLabel[CacheStatusMiss]).
+		SetTag(tracing.TagCacheStale, false)
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()
@@ -173,15 +173,15 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	}
 
 	rc.SendResponse(ctx)
-	rc.storeResponse()
+	rc.storeResponse(ctx)
 }
 
-func (rc RequestCall) storeResponse() {
+func (rc RequestCall) storeResponse(ctx context.Context) {
 	if !enableStoringResponse {
 		return
 	}
 
-	tracingSpan := tracing.NewSpan("handler.store_response")
+	tracingSpan := tracing.NewChildSpan("handler.store_response", ctx)
 	defer tracingSpan.Finish()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
@@ -189,7 +189,7 @@ func (rc RequestCall) storeResponse() {
 	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
 	stored, err := doStoreResponse(rcDTO, rc.DomainConfig.Cache)
 
-	tracingSpan.SetTag("storage.cached", stored)
+	tracingSpan.SetTag(tracing.TagStorageCached, stored)
 
 	if err != nil {
 		tracing.AddErrorToSpan(tracingSpan, err)

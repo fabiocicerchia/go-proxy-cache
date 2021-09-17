@@ -96,7 +96,6 @@ func (lwr *LoggedResponseWriter) SendNotImplemented() {
 // Write - ResponseWriter's Write method decorator.
 func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 	if !lwr.statusCodeSent && lwr.StatusCode == 0 {
-		tracing.AddEventsToSpan(tracing.SpanFromContext(context.Background()), "response.missing_status_code", map[string]string{})
 		lwr.GetLogger().Warning("No status code has been set before sending data, fallback on 200 OK.")
 
 		// This is exactly what Go would also do if it hasn't been written yet.
@@ -187,13 +186,13 @@ func (lwr *LoggedResponseWriter) SetETag(weak bool) {
 // MustServeOriginalResponse - Check whether an ETag could be added.
 func (lwr LoggedResponseWriter) MustServeOriginalResponse(ctx context.Context, req *http.Request) bool {
 	tracing.SpanFromContext(ctx).
-		SetTag("response.must_serve_original_response.no_hash_computed", lwr.hash == nil).
-		SetTag("response.must_serve_original_response.etag_present", lwr.ResponseWriter.Header().Get(headers.ETag)).
-		SetTag("response.must_serve_original_response.etag_already_present", lwr.ResponseWriter.Header().Get(headers.ETag) != "").
-		SetTag("response.must_serve_original_response.response_status_code", lwr.StatusCode).
-		SetTag("response.must_serve_original_response.response_not_2xx", (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices)).
-		SetTag("response.must_serve_original_response.response_204", lwr.StatusCode == http.StatusNoContent).
-		SetTag("response.must_serve_original_response.no_buffered_content", len(lwr.Content) == 0)
+		SetTag(tracing.TagResponseMustServeOriginalResponseNoHashComputed, lwr.hash == nil).
+		SetTag(tracing.TagResponseMustServeOriginalResponseEtagPresent, lwr.ResponseWriter.Header().Get(headers.ETag)).
+		SetTag(tracing.TagResponseMustServeOriginalResponseEtagAlreadyPresent, lwr.ResponseWriter.Header().Get(headers.ETag) != "").
+		SetTag(tracing.TagResponseMustServeOriginalResponseResponseStatusCode, lwr.StatusCode).
+		SetTag(tracing.TagResponseMustServeOriginalResponseResponseNot2xx, (lwr.StatusCode < http.StatusOK || lwr.StatusCode >= http.StatusMultipleChoices)).
+		SetTag(tracing.TagResponseMustServeOriginalResponseResponse204, lwr.StatusCode == http.StatusNoContent).
+		SetTag(tracing.TagResponseMustServeOriginalResponseNoBufferedContent, len(lwr.Content) == 0)
 
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - no hash has been computed (maybe no Write has been invoked): %v", lwr.hash == nil)
 	lwr.GetLogger().Debugf("MustServerOriginalResponse - there's already an ETag from upstream: %v (%s)", lwr.ResponseWriter.Header().Get(headers.ETag) != "", lwr.ResponseWriter.Header().Get(headers.ETag))

@@ -31,13 +31,13 @@ const HttpMethodPurge = "PURGE"
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	tracingSpan := tracing.StartSpanFromRequest("server.handle_request", req)
 	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(req.Context(), tracingSpan)
+	ctx := opentracing.ContextWithSpan(context.Background(), tracingSpan)
 
 	metrics.IncRequestHost(req.Host)
 
 	tracingSpan.
-		SetTag("request.host", req.Host).
-		SetTag("request.url", req.URL.String())
+		SetTag(tracing.TagRequestHost, req.Host).
+		SetTag(tracing.TagRequestUrl, req.URL.String())
 
 	rc, err := initRequestParams(ctx, res, req)
 	if err != nil {
@@ -48,13 +48,15 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	tracingSpan.SetBaggageItem(tracing.BaggageRequestID, rc.ReqID)
+
 	reqURL := rc.GetRequestURL()
 	tracingSpan.
-		SetTag("request.id", rc.ReqID).
-		SetTag("request.full_url", reqURL.String()).
-		SetTag("request.method", rc.Request.Method).
-		SetTag("request.scheme", rc.GetScheme()).
-		SetTag("request.websocket", rc.IsWebSocket())
+		SetTag(tracing.TagRequestId, rc.ReqID).
+		SetTag(tracing.TagRequestFullUrl, reqURL.String()).
+		SetTag(tracing.TagRequestMethod, rc.Request.Method).
+		SetTag(tracing.TagRequestScheme, rc.GetScheme()).
+		SetTag(tracing.TagRequestWebsocket, rc.IsWebSocket())
 
 	metrics.IncHttpMethod(rc.Request.Method)
 	metrics.IncUrlScheme(rc.GetScheme())

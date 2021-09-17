@@ -34,6 +34,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 
 		statusCode := http.StatusOK
 
+		// TODO: Loop through all domain connections and show status
 		conn := engine.GetConn(domainID)
 		redisOK := conn != nil && conn.Ping()
 		if !redisOK {
@@ -43,7 +44,7 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		lwr.WriteHeader(statusCode)
 		_ = lwr.WriteBody("HTTP OK\n")
 
-		tracingSpan.SetTag("response.status_code", statusCode)
+		tracingSpan.SetTag(tracing.TagResponseStatusCode, statusCode)
 		metrics.IncStatusCode(statusCode)
 
 		if redisOK {

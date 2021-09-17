@@ -31,8 +31,8 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
 
 		tracing.SpanFromContext(ctx).
-			SetTag("purge.status", status).
-			SetTag("response.status_code", http.StatusNotFound)
+			SetTag(tracing.TagPurgeStatus, status).
+			SetTag(tracing.TagResponseStatusCode, http.StatusNotFound)
 		metrics.IncStatusCode(http.StatusNotFound)
 
 		if err != nil {
@@ -49,8 +49,8 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	_ = rc.Response.WriteBody("OK")
 
 	tracing.SpanFromContext(ctx).
-		SetTag("purge.status", status).
-		SetTag("response.status_code", http.StatusOK)
+		SetTag(tracing.TagPurgeStatus, status).
+		SetTag(tracing.TagResponseStatusCode, http.StatusOK)
 	metrics.IncStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {

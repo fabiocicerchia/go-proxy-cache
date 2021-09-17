@@ -61,12 +61,12 @@ func (rc RequestCall) IsLegitRequest(ctx context.Context, listeningPort string) 
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
 
 	tracing.SpanFromContext(ctx).
-		SetTag("request.is_legit.hostname_matches", hostMatch).
-		SetTag("request.is_legit.port_matches", legitPort).
-		SetTag("request.is_legit.req_hostname", rc.GetHostname()).
-		SetTag("request.is_legit.req_port", listeningPort).
-		SetTag("request.is_legit.conf_hostname", rc.DomainConfig.Server.Upstream.Host).
-		SetTag("request.is_legit.conf_port", rc.DomainConfig.Server.Port)
+		SetTag(tracing.TagRequestIsLegitHostnameMatches, hostMatch).
+		SetTag(tracing.TagRequestIsLegitPortMatches, legitPort).
+		SetTag(tracing.TagRequestIsLegitRequestHostname, rc.GetHostname()).
+		SetTag(tracing.TagRequestIsLegitRequestPort, listeningPort).
+		SetTag(tracing.TagRequestIsLegitConfHostname, rc.DomainConfig.Server.Upstream.Host).
+		SetTag(tracing.TagRequestIsLegitConfPort, rc.DomainConfig.Server.Port)
 
 	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
 	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
@@ -120,7 +120,7 @@ func (rc RequestCall) SendNotImplemented(ctx context.Context) {
 	rc.Response.SendNotImplemented()
 
 	tracing.SpanFromContext(ctx).
-		SetTag("response.status_code", http.StatusNotImplemented)
+		SetTag(tracing.TagResponseStatusCode, http.StatusNotImplemented)
 	metrics.IncStatusCode(http.StatusNotImplemented)
 }
 
@@ -128,7 +128,7 @@ func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
 
 	tracing.SpanFromContext(ctx).
-		SetTag("response.status_code", http.StatusMethodNotAllowed)
+		SetTag(tracing.TagResponseStatusCode, http.StatusMethodNotAllowed)
 	metrics.IncStatusCode(http.StatusMethodNotAllowed)
 }
 
@@ -136,7 +136,7 @@ func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
 	rc.Response.SendNotModifiedResponse()
 
 	tracing.SpanFromContext(ctx).
-		SetTag("response.status_code", http.StatusNotModified)
+		SetTag(tracing.TagResponseStatusCode, http.StatusNotModified)
 	metrics.IncStatusCode(http.StatusNotModified)
 }
 
@@ -144,7 +144,7 @@ func (rc RequestCall) SendResponse(ctx context.Context) {
 	rc.Response.SendResponse()
 
 	tracing.SpanFromContext(ctx).
-		SetTag("response.status_code", rc.Response.StatusCode)
+		SetTag(tracing.TagResponseStatusCode, rc.Response.StatusCode)
 	metrics.IncStatusCode(rc.Response.StatusCode)
 
 }
