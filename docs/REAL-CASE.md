@@ -58,6 +58,14 @@ server:
   # --- GZIP
   # Automatically enable GZip compression on all requests.
   gzip: false
+  # --- INTERNALS
+  internals:
+    # Internal listening Address for metrics and healthchecks.
+    # Default: 127.0.0.1
+    listening_address: "127.0.0.1"
+    # Internal listening port for metrics and healthchecks.
+    # Default: 52021
+    listening_port: 52021
   # --- TLS
   tls:
     # Automatic Certificate Management Environment
@@ -230,6 +238,9 @@ server:
       interval: ~
       # Fallback scheme if endpoint doesn't provide it.
       scheme: https
+      # Allow healthchecks on self-signed TLS certificates (or expired/invalid).
+      # Default: false
+      allow_insecure: false
 
 # --- TRACING
 tracing:
@@ -237,6 +248,9 @@ tracing:
   jaeger_endpoint: ~
   # Enable/Disable the tracing.
   enabled: false
+  # Set the sampling ratio for tracing (float).
+  # Default: 1.0
+  sampling_ratio: 1.0
 
 # --- CACHE
 cache:

@@ -145,6 +145,8 @@ func (c *Configuration) copyOverWithServer(overrides Server) {
 	c.Server.Port.HTTP = utils.Coalesce(overrides.Port.HTTP, c.Server.Port.HTTP).(string)
 	c.Server.Port.HTTPS = utils.Coalesce(overrides.Port.HTTPS, c.Server.Port.HTTPS).(string)
 	c.Server.GZip = utils.Coalesce(overrides.GZip, c.Server.GZip).(bool)
+	c.Server.Internals.ListeningAddress = utils.Coalesce(overrides.Internals.ListeningAddress, c.Server.Internals.ListeningAddress).(string)
+	c.Server.Internals.ListeningPort = utils.Coalesce(overrides.Internals.ListeningPort, c.Server.Internals.ListeningPort).(string)
 }
 
 // --- TLS.
@@ -182,6 +184,7 @@ func (c *Configuration) copyOverWithUpstream(overrides Server) {
 	c.Server.Upstream.HealthCheck.Timeout = utils.Coalesce(overrides.Upstream.HealthCheck.Timeout, c.Server.Upstream.HealthCheck.Timeout).(time.Duration)
 	c.Server.Upstream.HealthCheck.Interval = utils.Coalesce(overrides.Upstream.HealthCheck.Interval, c.Server.Upstream.HealthCheck.Interval).(time.Duration)
 	c.Server.Upstream.HealthCheck.Scheme = utils.Coalesce(overrides.Upstream.HealthCheck.Scheme, c.Server.Upstream.HealthCheck.Scheme).(string)
+	c.Server.Upstream.HealthCheck.AllowInsecure = utils.Coalesce(overrides.Upstream.HealthCheck.AllowInsecure, c.Server.Upstream.HealthCheck.AllowInsecure).(bool)
 
 	c.Server.Upstream.Scheme = utils.IfEmpty(c.Server.Upstream.Scheme, SchemeWildcard)
 }

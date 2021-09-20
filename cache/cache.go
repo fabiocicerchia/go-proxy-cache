@@ -297,7 +297,6 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 	}
 
 	_ = conn.Del(key)
-	_ = conn.Del(key + FreshSuffix)
 
 	err := conn.Push(key, meta)
 	if err != nil {
@@ -305,12 +304,8 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 	}
 
 	err = conn.Expire(key, expiration+getRandomSoftExpirationTTL())
-	err = conn.Expire(key+FreshSuffix, expiration)
 	if err != nil {
-		// TODO: use transaction
 		_ = conn.Del(key)
-		_ = conn.Del(key + FreshSuffix)
-
 		return false, err
 	}
 

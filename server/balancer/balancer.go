@@ -159,7 +159,7 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 	}()
 }
 
-func getClient(timeout time.Duration, tlsFlag bool) *http.Client {
+func getClient(timeout time.Duration, tlsFlag bool, allowInsecure bool) *http.Client {
 	if timeout == 0 {
 		timeout = defaultClientTimeout
 	}
@@ -175,7 +175,7 @@ func getClient(timeout time.Duration, tlsFlag bool) *http.Client {
 	if tlsFlag {
 		c.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true, // TODO! Customize it
+				InsecureSkipVerify: allowInsecure,
 			},
 		}
 	}
@@ -190,14 +190,17 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 		scheme = config.Scheme
 	}
 
-	endpointURL := fmt.Sprintf("%s://%s", scheme, v.Endpoint)
+	endpointURL := v.Endpoint
+	if url.Scheme != scheme {
+		endpointURL = fmt.Sprintf("%s://%s", scheme, v.Endpoint)
+	}
 
 	req, err := http.NewRequest("HEAD", endpointURL, nil)
 	if err != nil {
 		logger.GetGlobal().Errorf("Healthcheck request failed for %s: %s", endpointURL, err) // TODO: Add to trace span?
 		return
 	}
-	res, err := getClient(config.Timeout, scheme == "https").Do(req)
+	res, err := getClient(config.Timeout, scheme == "https", config.AllowInsecure).Do(req)
 
 	v.Healthy = err == nil
 	if err != nil {

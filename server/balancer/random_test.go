@@ -39,9 +39,9 @@ func TestRandomPickWithData(t *testing.T) {
 	initLogs()
 
 	b := balancer.NewRandomBalancer("TestRandomPickWithData", []balancer.Item{
-		balancer.Item{Endpoint: "item1", Healthy: true},
-		balancer.Item{Endpoint: "item2", Healthy: true},
-		balancer.Item{Endpoint: "item3", Healthy: true},
+		{Endpoint: "item1", Healthy: true},
+		{Endpoint: "item2", Healthy: true},
+		{Endpoint: "item3", Healthy: true},
 	})
 
 	value, err := b.Pick("https://example.com")
@@ -57,9 +57,9 @@ func TestRandomPickCorrectness(t *testing.T) {
 	initLogs()
 
 	b := balancer.NewRandomBalancer("TestRandomPickCorrectness", []balancer.Item{
-		balancer.Item{Endpoint: "item1", Healthy: true},
-		balancer.Item{Endpoint: "item2", Healthy: true},
-		balancer.Item{Endpoint: "item3", Healthy: true},
+		{Endpoint: "item1", Healthy: true},
+		{Endpoint: "item2", Healthy: true},
+		{Endpoint: "item3", Healthy: true},
 	})
 
 	// first round (shuffling)

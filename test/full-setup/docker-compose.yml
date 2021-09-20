@@ -64,6 +64,7 @@ services:
         condition: service_healthy
     volumes:
       - ./nginx/vhost.conf:/etc/nginx/conf.d/vhost.conf
+      - ./nginx/.htpasswd:/etc/nginx/.htpasswd
       - ./certs:/certs
     ports:
       - "40080:40080" # HTTP

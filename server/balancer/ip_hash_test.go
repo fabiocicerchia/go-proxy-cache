@@ -39,9 +39,9 @@ func TestIpHashPickWithData(t *testing.T) {
 	initLogs()
 
 	b := balancer.NewIpHashBalancer("TestIpHashPickWithData", []balancer.Item{
-		balancer.Item{Endpoint: "item1", Healthy: true},
-		balancer.Item{Endpoint: "item2", Healthy: true},
-		balancer.Item{Endpoint: "item3", Healthy: true},
+		{Endpoint: "item1", Healthy: true},
+		{Endpoint: "item2", Healthy: true},
+		{Endpoint: "item3", Healthy: true},
 	})
 
 	value, err := b.Pick("https://example.com")
@@ -57,9 +57,9 @@ func TestIpHashPickCorrectness(t *testing.T) {
 	initLogs()
 
 	b := balancer.NewIpHashBalancer("TestIpHashPickCorrectness", []balancer.Item{
-		balancer.Item{Endpoint: "item1", Healthy: true},
-		balancer.Item{Endpoint: "item2", Healthy: true},
-		balancer.Item{Endpoint: "item3", Healthy: true},
+		{Endpoint: "item1", Healthy: true},
+		{Endpoint: "item2", Healthy: true},
+		{Endpoint: "item3", Healthy: true},
 	})
 
 	// first round (shuffling)
