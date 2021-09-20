@@ -22,7 +22,7 @@ import (
 func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	status, err := storage.PurgeCachedContent(rc.DomainConfig.Server.Upstream, rcDTO)
+	status, err := storage.PurgeCachedContent(ctx, rc.DomainConfig.Server.Upstream, rcDTO)
 	if !status || err != nil {
 		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")

@@ -15,10 +15,11 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // HandleHealthcheck - Returns healthcheck status.
@@ -31,17 +32,26 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		rc := NewRequestCall(res, req)
 		rc.DomainConfig, _ = config.DomainConf(req.Host, rc.GetScheme())
 
-		domainID := rc.DomainConfig.Server.Upstream.GetDomainID()
-
 		lwr := response.NewLoggedResponseWriter(res, rc.ReqID)
 
 		statusCode := http.StatusOK
 
-		// TODO: Loop through all domain connections and show status
+		domainID := config.Config.Server.Upstream.GetDomainID()
 		conn := engine.GetConn(domainID)
 		redisOK := conn != nil && conn.Ping()
 		if !redisOK {
+			logger.GetGlobal().Errorf("Redis main connection is not ok")
 			statusCode = http.StatusInternalServerError
+		}
+
+		for domain, conf := range config.Config.Domains {
+			domainID := conf.Server.Upstream.GetDomainID()
+			conn := engine.GetConn(domainID)
+			redisOK = conn != nil && conn.Ping()
+			if !redisOK {
+				logger.GetGlobal().Errorf("Redis connection for %s is not ok", domain)
+				statusCode = http.StatusInternalServerError
+			}
 		}
 
 		lwr.WriteHeader(statusCode)

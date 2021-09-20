@@ -128,6 +128,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 - **Request Tracing**, each line in logs has a RequestID to easily identify the response flow.
 - **OpenTelemetry Tracing**, each request has a deep tracing with Jaeger (optional).
 - **Prometheus Endpoint**, exposes the route `/metrics` (internally) to serve Prometheus metrics.
+- **Support for Sentry & Syslog**, all warning/error logs can be forwarded to Sentry and/or Syslog.
 
 ## Configuration
 

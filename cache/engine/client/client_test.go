@@ -13,6 +13,7 @@ package client_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -129,7 +130,7 @@ func TestSetGet(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(clashingKey, "sample", 0)
+	done, err := rdb.Set(context.Background(), clashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -159,7 +160,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(clashingKey, "sample", 1*time.Millisecond)
+	done, err := rdb.Set(context.Background(), clashingKey, "sample", 1*time.Millisecond)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -191,7 +192,7 @@ func TestDel(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(clashingKey, "sample", 0)
+	done, err := rdb.Set(context.Background(), clashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -199,7 +200,7 @@ func TestDel(t *testing.T) {
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	err = rdb.Del(clashingKey)
+	err = rdb.Del(context.Background(), clashingKey)
 	assert.Nil(t, err)
 
 	value, err = rdb.Get(clashingKey)
@@ -228,7 +229,7 @@ func TestExpire(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(clashingKey, "sample", 0)
+	done, err := rdb.Set(context.Background(), clashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -264,7 +265,7 @@ func TestPushList(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	err := rdb.Push(clashingKey, []string{"a", "b", "c"})
+	err := rdb.Push(context.Background(), clashingKey, []string{"a", "b", "c"})
 	assert.Nil(t, err)
 
 	value, err := rdb.List(clashingKey)
@@ -293,13 +294,13 @@ func TestDelWildcardNoMatch(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test_1", "sample", 0)
+	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = rdb.Set("test_2", "sample", 0)
+	done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = rdb.Set("test_3", "sample", 0)
+	done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -313,7 +314,7 @@ func TestDelWildcardNoMatch(t *testing.T) {
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	len, err := rdb.DelWildcard("missing_*")
+	len, err := rdb.DelWildcard(context.Background(), "missing_*")
 	assert.Equal(t, 0, len)
 	assert.Nil(t, err)
 
@@ -349,13 +350,13 @@ func TestDelWildcard(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test_1", "sample", 0)
+	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = rdb.Set("test_2", "sample", 0)
+	done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = rdb.Set("test_3", "sample", 0)
+	done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
@@ -369,7 +370,7 @@ func TestDelWildcard(t *testing.T) {
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	len, err := rdb.DelWildcard("test_*")
+	len, err := rdb.DelWildcard(context.Background(), "test_*")
 	assert.Equal(t, 3, len)
 	assert.Nil(t, err)
 
@@ -405,13 +406,13 @@ func TestPurgeAll(t *testing.T) {
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set("test_1", "sample", 0)
+	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = rdb.Set("test_2", "sample", 0)
+	done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
-	done, err = rdb.Set("test_3", "sample", 0)
+	done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 

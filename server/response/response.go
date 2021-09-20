@@ -150,7 +150,7 @@ func (lwr *LoggedResponseWriter) WriteBody(page string) bool {
 
 // SendResponse - Write the Response.
 func (lwr LoggedResponseWriter) SendResponse() {
-	// TODO! Get extra behaviour from ServeCachedResponse
+	// TODO: Get extra behaviour from ServeCachedResponse
 	lwr.ResponseWriter.WriteHeader(lwr.StatusCode)
 
 	// Generate GZip.

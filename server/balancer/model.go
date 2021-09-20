@@ -14,13 +14,11 @@ import (
 	"time"
 )
 
-// TODO: make it customizable
-// HealthCheckInterval - Health Check Frequency
-const HealthCheckInterval time.Duration = 30 * time.Second
+// HealthCheckInterval - Health Check Frequency.
+const HealthCheckInterval time.Duration = 30 * time.Second // TODO: make it customizable
 
-// TODO: make it customizable
 // LeastConnectionsResetInterval - How often reset internal counter for Least Connection LoadBalancer.
-const LeastConnectionsResetInterval time.Duration = 5 * time.Minute
+const LeastConnectionsResetInterval time.Duration = 5 * time.Minute // TODO: make it customizable
 
 type LoadBalancing map[string]Balancer
 

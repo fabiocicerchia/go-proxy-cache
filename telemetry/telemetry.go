@@ -6,17 +6,20 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/go-http-utils/headers"
+	opentracing "github.com/opentracing/opentracing-go"
+
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
-	"github.com/go-http-utils/headers"
-	"github.com/opentracing/opentracing-go"
 )
 
+// TelemetryContext - Context holder for OpenTelemetry.
 type TelemetryContext struct {
 	ctx         context.Context
 	tracingSpan opentracing.Span
 }
 
+// From - Retrieves the tracing span from a context.
 func From(ctx context.Context) TelemetryContext {
 	return TelemetryContext{
 		ctx:         ctx,
@@ -24,15 +27,23 @@ func From(ctx context.Context) TelemetryContext {
 	}
 }
 
+// RegisterRedirect - Sends metrics / traces about a HTTP redirect event.
 func (tc TelemetryContext) RegisterRedirect(targetURL url.URL) {
 	tc.tracingSpan.
 		SetTag(tracing.TagResponseLocation, targetURL.String())
 }
 
+// RegisterEvent - Registers a specific application event.
 func (tc TelemetryContext) RegisterEvent(name string) {
 	tracing.AddEventsToSpan(tc.tracingSpan, name, map[string]string{})
 }
 
+// RegisterEvent - Sends extra data about a specific application event.
+func (tc TelemetryContext) RegisterEventWithData(name string, data map[string]string) {
+	tracing.AddEventsToSpan(tc.tracingSpan, name, data)
+}
+
+// RegisterRequest - Sends metrics / traces about an incoming HTTP request event.
 func (tc TelemetryContext) RegisterRequest(req http.Request) {
 	metrics.IncRequestHost(req.Host)
 
@@ -44,6 +55,7 @@ func (tc TelemetryContext) RegisterRequest(req http.Request) {
 	metrics.IncHttpMethod(req.Method)
 }
 
+// RegisterRequestCall - Sends extra metrics / traces about an incoming HTTP request event.
 func (tc TelemetryContext) RegisterRequestCall(reqID string, reqURL url.URL, scheme string, webSocket bool) {
 	tc.tracingSpan.SetBaggageItem(tracing.BaggageRequestID, reqID)
 
@@ -56,11 +68,14 @@ func (tc TelemetryContext) RegisterRequestCall(reqID string, reqURL url.URL, sch
 	metrics.IncUrlScheme(scheme)
 }
 
+// RegisterStatusCode - Registers the response status code.
 func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
 	tc.tracingSpan.
 		SetTag(tracing.TagResponseStatusCode, statusCode)
 	metrics.IncStatusCode(statusCode)
 }
+
+// RegisterRequestCacheStatus - Registers extra metrics / traces about the cache status.
 
 func (tc TelemetryContext) RegisterRequestCacheStatus(forceFresh bool, enableCachedResponse bool, cached string) {
 	tc.tracingSpan.
@@ -70,6 +85,7 @@ func (tc TelemetryContext) RegisterRequestCacheStatus(forceFresh bool, enableCac
 		SetTag(tracing.TagCacheStale, cached == "STALE") // TODO: Magic value
 }
 
+// RegisterCacheStaleOrHit - Registers metrics / traces about the cache status.
 func (tc TelemetryContext) RegisterCacheStaleOrHit(stale bool) {
 	if stale {
 		metrics.IncCacheStale()
@@ -81,6 +97,7 @@ func (tc TelemetryContext) RegisterCacheStaleOrHit(stale bool) {
 		SetTag(tracing.TagCacheStale, stale)
 }
 
+// RegisterRequestUpstream - Registers metrics / traces about the proxy upstream.
 func (tc TelemetryContext) RegisterRequestUpstream(proxyURL url.URL, enableCachedResponse bool, cached string) {
 	tc.tracingSpan.
 		SetTag(tracing.TagProxyEndpoint, proxyURL.String()).
@@ -90,6 +107,7 @@ func (tc TelemetryContext) RegisterRequestUpstream(proxyURL url.URL, enableCache
 		SetTag(tracing.TagCacheStale, false)
 }
 
+// RegisterRequestUpstream - Registers debug details about a specific request whether matches internal configuration.
 func (tc TelemetryContext) RegisterLegitRequest(hostMatch bool, legitPort bool, hostname string, listeningPort string, confHostname string, confPort interface{}) {
 	tc.tracingSpan.
 		SetTag(tracing.TagRequestIsLegitHostnameMatches, hostMatch).
@@ -100,6 +118,7 @@ func (tc TelemetryContext) RegisterLegitRequest(hostMatch bool, legitPort bool, 
 		SetTag(tracing.TagRequestIsLegitConfPort, confPort)
 }
 
+// RegisterPurge - Registers metrics / traces about the HTTP Purge event.
 func (tc TelemetryContext) RegisterPurge(status bool, err error) {
 	tc.tracingSpan.
 		SetTag(tracing.TagPurgeStatus, status)
@@ -112,6 +131,7 @@ func (tc TelemetryContext) RegisterPurge(status bool, err error) {
 	}
 }
 
+// RegisterRequestUpstream - Registers debug details about a specific request whether should have ETag from original request.
 func (tc TelemetryContext) RegisterServeOriginal(hash hash.Hash, header http.Header, statusCode int, lenContent int) {
 	tc.tracingSpan.
 		SetTag(tracing.TagResponseMustServeOriginalResponseNoHashComputed, hash == nil).
@@ -123,6 +143,7 @@ func (tc TelemetryContext) RegisterServeOriginal(hash hash.Hash, header http.Hea
 		SetTag(tracing.TagResponseMustServeOriginalResponseNoBufferedContent, lenContent == 0)
 }
 
+// RegisterHostHealth - Registers metrics about the handled domains' health status.
 func RegisterHostHealth(healthy int, unhealthy int) {
 	metrics.SetHostHealthy(float64(healthy))
 	metrics.SetHostUnhealthy(float64(unhealthy))

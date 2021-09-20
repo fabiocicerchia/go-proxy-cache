@@ -10,6 +10,7 @@ package storage
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -17,6 +18,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
@@ -29,14 +31,19 @@ type RequestCallDTO struct {
 }
 
 // RetrieveCachedContent - Retrives the cached response.
-func RetrieveCachedContent(rc RequestCallDTO, logger *log.Entry) (cache.URIObj, error) {
+func RetrieveCachedContent(ctx context.Context, rc RequestCallDTO, logger *log.Entry) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
 		if err == cache.ErrEmptyValue {
-			logger.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err) // TODO! Add to trace span?
+			logger.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		} else {
-			logger.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err) // TODO! Add to trace span?
+			logger.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
 		}
+
+		telemetry.From(ctx).RegisterEventWithData("Cannot retrieve page", map[string]string{
+			"url":   rc.CacheObject.CurrentURIObject.URL.String(),
+			"error": err.Error(),
+		})
 
 		return cache.URIObj{}, err
 	}
@@ -50,15 +57,15 @@ func RetrieveCachedContent(rc RequestCallDTO, logger *log.Entry) (cache.URIObj, 
 }
 
 // StoreGeneratedPage - Stores a response in the cache.
-func StoreGeneratedPage(rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
+func StoreGeneratedPage(ctx context.Context, rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
 	// Use the static rc.CacheObject.CurrentURIObject.ResponseHeaders to avoid data race
 	currentTTL := ttl.GetTTL(rc.CacheObject.CurrentURIObject.ResponseHeaders, domainConfigCache.TTL)
-	done, err := rc.CacheObject.StoreFullPage(currentTTL)
+	done, err := rc.CacheObject.StoreFullPage(ctx, currentTTL)
 
 	return done, err
 }
 
 // PurgeCachedContent - Purges a content in the cache.
-func PurgeCachedContent(upstream config.Upstream, rc RequestCallDTO) (bool, error) {
-	return rc.CacheObject.PurgeFullPage()
+func PurgeCachedContent(ctx context.Context, upstream config.Upstream, rc RequestCallDTO) (bool, error) {
+	return rc.CacheObject.PurgeFullPage(ctx)
 }

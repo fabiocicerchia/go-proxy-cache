@@ -148,8 +148,7 @@ func HookSentry(log *logrus.Logger, sentryDsn string) {
 		return
 	}
 
-	hook, err := logrus_sentry.NewSentryHook(sentryDsn, []logrus.Level{
-		// TODO: Make them customizable?
+	hook, err := logrus_sentry.NewSentryHook(sentryDsn, []logrus.Level{ // TODO: Make them customizable?
 		logrus.PanicLevel,
 		logrus.FatalLevel,
 		logrus.ErrorLevel,

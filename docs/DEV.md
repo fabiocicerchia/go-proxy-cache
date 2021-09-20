@@ -31,19 +31,19 @@ There is a JSON export of the dashboard stored in `test/full-setup/grafana/gpc-d
 
 Note: the Data Source must be configured in Grafana to point to `http://prometheus:9090`.
 
-# Logging
+## Logging
 
 In case of testing Sentry, follow this steps:
 
- - Start docker-compose.
- - Run patching commands:
-   - `SENTRY_SECRET_KEY=$(docker run --rm sentry config generate-secret-key)`
-   - `docker run --network full-setup_default -it --rm -e SENTRY_REDIS_HOST=redis -e SENTRY_POSTGRES_HOST=postgres -e SENTRY_SECRET_KEY=$SENTRY_SECRET_KEY -e SENTRY_DB_USER=sentry -e SENTRY_DB_PASSWORD=secret --link full-setup_postgres_1:postgres --link full-setup_redis_1:redis sentry upgrade`
-   - `docker run --network full-setup_default -it --rm -e SENTRY_REDIS_HOST=redis -e SENTRY_POSTGRES_HOST=postgres -e SENTRY_SECRET_KEY=$SENTRY_SECRET_KEY -e SENTRY_DB_USER=sentry -e SENTRY_DB_PASSWORD=secret --link full-setup_postgres_1:postgres --link full-setup_redis_1:redis sentry run worker`
- - Configure new accounts in the [admin panel](http://127.0.0.1:9000/).
- - Retrieve the Sentry DSN [here](http://127.0.0.1:9000/sentry/internal/getting-started/).
- - Change the setting `sentry_dsn` in the `config.yml` file.
- - Stop docker-compose and start again.
+- Start docker-compose.
+- Run patching commands:
+  - `SENTRY_SECRET_KEY=$(docker run --rm sentry config generate-secret-key)`
+  - `docker run --network full-setup_default -it --rm -e SENTRY_REDIS_HOST=redis -e SENTRY_POSTGRES_HOST=postgres -e SENTRY_SECRET_KEY=$SENTRY_SECRET_KEY -e SENTRY_DB_USER=sentry -e SENTRY_DB_PASSWORD=secret --link full-setup_postgres_1:postgres --link full-setup_redis_1:redis sentry upgrade`
+  - `docker run --network full-setup_default -it --rm -e SENTRY_REDIS_HOST=redis -e SENTRY_POSTGRES_HOST=postgres -e SENTRY_SECRET_KEY=$SENTRY_SECRET_KEY -e SENTRY_DB_USER=sentry -e SENTRY_DB_PASSWORD=secret --link full-setup_postgres_1:postgres --link full-setup_redis_1:redis sentry run worker`
+- Configure new accounts in the [admin panel](http://127.0.0.1:9000/).
+- Retrieve the Sentry DSN [here](http://127.0.0.1:9000/sentry/internal/getting-started/).
+- Change the setting `sentry_dsn` in the `config.yml` file.
+- Stop docker-compose and start again.
 
 ## Test
 
