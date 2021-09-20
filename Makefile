@@ -157,3 +157,5 @@ release: ## release
 
 docker-push: ## build and push a docker image
 	docker build -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER .
+	docker push fabiocicerchia/go-proxy-cache:latest
+	docker push fabiocicerchia/go-proxy-cache:$$VER
