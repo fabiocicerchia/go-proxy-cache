@@ -13,6 +13,7 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
@@ -432,7 +433,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	assert.Contains(t, body, "</div></body></html>\n")
 
 	// Manual Timeout All Fresh Keys
-	_, _ = engine.GetConn(domainID).DelWildcard("DATA@@GET@@https://www.w3.org/standards/@@*/fresh")
+	_, _ = engine.GetConn(domainID).DelWildcard(context.Background(), "DATA@@GET@@https://www.w3.org/standards/@@*/fresh")
 
 	// --- STALE
 

@@ -90,7 +90,7 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 }
 
 func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate, error) {
-	logger.GetGlobal().Debugf("HelloInfo: %+v\n", helloInfo) // TODO: Add to trace span?
+	logger.GetGlobal().Debugf("HelloInfo: %+v\n", helloInfo)
 
 	if val, ok := certificates[helloInfo.ServerName]; ok {
 		return val, nil

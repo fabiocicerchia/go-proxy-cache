@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opentracing/opentracing-go"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/dnscache"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"

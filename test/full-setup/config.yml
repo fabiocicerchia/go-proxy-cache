@@ -18,11 +18,11 @@ server:
   upstream:
     health_check:
       status_codes:
-       - 200
-       - 301
-       - 400
-       - 404
-       - 426
+      - 200
+      - 301
+      - 400
+      - 404
+      - 426
       allow_insecure: true
 
 cache:

@@ -1,3 +1,4 @@
+//go:build all || endtoend
 // +build all endtoend
 
 package test

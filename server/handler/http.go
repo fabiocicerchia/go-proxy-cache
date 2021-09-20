@@ -93,7 +93,7 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	uriObj, err := storage.RetrieveCachedContent(rcDTO, rc.GetLogger())
+	uriObj, err := storage.RetrieveCachedContent(ctx, rcDTO, rc.GetLogger())
 	if err != nil {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
 		metrics.IncCacheMiss()
@@ -173,7 +173,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
 	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
-	stored, err := doStoreResponse(rcDTO, rc.DomainConfig.Cache)
+	stored, err := doStoreResponse(ctx, rcDTO, rc.DomainConfig.Cache)
 
 	tracingSpan.SetTag(tracing.TagStorageCached, stored)
 
@@ -182,8 +182,8 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 	}
 }
 
-func doStoreResponse(rcDTO storage.RequestCallDTO, configCache config.Cache) (bool, error) {
-	stored, err := storage.StoreGeneratedPage(rcDTO, configCache)
+func doStoreResponse(ctx context.Context, rcDTO storage.RequestCallDTO, configCache config.Cache) (bool, error) {
+	stored, err := storage.StoreGeneratedPage(ctx, rcDTO, configCache)
 	if !stored || err != nil {
 		logger.Log(rcDTO.Request, rcDTO.ReqID, fmt.Sprintf("Not Stored: %v", err))
 	}

@@ -10,6 +10,7 @@ package cache
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -39,12 +40,10 @@ var errVaryWildcard = errors.New("vary: *")
 var ErrEmptyValue = errors.New("empty value")
 
 // DefaultMinSoftExpirationTTL - Additional time to avoid cache stampede (min lower bound).
-// TODO: Make it customizable?
-const DefaultMinSoftExpirationTTL time.Duration = 5 * time.Second
+const DefaultMinSoftExpirationTTL time.Duration = 5 * time.Second // TODO: Make it customizable?
 
 // DefaultMaxSoftExpirationTTL - Additional time to avoid cache stampede (max upper bound).
-// TODO: Make it customizable?
-const DefaultMaxSoftExpirationTTL time.Duration = 10 * time.Second
+const DefaultMaxSoftExpirationTTL time.Duration = 10 * time.Second // TODO: Make it customizable?
 
 // FreshSuffix - Used for saving a suffix for handling cache stampede.
 const FreshSuffix = "/fresh"
@@ -120,13 +119,13 @@ func (c Object) IsValid() (bool, error) {
 	return true, nil
 }
 
-func (c Object) handleMetadata(domainID string, targetURL url.URL, expiration time.Duration) ([]string, error) {
+func (c Object) handleMetadata(ctx context.Context, domainID string, targetURL url.URL, expiration time.Duration) ([]string, error) {
 	meta, err := GetVary(c.CurrentURIObject.ResponseHeaders)
 	if err != nil {
 		return []string{}, err
 	}
 
-	_, err = StoreMetadata(domainID, c.CurrentURIObject.Method, targetURL, meta, expiration)
+	_, err = StoreMetadata(ctx, domainID, c.CurrentURIObject.Method, targetURL, meta, expiration)
 	if err != nil {
 		return []string{}, err
 	}
@@ -135,7 +134,7 @@ func (c Object) handleMetadata(domainID string, targetURL url.URL, expiration ti
 }
 
 // StoreFullPage - Stores the whole page response in cache.
-func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
+func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bool, error) {
 	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
 		logger.GetGlobal().WithFields(log.Fields{
 			"ReqID": c.ReqID,
@@ -149,7 +148,7 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 		return false, nil
 	}
 
-	meta, err := c.handleMetadata(c.DomainID, c.CurrentURIObject.URL, expiration)
+	meta, err := c.handleMetadata(ctx, c.DomainID, c.CurrentURIObject.URL, expiration)
 	if err != nil {
 		return false, err
 	}
@@ -168,7 +167,7 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 
 	// HARD EVICTION
 	expirationHard := expiration
-	done, err := conn.Set(key+FreshSuffix, encoded, expirationHard)
+	done, err := conn.Set(ctx, key+FreshSuffix, encoded, expirationHard)
 	if err != nil {
 		return done, err
 	}
@@ -178,7 +177,7 @@ func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 	if expiration == 0 {
 		expirationSoft = 0
 	}
-	return conn.Set(key, encoded, expirationSoft)
+	return conn.Set(ctx, key, encoded, expirationSoft)
 }
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
@@ -226,8 +225,8 @@ func (c *Object) RetrieveFullPage() error {
 }
 
 // PurgeFullPage - Deletes the whole page response from cache.
-func (c Object) PurgeFullPage() (bool, error) {
-	err := PurgeMetadata(c.DomainID, c.CurrentURIObject.URL)
+func (c Object) PurgeFullPage(ctx context.Context) (bool, error) {
+	err := PurgeMetadata(ctx, c.DomainID, c.CurrentURIObject.URL)
 	if err != nil {
 		return false, err
 	}
@@ -243,7 +242,7 @@ func (c Object) PurgeFullPage() (bool, error) {
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
 	keyPattern := strings.Replace(key, match, replace, 1) + "*"
 
-	affected, err := conn.DelWildcard(keyPattern)
+	affected, err := conn.DelWildcard(ctx, keyPattern)
 	if err != nil {
 		return false, err
 	}
@@ -274,7 +273,7 @@ func FetchMetadata(domainID string, method string, url url.URL) ([]string, error
 }
 
 // PurgeMetadata - Purges the cache metadata for the requested URL.
-func PurgeMetadata(domainID string, url url.URL) error {
+func PurgeMetadata(ctx context.Context, domainID string, url url.URL) error {
 	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
 
 	conn := engine.GetConn(domainID)
@@ -282,13 +281,13 @@ func PurgeMetadata(domainID string, url url.URL) error {
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
-	_, err := conn.DelWildcard(keyPattern)
+	_, err := conn.DelWildcard(ctx, keyPattern)
 
 	return err
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
-func StoreMetadata(domainID string, method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
+func StoreMetadata(ctx context.Context, domainID string, method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
 	conn := engine.GetConn(domainID)
@@ -296,16 +295,16 @@ func StoreMetadata(domainID string, method string, url url.URL, meta []string, e
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
-	_ = conn.Del(key)
+	_ = conn.Del(ctx, key)
 
-	err := conn.Push(key, meta)
+	err := conn.Push(ctx, key, meta)
 	if err != nil {
 		return false, err
 	}
 
 	err = conn.Expire(key, expiration+getRandomSoftExpirationTTL())
 	if err != nil {
-		_ = conn.Del(key)
+		_ = conn.Del(ctx, key)
 		return false, err
 	}
 
