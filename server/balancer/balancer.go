@@ -125,7 +125,7 @@ func GetUpstreamNode(name string, requestURL url.URL, defaultHost string) string
 	return endpoint
 }
 
-// CheckHealth() - Period check on nodes status.
+// CheckHealth - Periodic check on nodes status.
 func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 	period := config.Interval
 	if period == 0 {

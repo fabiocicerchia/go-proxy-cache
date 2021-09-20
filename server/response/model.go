@@ -13,6 +13,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
+// DataChunks - Internal structure for chunks of bytes.
 type DataChunks [][]byte
 
 // Bytes - Returns flat slice of bytes.

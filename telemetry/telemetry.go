@@ -38,7 +38,7 @@ func (tc TelemetryContext) RegisterEvent(name string) {
 	tracing.AddEventsToSpan(tc.tracingSpan, name, map[string]string{})
 }
 
-// RegisterEvent - Sends extra data about a specific application event.
+// RegisterEventWithData - Sends extra data about a specific application event.
 func (tc TelemetryContext) RegisterEventWithData(name string, data map[string]string) {
 	tracing.AddEventsToSpan(tc.tracingSpan, name, data)
 }
@@ -107,7 +107,7 @@ func (tc TelemetryContext) RegisterRequestUpstream(proxyURL url.URL, enableCache
 		SetTag(tracing.TagCacheStale, false)
 }
 
-// RegisterRequestUpstream - Registers debug details about a specific request whether matches internal configuration.
+// RegisterLegitRequest - Registers debug details about a specific request whether matches internal configuration.
 func (tc TelemetryContext) RegisterLegitRequest(hostMatch bool, legitPort bool, hostname string, listeningPort string, confHostname string, confPort interface{}) {
 	tc.tracingSpan.
 		SetTag(tracing.TagRequestIsLegitHostnameMatches, hostMatch).
@@ -131,7 +131,7 @@ func (tc TelemetryContext) RegisterPurge(status bool, err error) {
 	}
 }
 
-// RegisterRequestUpstream - Registers debug details about a specific request whether should have ETag from original request.
+// RegisterServeOriginal - Registers debug details about a specific request whether should have ETag from original request.
 func (tc TelemetryContext) RegisterServeOriginal(hash hash.Hash, header http.Header, statusCode int, lenContent int) {
 	tc.tracingSpan.
 		SetTag(tracing.TagResponseMustServeOriginalResponseNoHashComputed, hash == nil).

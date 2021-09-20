@@ -21,7 +21,7 @@ type RandomBalancer struct {
 	next int
 }
 
-// New - Creates a new instance.
+// NewRandomBalancer - Creates a new instance.
 func NewRandomBalancer(name string, items []Item) *RandomBalancer {
 	return &RandomBalancer{
 		NodeBalancer: NodeBalancer{

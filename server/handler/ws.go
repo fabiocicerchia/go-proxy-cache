@@ -30,7 +30,7 @@ func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
 }
 
 func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
-	tracingSpan := tracing.NewChildSpan("handler.serve_reverse_proxy_ws", ctx)
+	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_reverse_proxy_ws")
 	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()

@@ -154,3 +154,6 @@ release: ## release
 	git add CHANGELOG.md
 	git commit -m "updated changelog for v$$VER"
 	git tag -af v$$VER -m "Release v$$VER"
+
+docker-push: ## build and push a docker image
+	docker build -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER .

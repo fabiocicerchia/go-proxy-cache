@@ -15,7 +15,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 )
 
-// LoggedResponseWriter - Decorator for http.ResponseWriter.
+// GetLogger - Get logger instance with RequestID.
 func (lwr LoggedResponseWriter) GetLogger() *log.Entry {
 	return logger.GetGlobal().WithFields(log.Fields{
 		"ReqID": lwr.ReqID,

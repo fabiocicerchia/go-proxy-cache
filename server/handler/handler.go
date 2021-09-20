@@ -73,6 +73,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// NewRequestCall - Initialize a RequestCall object starting from incoming Request.
 func NewRequestCall(res http.ResponseWriter, req *http.Request) RequestCall {
 	reqID := xid.New().String()
 	return RequestCall{

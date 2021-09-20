@@ -23,7 +23,7 @@ type IpHashBalancer struct {
 	hashMap map[string]int
 }
 
-// New - Creates a new instance.
+// NewIpHashBalancer - Creates a new instance.
 func NewIpHashBalancer(name string, items []Item) *IpHashBalancer {
 	return &IpHashBalancer{
 		NodeBalancer: NodeBalancer{
