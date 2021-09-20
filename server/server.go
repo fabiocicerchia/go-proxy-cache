@@ -23,9 +23,9 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
-	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -63,6 +63,11 @@ func Run(appVersion string, configFile string) {
 	// Init configs
 	config.InitConfigFromFileOrEnv(configFile)
 	config.Print()
+
+	// Logging Hooks
+	log := logger.NewGlobal()
+	logger.HookSentry(log, config.Config.Log.SentryDsn)
+	logger.HookSyslog(log, config.Config.Log.SyslogProtocol, config.Config.Log.SyslogEndpoint)
 
 	// Init tracing
 	tracer, closer, err := tracing.NewJaegerProvider(
@@ -175,8 +180,8 @@ func (s *Servers) InitServers(domain string, domainConfig config.Configuration) 
 
 	err := srvtls.ServerOverrides(domain, &srvHTTPS, domainConfig.Server)
 	if err != nil {
-		log.Errorf("Skipping '%s' TLS server configuration: %s", domain, err)
-		log.Errorf("No HTTPS server will be listening on '%s'", domain)
+		logger.GetGlobal().Errorf("Skipping '%s' TLS server configuration: %s", domain, err)
+		logger.GetGlobal().Errorf("No HTTPS server will be listening on '%s'", domain)
 
 		return
 	}
@@ -188,7 +193,7 @@ func (s *Servers) InitServers(domain string, domainConfig config.Configuration) 
 func (s *Servers) StartDomainServer(domain string, scheme string) {
 	domainConfig, found := config.DomainConf(domain, scheme)
 	if !found {
-		log.Errorf("Missing configuration for %s.", domain)
+		logger.GetGlobal().Errorf("Missing configuration for %s.", domain)
 		return
 	}
 
@@ -198,8 +203,8 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 	logger.LogSetup(domainConfig.Server)
 
 	// redis connect
-	circuitbreaker.InitCircuitBreaker(domainID, domainConfig.CircuitBreaker)
-	engine.InitConn(domainID, domainConfig.Cache, log.StandardLogger())
+	circuitbreaker.InitCircuitBreaker(domainID, domainConfig.CircuitBreaker, logger.GetGlobal())
+	engine.InitConn(domainID, domainConfig.Cache, logger.GetGlobal())
 
 	// config server http & https
 	s.InitServers(domain, domainConfig)
@@ -213,7 +218,7 @@ func (s Servers) startListeners() {
 		srvHTTP.HttpSrv.Addr = ":" + port
 
 		go func(srv http.Server) {
-			log.Fatal(srv.ListenAndServe())
+			logger.GetGlobal().Fatal(srv.ListenAndServe())
 		}(srvHTTP.HttpSrv)
 	}
 
@@ -221,7 +226,7 @@ func (s Servers) startListeners() {
 		srvHTTPS.HttpSrv.Addr = ":" + port
 
 		go func(srv http.Server) {
-			log.Fatal(srv.ListenAndServeTLS("", ""))
+			logger.GetGlobal().Fatal(srv.ListenAndServeTLS("", ""))
 		}(srvHTTPS.HttpSrv)
 	}
 }
@@ -230,14 +235,14 @@ func (s Servers) shutdownServers(ctx context.Context) {
 	for k, v := range s.HTTP {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
-			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+			logger.GetGlobal().Fatalf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
 
 	for k, v := range s.HTTPS {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
-			log.Fatalf("Cannot shutdown server %s: %s", k, err)
+			logger.GetGlobal().Fatalf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
 }

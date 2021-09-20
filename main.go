@@ -12,21 +12,18 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server"
 )
 
 var configFile string
-var logLevel log.Level = log.InfoLevel
 var logFile string
-var logFileHandle *os.File
 var verboseFlag bool
 var testFlag bool
 
@@ -54,7 +51,7 @@ func initFlags() {
 	}
 
 	if debug {
-		setDebugLevel()
+		logger.SetDebugLevel()
 	}
 }
 
@@ -74,43 +71,6 @@ func testConfiguration(configFile string) {
 	os.Exit(0)
 }
 
-func setDebugLevel() {
-	logLevel = log.DebugLevel
-}
-
-func getLogFileWriter(logFile string) *os.File {
-	f, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return f
-}
-
-func initLogs() {
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:     true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006/01/02 15:04:05",
-	})
-
-	log.SetReportCaller(verboseFlag)
-	log.SetLevel(logLevel)
-	log.SetOutput(os.Stdout)
-
-	if logFile != "" {
-		logFileHandle = getLogFileWriter(logFile)
-		log.SetOutput(io.MultiWriter(logFileHandle))
-		log.RegisterExitHandler(closeLogFile)
-	}
-}
-
-func closeLogFile() {
-	if logFileHandle != nil {
-		_ = logFileHandle.Close()
-	}
-}
-
 func printBanner() {
 	log.Debugf("                                                                        __")
 	log.Debugf(".-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.")
@@ -125,7 +85,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	initFlags()
-	initLogs()
+	logger.InitLogs(verboseFlag, logFile)
 
 	printBanner()
 

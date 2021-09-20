@@ -14,6 +14,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 )
 
 var rdb map[string]*client.RedisClient
@@ -24,7 +25,7 @@ func GetConn(connName string) *client.RedisClient {
 		return conn
 	}
 
-	log.Errorf("Missing redis connection for %s", connName)
+	logger.GetGlobal().Errorf("Missing redis connection for %s", connName)
 
 	return nil
 }

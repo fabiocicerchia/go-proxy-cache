@@ -23,7 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
@@ -89,7 +89,7 @@ func TestLogRequest(t *testing.T) {
 		},
 	}
 
-	logger.LogRequest(reqMock, lwrMock, "TestLogRequest", true, "HIT")
+	logger.LogRequest(reqMock, lwrMock.StatusCode, lwrMock.Content.Len(), "TestLogRequest", true, "HIT")
 
 	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT" ReqID=TestLogRequest` + "\n"
 

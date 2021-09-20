@@ -23,6 +23,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
@@ -136,7 +137,7 @@ func (c Object) handleMetadata(domainID string, targetURL url.URL, expiration ti
 // StoreFullPage - Stores the whole page response in cache.
 func (c Object) StoreFullPage(expiration time.Duration) (bool, error) {
 	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
-		log.WithFields(log.Fields{
+		logger.GetGlobal().WithFields(log.Fields{
 			"ReqID": c.ReqID,
 		}).Debugf(
 			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v",
@@ -195,7 +196,7 @@ func (c *Object) RetrieveFullPage() error {
 	}
 
 	key := StorageKey(c.CurrentURIObject, meta)
-	log.WithFields(log.Fields{
+	logger.GetGlobal().WithFields(log.Fields{
 		"ReqID": c.ReqID,
 	}).Debugf("StorageKey: %s", key)
 
