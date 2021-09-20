@@ -11,11 +11,13 @@ package response
 
 import (
 	log "github.com/sirupsen/logrus"
+
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 )
 
 // LoggedResponseWriter - Decorator for http.ResponseWriter.
 func (lwr LoggedResponseWriter) GetLogger() *log.Entry {
-	return log.WithFields(log.Fields{
+	return logger.GetGlobal().WithFields(log.Fields{
 		"ReqID": lwr.ReqID,
 	})
 }

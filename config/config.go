@@ -137,6 +137,7 @@ func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
 	c.copyOverWithUpstream(overrides.Server)
 	c.copyOverWithCache(overrides.Cache)
 	c.copyOverWithTracing(overrides.Tracing)
+	c.copyOverWithLog(overrides.Log)
 }
 
 // --- SERVER.
@@ -203,6 +204,13 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 func (c *Configuration) copyOverWithTracing(overrides Tracing) {
 	c.Tracing.JaegerEndpoint = utils.Coalesce(overrides.JaegerEndpoint, c.Tracing.JaegerEndpoint).(string)
 	c.Tracing.Enabled = utils.Coalesce(overrides.Enabled, c.Tracing.Enabled).(bool)
+}
+
+// --- LOG.
+func (c *Configuration) copyOverWithLog(overrides Log) {
+	c.Log.SentryDsn = utils.Coalesce(overrides.SentryDsn, c.Log.SentryDsn).(string)
+	c.Log.SyslogProtocol = utils.Coalesce(overrides.SyslogProtocol, c.Log.SyslogProtocol).(string)
+	c.Log.SyslogEndpoint = utils.Coalesce(overrides.SyslogEndpoint, c.Log.SyslogEndpoint).(string)
 }
 
 // Print - Shows the current configuration.

@@ -24,6 +24,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
@@ -57,7 +58,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	}
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	// --- PURGE
@@ -111,7 +112,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	// --- MISS

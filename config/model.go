@@ -134,8 +134,11 @@ type Cache struct {
 
 // Log - Defines the config for the logs.
 type Log struct {
-	TimeFormat string `yaml:"time_format"`
-	Format     string `yaml:"format"`
+	TimeFormat     string `yaml:"time_format"`
+	Format         string `yaml:"format"`
+	SentryDsn      string `yaml:"sentry_dsn" envconfig:"SENTRY_DSN"`
+	SyslogProtocol string `yaml:"syslog_protocol" envconfig:"SYSLOG_PROTOCOL"`
+	SyslogEndpoint string `yaml:"syslog_endpoint" envconfig:"SYSLOG_ENDPOINT"`
 }
 
 // Tracing - Defines the config for the OpenTelemetry tracing.

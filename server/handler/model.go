@@ -21,6 +21,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 )
@@ -49,7 +50,7 @@ type RequestCall struct {
 
 // GetLogger - Get logger instance with RequestID.
 func (rc RequestCall) GetLogger() *log.Entry {
-	return log.WithFields(log.Fields{
+	return logger.GetGlobal().WithFields(log.Fields{
 		"ReqID": rc.ReqID,
 	})
 }

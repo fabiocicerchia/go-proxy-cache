@@ -15,9 +15,9 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -90,7 +90,7 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 }
 
 func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate, error) {
-	log.Debugf("HelloInfo: %+v\n", helloInfo) // TODO: Add to trace span?
+	logger.GetGlobal().Debugf("HelloInfo: %+v\n", helloInfo) // TODO: Add to trace span?
 
 	if val, ok := certificates[helloInfo.ServerName]; ok {
 		return val, nil
@@ -103,7 +103,7 @@ func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate,
 func InitCertManager(host string, email string) *autocert.Manager {
 	cacheDir, err := ioutil.TempDir("", "cache_dir")
 	if err != nil {
-		log.Fatal(err)
+		logger.GetGlobal().Fatal(err)
 		return nil
 	}
 

@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
@@ -83,7 +83,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 
 	if enableLoggingRequest {
 		// HIT and STALE considered the same.
-		logger.LogRequest(rc.Request, *rc.Response, rc.ReqID, cached != CacheStatusMiss, CacheStatusLabel[cached])
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cached != CacheStatusMiss, CacheStatusLabel[cached])
 	}
 }
 

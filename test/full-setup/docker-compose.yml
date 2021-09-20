@@ -10,6 +10,8 @@
 version: '3.8'
 
 services:
+  # CORE - GOPROXYCACHE
+  ##############################################################################
   go-proxy-cache:
     build:
       context: ../..
@@ -33,6 +35,8 @@ services:
       - ./config.yml:/app/config.yml
       - ./certs:/app/certs
 
+  # STORAGE - REDIS
+  ##############################################################################
   redis:
     image: redis:6.2.5-alpine3.14
     ports:
@@ -47,6 +51,8 @@ services:
       timeout: 3s
       retries: 30
 
+  # UPSTREAM 1 - NGINX
+  ##############################################################################
   nginx:
     build:
       context: .
@@ -65,6 +71,8 @@ services:
       - "40081:40081" # WS
       - "40082:40082" # WSS
 
+  # UPSTREAM 2 - NODEJS
+  ##############################################################################
   node:
     image: node:16.7.0-alpine3.14
     restart: always
@@ -81,6 +89,8 @@ services:
       - "9001:9001" # WS
       - "9002:9002" # WSS
 
+  # TRACING - JAEGER
+  ##############################################################################
   jaeger:
     image: jaegertracing/all-in-one:1.26.0
     ports:
@@ -98,15 +108,53 @@ services:
       retries: 5
       start_period: 10s
 
+  # METRICS - PROMETHEUS
+  ##############################################################################
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v2.30.0
     ports:
-      - "9090:9090" # Prometheus
+      - "9090:9090" # Prometheuspbertera/syslogserver
     command: --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
 
+  # DASHBOARD - GRAFANA
+  ##############################################################################
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:8.1.4-ubuntu
     ports:
       - "3001:3000" # Grafana
+
+  # LOGS - SYSLOG
+  ##############################################################################
+  syslog:
+    image: pbertera/syslogserver:latest
+    environment:
+      SYSLOG_USERNAME: admin
+      SYSLOG_PASSWORD: 1234
+    ports:
+      - "8080:80" # pimpmylogs
+      - "514:514/udp" # rsyslog
+
+  # LOGS - SENTRY
+  ##############################################################################
+  sentry:
+    image: sentry:9.1.2
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      SENTRY_SECRET_KEY: test
+      SENTRY_REDIS_HOST: redis
+      SENTRY_POSTGRES_HOST: postgres
+      SENTRY_DB_USER: sentry
+      SENTRY_DB_PASSWORD: secret
+    ports:
+      - "9000:9000" # sentry
+  postgres:
+    image: postgres:13.4-alpine3.14
+    environment:
+      POSTGRES_USER: sentry
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432" # postgres
