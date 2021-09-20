@@ -18,7 +18,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
-// HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
+// WrapResponseForGZip - Add HTTP header ETag only on HTTP(S) requests.
 func WrapResponseForGZip(res *response.LoggedResponseWriter, req *http.Request) {
 	if !strings.Contains(req.Header.Get(headers.AcceptEncoding), "gzip") {
 		return

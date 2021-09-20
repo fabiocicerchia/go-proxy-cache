@@ -150,6 +150,7 @@ type Tracing struct {
 	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:1`
 }
 
+// Internals - Defines the config for the internal listening address/port.
 type Internals struct {
 	ListeningAddress string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_ADDRESS" default:"127.0.0.1"`
 	ListeningPort    string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_PORT" default:"52021"`

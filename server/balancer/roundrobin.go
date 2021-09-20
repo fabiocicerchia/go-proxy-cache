@@ -24,7 +24,7 @@ type RoundRobinBalancer struct {
 	next int
 }
 
-// New - Creates a new instance.
+// NewRoundRobinBalancer - Creates a new instance.
 func NewRoundRobinBalancer(name string, items []Item) *RoundRobinBalancer {
 	return &RoundRobinBalancer{
 		NodeBalancer: NodeBalancer{

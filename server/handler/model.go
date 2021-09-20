@@ -110,24 +110,28 @@ func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
 }
 
+// SendNotImplemented - Sends a 501 response status code.
 func (rc RequestCall) SendNotImplemented(ctx context.Context) {
 	rc.Response.SendNotImplemented()
 
 	telemetry.From(ctx).RegisterStatusCode(http.StatusNotImplemented)
 }
 
+// SendMethodNotAllowed - Sends a 405 response status code.
 func (rc RequestCall) SendMethodNotAllowed(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusMethodNotAllowed)
 
 	telemetry.From(ctx).RegisterStatusCode(http.StatusMethodNotAllowed)
 }
 
+// SendNotModifiedResponse - Sends a 304 response status code.
 func (rc RequestCall) SendNotModifiedResponse(ctx context.Context) {
 	rc.Response.SendNotModifiedResponse()
 
 	telemetry.From(ctx).RegisterStatusCode(http.StatusNotModified)
 }
 
+// SendResponse - Sends the response to the client.
 func (rc RequestCall) SendResponse(ctx context.Context) {
 	rc.Response.SendResponse()
 

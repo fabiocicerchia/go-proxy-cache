@@ -32,6 +32,7 @@ var logFileHandle *os.File
 var logLevel logrus.Level = logrus.InfoLevel
 var log *logrus.Logger
 
+// InitLogs - Configures basic settings for logging with logrus.
 func InitLogs(verboseFlag bool, logFile string) {
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
@@ -50,6 +51,7 @@ func InitLogs(verboseFlag bool, logFile string) {
 	}
 }
 
+// SetDebugLevel - Changes log level to DEBUG.
 func SetDebugLevel() {
 	logLevel = logrus.DebugLevel
 }
@@ -77,7 +79,7 @@ func Log(req http.Request, reqID string, message string) {
 }
 
 // LogRequest - Logs the requested URL.
-func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, cached bool, cached_label string) {
+func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, cached bool, cachedLabel string) {
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	logLine := config.Config.Log.Format
@@ -104,7 +106,7 @@ func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, 
 		`$body_bytes_sent`, strconv.Itoa(lenContent),
 		`$http_referer`, req.Referer(),
 		`$http_user_agent`, req.UserAgent(),
-		`$cached_status_label`, cached_label,
+		`$cached_status_label`, cachedLabel,
 		`$cached_status`, fmt.Sprintf("%v", cached),
 	)
 
@@ -126,15 +128,18 @@ func LogSetup(server config.Server) {
 	logrus.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
 }
 
+// New - Creates a new logrus logger.
 func New() *logrus.Logger {
 	return logrus.New()
 }
 
+// NewGlobal - Creates a new global logrus logger.
 func NewGlobal() *logrus.Logger {
 	log = New()
 	return log
 }
 
+// GetGlobal - Returns existing instance of global logger (it'll create a new one if doesn't exist).
 func GetGlobal() *logrus.Logger {
 	if log == nil {
 		return NewGlobal()
@@ -143,6 +148,7 @@ func GetGlobal() *logrus.Logger {
 	return log
 }
 
+// HookSentry - Configures (optionally) the Sentry hook for logrus.
 func HookSentry(log *logrus.Logger, sentryDsn string) {
 	if sentryDsn == "" {
 		return
@@ -163,6 +169,7 @@ func HookSentry(log *logrus.Logger, sentryDsn string) {
 	log.Hooks.Add(hook)
 }
 
+// HookSyslog - Configures (optionally) the syslog hook for logrus.
 func HookSyslog(log *logrus.Logger, syslogProtocol string, syslogEndpoint string) {
 	if syslogEndpoint == "" {
 		return

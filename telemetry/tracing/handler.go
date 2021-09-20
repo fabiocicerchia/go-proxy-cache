@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/otel"
 )
 
+// HTTPHandlerFunc - Add OpenTracing data to a HTTP handler.
 func HTTPHandlerFunc(handler http.HandlerFunc, operation string) http.HandlerFunc {
 	otelOpts := otelhttp.WithTracerProvider(otel.GetTracerProvider())
 

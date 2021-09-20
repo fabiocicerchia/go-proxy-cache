@@ -18,9 +18,10 @@ import (
 	"github.com/yhat/wsutil"
 )
 
+// HttpVersion2 - The value for the HTTP/2 protocol.
 const HttpVersion2 = 2
 
-// HandleRequestWithETag - Add HTTP header ETag only on HTTP(S) requests.
+// GetResponseWithETag - Add HTTP header ETag only on HTTP(S) requests.
 func (rc RequestCall) GetResponseWithETag(ctx context.Context, proxy *httputil.ReverseProxy) (serveNotModified bool) {
 	// Start buffering the response.
 	proxy.ServeHTTP(rc.Response, &rc.Request)

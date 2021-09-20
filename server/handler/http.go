@@ -29,10 +29,10 @@ import (
 // CacheStatusHit - Value for HIT.
 const CacheStatusHit = 1
 
-// CacheStatusHit - Value for MISS.
+// CacheStatusMiss - Value for MISS.
 const CacheStatusMiss = 0
 
-// CacheStatusHit - Value for STALE.
+// CacheStatusStale - Value for STALE.
 const CacheStatusStale = -1
 
 // CacheStatusLabel - Labels used for displaying HIT/MISS based on cache usage.
@@ -60,7 +60,7 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
-	tracingSpan := tracing.NewChildSpan("handler.handle_http_request_and_proxy", ctx)
+	tracingSpan := tracing.NewChildSpan(ctx, "handler.handle_http_request_and_proxy")
 	defer tracingSpan.Finish()
 
 	cached := CacheStatusMiss
@@ -88,7 +88,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 }
 
 func (rc RequestCall) serveCachedContent(ctx context.Context) int {
-	tracingSpan := tracing.NewChildSpan("handler.serve_cached_content", ctx)
+	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_cached_content")
 	defer tracingSpan.Finish()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
@@ -118,7 +118,7 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 }
 
 func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
-	tracingSpan := tracing.NewChildSpan("handler.serve_reverse_proxy_http", ctx)
+	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_reverse_proxy_http")
 	defer tracingSpan.Finish()
 
 	proxyURL, err := rc.GetUpstreamURL()
@@ -167,7 +167,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 		return
 	}
 
-	tracingSpan := tracing.NewChildSpan("handler.store_response", ctx)
+	tracingSpan := tracing.NewChildSpan(ctx, "handler.store_response")
 	defer tracingSpan.Finish()
 
 	rcDTO := ConvertToRequestCallDTO(rc)

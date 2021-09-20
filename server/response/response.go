@@ -201,6 +201,7 @@ func (lwr LoggedResponseWriter) SendNotModifiedResponse() {
 }
 
 // GZIP ------------------------------------------------------------------------
+// InitGZipBuffer - Initialize the GZip writer.
 func (lwr *LoggedResponseWriter) InitGZipBuffer() {
 	lwrGzip := &LoggedResponseWriter{ResponseWriter: lwr.ResponseWriter}
 	lwr.GZipResponse = gzip.NewWriter(lwrGzip)

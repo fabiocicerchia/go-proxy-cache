@@ -115,6 +115,7 @@ var (
 	)
 )
 
+// IncRequestHost - Increments metrics for gpc_request_host_total.
 func IncRequestHost(host string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -126,6 +127,7 @@ func IncRequestHost(host string) {
 	requestHost.With(labels).Inc()
 }
 
+// IncHttpMethod - Increments metrics for gpc_http_methods_total.
 func IncHttpMethod(method string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -137,6 +139,7 @@ func IncHttpMethod(method string) {
 	httpMethods.With(labels).Inc()
 }
 
+// IncUrlScheme - Increments metrics for gpc_url_scheme_total.
 func IncUrlScheme(scheme string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -148,6 +151,7 @@ func IncUrlScheme(scheme string) {
 	urlScheme.With(labels).Inc()
 }
 
+// IncStatusCode - Increments metrics for gpc_status_codes_total, gpc_request_1xx_total, gpc_request_2xx_total, gpc_request_3xx_total, gpc_request_4xx_total, gpc_request_5xx_total, gpc_request_sum_total.
 func IncStatusCode(code int) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -177,6 +181,7 @@ func IncStatusCode(code int) {
 	requestSum.With(labels).Inc()
 }
 
+// IncCacheMiss - Increments metrics for gpc_cache_miss_total.
 func IncCacheMiss() {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -187,6 +192,7 @@ func IncCacheMiss() {
 	cacheMiss.With(labels).Inc()
 }
 
+// IncCacheStale - Increments metrics for gpc_cache_stale_total.
 func IncCacheStale() {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -197,6 +203,7 @@ func IncCacheStale() {
 	cacheStale.With(labels).Inc()
 }
 
+// IncCacheHit - Increments metrics for gpc_cache_hits_total.
 func IncCacheHit() {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -207,6 +214,7 @@ func IncCacheHit() {
 	cacheHit.With(labels).Inc()
 }
 
+// SetHostHealthy - Increments metrics for gpc_host_healthy.
 func SetHostHealthy(val float64) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -217,6 +225,7 @@ func SetHostHealthy(val float64) {
 	hostHealthy.With(labels).Set(val)
 }
 
+// SetHostUnhealthy - Increments metrics for gpc_host_unhealthy.
 func SetHostUnhealthy(val float64) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
@@ -227,6 +236,7 @@ func SetHostUnhealthy(val float64) {
 	hostUnhealthy.With(labels).Set(val)
 }
 
+// Register - Add custom metric to prometheus.
 func Register() {
 	prometheus.MustRegister(
 		statusCodes, requestSum,

@@ -21,7 +21,7 @@ type LeastConnectionsBalancer struct {
 	connections map[string]int64
 }
 
-// New - Creates a new instance.
+// NewLeastConnectionsBalancer - Creates a new instance.
 func NewLeastConnectionsBalancer(name string, items []Item) *LeastConnectionsBalancer {
 	b := &LeastConnectionsBalancer{
 		NodeBalancer: NodeBalancer{
@@ -56,27 +56,27 @@ func (b *LeastConnectionsBalancer) Pick(requestURL string) (string, error) {
 		return "", ErrNoAvailableItem
 	}
 
-	elected_node := healthyNodes[0].Endpoint
+	electedNode := healthyNodes[0].Endpoint
 
 	b.NodeBalancer.M.RLock()
-	least_connection := b.connections[elected_node]
+	leastConnection := b.connections[electedNode]
 
 	for _, v := range healthyNodes {
-		if b.connections[v.Endpoint] < least_connection {
-			least_connection = b.connections[v.Endpoint]
-			elected_node = v.Endpoint
+		if b.connections[v.Endpoint] < leastConnection {
+			leastConnection = b.connections[v.Endpoint]
+			electedNode = v.Endpoint
 		}
 	}
 	b.NodeBalancer.M.RUnlock()
 
 	b.NodeBalancer.M.Lock()
-	b.connections[elected_node]++
+	b.connections[electedNode]++
 	b.NodeBalancer.M.Unlock()
 
-	return elected_node, nil
+	return electedNode, nil
 }
 
-// CheckHealth() - Period check on nodes status.
+// ResetCounter - Resets internal connection counters periodically.
 func (b *LeastConnectionsBalancer) ResetCounter(period time.Duration) {
 	go func() {
 		t := time.NewTicker(period)

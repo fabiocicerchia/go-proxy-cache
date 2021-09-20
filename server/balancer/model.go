@@ -20,15 +20,18 @@ const HealthCheckInterval time.Duration = 30 * time.Second // TODO: make it cust
 // LeastConnectionsResetInterval - How often reset internal counter for Least Connection LoadBalancer.
 const LeastConnectionsResetInterval time.Duration = 5 * time.Minute // TODO: make it customizable
 
+// LoadBalancing - Contains the multiple instances for the active servers.
 type LoadBalancing map[string]Balancer
 
 var lb LoadBalancing
 
+// Item - Represents a load balanced node.
 type Item struct {
 	Healthy  bool
 	Endpoint string
 }
 
+// NodeBalancer - Core structure for a load balancer.
 type NodeBalancer struct {
 	M sync.RWMutex
 
@@ -36,7 +39,7 @@ type NodeBalancer struct {
 	Items []Item
 }
 
-// Balancer instance.
+// Balancer - Represents a Load Balancer interface.
 type Balancer interface {
 	GetHealthyNodes() []Item
 	Pick(requestURL string) (string, error)

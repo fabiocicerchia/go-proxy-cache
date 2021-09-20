@@ -37,6 +37,7 @@ const enableTimeoutHandler = true
 // DefaultTimeoutShutdown - Default Timeout for shutting down a context.
 const DefaultTimeoutShutdown time.Duration = 5 * time.Second
 
+// Server - Contains the core info about an HTTP server.
 type Server struct {
 	Domain  string
 	HttpSrv http.Server

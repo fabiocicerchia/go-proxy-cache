@@ -18,6 +18,7 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 )
 
+// BaggageRequestID - Key for OpenTracing baggage Request ID.
 const BaggageRequestID = "request.id"
 
 // TagErrorError - Error
@@ -125,7 +126,7 @@ func NewSpan(operation string) opentracing.Span {
 
 // NewChildSpan returns a new tracing child span from the global tracer.
 // Each tracing span must be followed by `defer tracingSpan.Finish()`.
-func NewChildSpan(operation string, ctx context.Context) opentracing.Span {
+func NewChildSpan(ctx context.Context, operation string) opentracing.Span {
 	spanCtx := SpanFromContext(ctx).Context()
 	return opentracing.GlobalTracer().StartSpan(operation, opentracing.ChildOf(spanCtx))
 }
