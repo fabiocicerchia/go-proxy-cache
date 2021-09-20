@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.2.0 (2021-09-20)
+
+### New
+- Add log support for sentry/syslog/rsyslog (#112) [Fabio Cicerchia]
+- Upstream healthchecks, closed #49. [Fabio Cicerchia]
+- Prevent Cache Stampede + Serve STALE cache, closed #48 #18. [Fabio Cicerchia]
+- Async storing in redis to avoid latency, closed #55. [Fabio Cicerchia]
+- Prometheus Metrics (#111) [Fabio Cicerchia]
+- Implemented opentelemetry, closed 56 (#110) [Fabio Cicerchia]
+- LB Algorithms (#108) [Fabio Cicerchia]
+- Cache dns upstream, closed #52. [Fabio Cicerchia]
+- Support HTTP Basic Auth on upstreams, closed #46. [Fabio Cicerchia]
+
+### Changes
+- Refactoring + removed some todos. [Fabio Cicerchia]
+- Build(deps): bump alpine from 3.14.1 to 3.14.2 (#105) [dependabot[bot]]
+
+### Fix
+- Broken build pipeline. [Fabio Cicerchia]
+- Domain overrides settings #35 (#106) [Fabio Cicerchia]
+
 ## v1.1.0 (2021-08-28)
 
 ### New
