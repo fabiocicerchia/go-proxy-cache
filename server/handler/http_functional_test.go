@@ -24,6 +24,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
@@ -66,7 +67,7 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	config.Config.Server.Upstream.RedirectStatusCode = 301
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -101,7 +102,7 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
@@ -142,7 +143,7 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, err := engine.GetConn(domainID).PurgeAll()
@@ -198,7 +199,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
@@ -276,7 +277,7 @@ func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
@@ -379,7 +380,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
@@ -507,7 +508,7 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
@@ -545,7 +546,7 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("GET", "/", nil)
@@ -580,7 +581,7 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()
@@ -621,7 +622,7 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, err := engine.GetConn(domainID).PurgeAll()
@@ -678,7 +679,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	_, _ = engine.GetConn(domainID).PurgeAll()
@@ -746,7 +747,7 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 
 	domainID := config.Config.Server.Upstream.GetDomainID()
 	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	engine.GetConn(domainID).Close()

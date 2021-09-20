@@ -91,7 +91,7 @@ func (rdb *RedisClient) unlock(key string) error {
 
 // PurgeAll - Purges all the existing keys on a DB.
 func (rdb *RedisClient) PurgeAll() (bool, error) {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
 		err := rdb.Client.FlushDB(ctx).Err()
 		return nil, err
 	})
@@ -101,7 +101,7 @@ func (rdb *RedisClient) PurgeAll() (bool, error) {
 
 // Ping - Tests the connection.
 func (rdb *RedisClient) Ping() bool {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
 		err := rdb.Client.Ping(ctx).Err()
 		return nil, err
 	})
@@ -111,7 +111,7 @@ func (rdb *RedisClient) Ping() bool {
 
 // Set - Sets a key, with certain value, with TTL for expiring (soft and hard eviction).
 func (rdb *RedisClient) Set(key string, value string, expiration time.Duration) (bool, error) {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(rdb.doSet(key, value, expiration))
+	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doSet(key, value, expiration))
 
 	return err == nil, err
 }
@@ -134,7 +134,7 @@ func (rdb *RedisClient) doSet(key string, value string, expiration time.Duration
 
 // Get - Gets a key.
 func (rdb *RedisClient) Get(key string) (string, error) {
-	value, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	value, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
 		value, err := rdb.Client.Get(ctx, key).Result()
 		if value == "" && err != nil && err.Error() == "redis: nil" {
 			return value, nil
@@ -155,7 +155,7 @@ func (rdb *RedisClient) Del(key string) error {
 
 // DelWildcard - Removes the matching keys based on a pattern.
 func (rdb *RedisClient) DelWildcard(key string) (int, error) {
-	k, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	k, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
 		keys, err := rdb.Client.Keys(ctx, key).Result()
 		return keys, err
 	})
@@ -175,7 +175,7 @@ func (rdb *RedisClient) deleteKeys(keyID string, keys []string) (int, error) {
 		return 0, nil
 	}
 
-	_, errDel := circuitbreaker.CB(rdb.Name).Execute(rdb.doDeleteKeys(keyID, keys))
+	_, errDel := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doDeleteKeys(keyID, keys))
 
 	return l, errDel
 }
@@ -198,7 +198,7 @@ func (rdb *RedisClient) doDeleteKeys(keyID string, keys []string) func() (interf
 
 // List - Returns the values in a list.
 func (rdb *RedisClient) List(key string) ([]string, error) {
-	value, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	value, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
 		value, err := rdb.Client.LRange(ctx, key, 0, -1).Result()
 		return value, err
 	})
@@ -212,7 +212,7 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 
 // Push - Append values to a list.
 func (rdb *RedisClient) Push(key string, values []string) error {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(rdb.doPushKey(key, values))
+	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doPushKey(key, values))
 
 	return err
 }
@@ -235,7 +235,7 @@ func (rdb *RedisClient) doPushKey(key string, values []string) func() (interface
 
 // Expire - Sets a TTL on a key (hard eviction only).
 func (rdb *RedisClient) Expire(key string, expiration time.Duration) error {
-	_, err := circuitbreaker.CB(rdb.Name).Execute(func() (interface{}, error) {
+	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
 		err := rdb.Client.Expire(ctx, key, expiration).Err()
 		return nil, err
 	})

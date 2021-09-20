@@ -21,6 +21,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
@@ -56,27 +57,27 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
-	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName).State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
 
 	val := rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName).State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
 
 	_ = rdb.Close()
 
 	val = rdb.Ping()
 	assert.False(t, val)
-	assert.Equal(t, "half-open", circuit_breaker.CB(redisConnName).State().String())
+	assert.Equal(t, "half-open", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
 
 	rdb = client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
 	val = rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName).State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
 }
 
 func TestClose(t *testing.T) {
@@ -96,7 +97,7 @@ func TestClose(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -124,7 +125,7 @@ func TestSetGet(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -154,7 +155,7 @@ func TestSetGetWithExpiration(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -186,7 +187,7 @@ func TestDel(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -223,7 +224,7 @@ func TestExpire(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -259,7 +260,7 @@ func TestPushList(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -288,7 +289,7 @@ func TestDelWildcardNoMatch(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -344,7 +345,7 @@ func TestDelWildcard(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -400,7 +401,7 @@ func TestPurgeAll(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 
@@ -456,7 +457,7 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker)
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
 	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
 

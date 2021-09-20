@@ -156,7 +156,8 @@ server:
     # Values: http, https, ws, wss.
     scheme: ~
     # Load Balancing Algorithm to be used when present multiple endpoints.
-    # Allowed formats: ip-hash, least-connections, random, round-robin (default).
+    # Default: round-robin
+    # Allowed formats: ip-hash, least-connections, random, round-robin.
     balancing_algorithm: round-robin
     # List of IPs/Hostnames to be used as load balanced backend servers.
     # They'll be selected using the chosen algorithm (or round-robin).
@@ -252,19 +253,37 @@ log:
   # Ref: https://golang.org/src/time/format.go
   time_format: "2006/01/02 15:04:05"
   # Available variables:
-  # - $host            = request host
-  # - $remote_addr     = request remote addr
-  # - $remote_user     = -
-  # - $time_local      = local time with format of `time_format`
-  # - $protocol        = protocol
-  # - $request_method  = method
-  # - $request         = full URI
-  # - $status          = status code
-  # - $body_bytes_sent = number of bytes in content body
-  # - $http_referer    = referer
-  # - $http_user_agent = user agent
-  # - $cached_status   = cache flag
+  # - $host                = request host
+  # - $remote_addr         = request remote addr
+  # - $remote_user         = -
+  # - $time_local          = local time with format of `time_format`
+  # - $protocol            = protocol
+  # - $request_method      = method
+  # - $request             = full URI
+  # - $status              = status code
+  # - $body_bytes_sent     = number of bytes in content body
+  # - $http_referer        = referer
+  # - $http_user_agent     = user agent
+  # - $cached_status       = cache flag
+  # - $cached_status_label = cached flag label (HIT/MISS/STALE)
   format: $host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status
+  # Sentry DSN
+  # All errors will be tracked and sent to Sentry.
+  # Logged levels: warning, error, fatal, panic.
+  # Default (empty)
+  sentry_dsn: ~
+  # Syslog Protocol
+  # If no protocol and no endpoint is specified, all the logs will be sent to
+  # the local syslog.
+  # Default (empty)
+  syslog_protocol: ~
+  # Syslog Endpoint
+  # If no protocol and no endpoint is specified, all the logs will be sent to
+  # the local syslog.
+  # All errors will be tracked and sent to syslog.
+  # Logged levels: warning, error, critical, alert, emergency.
+  # Default (empty)
+  syslog_endpoint: ~
 
 # --- TRACING
 tracing:

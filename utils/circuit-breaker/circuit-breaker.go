@@ -12,7 +12,7 @@ package circuitbreaker
 import (
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
 )
 
@@ -28,14 +28,14 @@ type CircuitBreaker struct {
 }
 
 // InitCircuitBreaker - Initialise the Circuit Breaker.
-func InitCircuitBreaker(name string, config CircuitBreaker) {
+func InitCircuitBreaker(name string, config CircuitBreaker, logger *logrus.Logger) {
 	st := gobreaker.Settings{
 		Name:          name,
 		MaxRequests:   config.MaxRequests,
 		Interval:      config.Interval,
 		Timeout:       config.Timeout,
 		ReadyToTrip:   cbReadyToTrip(config),
-		OnStateChange: cbOnStateChange,
+		OnStateChange: cbOnStateChange(logger),
 	}
 
 	cb[name] = gobreaker.NewCircuitBreaker(st)
@@ -49,12 +49,14 @@ func cbReadyToTrip(config CircuitBreaker) func(counts gobreaker.Counts) bool {
 	}
 }
 
-func cbOnStateChange(name string, from gobreaker.State, to gobreaker.State) {
-	log.Warnf("Circuit Breaker '%s' - Changed from %s to %s", name, from.String(), to.String())
+func cbOnStateChange(log *logrus.Logger) func(name string, from gobreaker.State, to gobreaker.State) {
+	return func(name string, from gobreaker.State, to gobreaker.State) {
+		log.Warnf("Circuit Breaker '%s' - Changed from %s to %s", name, from.String(), to.String())
+	}
 }
 
 // CB - Returns instance of gobreaker.CircuitBreaker.
-func CB(name string) *gobreaker.CircuitBreaker {
+func CB(name string, log *logrus.Logger) *gobreaker.CircuitBreaker {
 	if val, ok := cb[name]; ok {
 		return val
 	}

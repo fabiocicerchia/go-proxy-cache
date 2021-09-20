@@ -21,10 +21,10 @@ import (
 
 	"github.com/opentracing/opentracing-go"
 	"github.com/rs/dnscache"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -81,7 +81,7 @@ func getListeningPort(ctx context.Context) string {
 func isLegitPort(port config.Port, listeningPort string) bool {
 	// When running the functional tests there's no server listening (so no port open).
 	if os.Getenv("TESTING") == "1" && listeningPort == "" {
-		log.Warn("Testing Environment found, and listening port is empty")
+		logger.GetGlobal().Warn("Testing Environment found, and listening port is empty")
 		return true
 	}
 
