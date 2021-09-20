@@ -64,11 +64,12 @@ type Domains map[string]Configuration
 
 // Server - Defines basic info for the server.
 type Server struct {
-	Port     Port     `yaml:"port"`
-	TLS      TLS      `yaml:"tls"`
-	Timeout  Timeout  `yaml:"timeout"`
-	Upstream Upstream `yaml:"upstream"`
-	GZip     bool     `yaml:"gzip" envconfig:"GZIP_ENABLED"`
+	Port      Port      `yaml:"port"`
+	TLS       TLS       `yaml:"tls"`
+	Timeout   Timeout   `yaml:"timeout"`
+	Upstream  Upstream  `yaml:"upstream"`
+	GZip      bool      `yaml:"gzip" envconfig:"GZIP_ENABLED"`
+	Internals Internals `yaml:"internals"`
 }
 
 // Port - Defines the listening ports per protocol.
@@ -106,10 +107,11 @@ func (u Upstream) GetDomainID() string {
 
 // HealthCheck - Defines the health check settings.
 type HealthCheck struct {
-	StatusCodes []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
-	Timeout     time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
-	Interval    time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
-	Scheme      string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
+	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
+	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
+	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	Scheme        string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
+	AllowInsecure bool          `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
 }
 
 // Timeout - Defines the server timeouts.
@@ -143,8 +145,14 @@ type Log struct {
 
 // Tracing - Defines the config for the OpenTelemetry tracing.
 type Tracing struct {
-	JaegerEndpoint string `yaml:"jaeger_endpoint" envconfig:"TRACING_JAEGER_ENDPOINT"`
-	Enabled        bool   `yaml:"enabled" envconfig:"TRACING_ENABLED"`
+	JaegerEndpoint string  `yaml:"jaeger_endpoint" envconfig:"TRACING_JAEGER_ENDPOINT"`
+	Enabled        bool    `yaml:"enabled" envconfig:"TRACING_ENABLED"`
+	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:1`
+}
+
+type Internals struct {
+	ListeningAddress string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_ADDRESS" default:"127.0.0.1"`
+	ListeningPort    string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_PORT" default:"52021"`
 }
 
 // DomainSet - Holds the uniqueness details of the domain.

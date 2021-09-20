@@ -34,10 +34,6 @@ import (
 
 const enableTimeoutHandler = true
 
-// TODO! customize it, so it can be just local
-const GPCBindAddress = "0.0.0.0"
-const GPCPortNumber = "52021"
-
 // DefaultTimeoutShutdown - Default Timeout for shutting down a context.
 const DefaultTimeoutShutdown time.Duration = 5 * time.Second
 
@@ -74,6 +70,7 @@ func Run(appVersion string, configFile string) {
 		appVersion,
 		config.Config.Tracing.JaegerEndpoint,
 		config.Config.Tracing.Enabled,
+		config.Config.Tracing.SamplingRatio,
 	)
 	if err != nil {
 		log.Fatalln(err)
@@ -90,7 +87,11 @@ func Run(appVersion string, configFile string) {
 	for _, domain := range config.GetDomains() {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
-	servers.AttachPlain(GPCBindAddress, GPCPortNumber, InitInternals())
+	servers.AttachPlain(
+		config.Config.Server.Internals.ListeningAddress,
+		config.Config.Server.Internals.ListeningPort,
+		InitInternals(),
+	)
 
 	// start server http & https
 	servers.startListeners()

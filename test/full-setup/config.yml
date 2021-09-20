@@ -14,6 +14,7 @@ server:
     write: 5s
     idle: 20s
     handler: -1
+
   upstream:
     health_check:
       status_codes:
@@ -22,6 +23,7 @@ server:
        - 400
        - 404
        - 426
+      allow_insecure: true
 
 cache:
   host: redis
@@ -76,7 +78,7 @@ domains:
         host: testing.local
         scheme: http
         endpoints:
-        - nginx:40080
+        - http://user:pass@nginx:40080
         health_check:
           scheme: http
 
@@ -90,6 +92,7 @@ domains:
         - nginx:40443
         health_check:
           scheme: https
+          allow_insecure: true
 
   testing_local_ws:
     server:

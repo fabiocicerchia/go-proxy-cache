@@ -20,11 +20,8 @@ import (
 
 // TODO: Move from OpenTracing to OpenTelemetry
 
-// TODO! Make it customizable
-const openTracingSampleRatio = 1.0
-
 // NewJaegerProvider returns a new instance of Jaeger.
-func NewJaegerProvider(appVersion string, jaegerEndpoint string, enabled bool) (opentracing.Tracer, io.Closer, error) {
+func NewJaegerProvider(appVersion string, jaegerEndpoint string, enabled bool, sampleRatio float64) (opentracing.Tracer, io.Closer, error) {
 	cfg := jaegerConfig.Configuration{
 		ServiceName: "go-proxy-cache",
 		Disabled:    !enabled,
@@ -34,7 +31,7 @@ func NewJaegerProvider(appVersion string, jaegerEndpoint string, enabled bool) (
 		},
 		Sampler: &jaegerConfig.SamplerConfig{
 			Type:  "probabilistic",
-			Param: openTracingSampleRatio,
+			Param: sampleRatio,
 		},
 		Reporter: &jaegerConfig.ReporterConfig{
 			LocalAgentHostPort: jaegerEndpoint,

@@ -1,3 +1,4 @@
+//go:build all || endtoend
 // +build all endtoend
 
 package test
@@ -24,7 +25,7 @@ import (
 func TestETagValidResponse(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://testing.local:50080/", nil)
+	req, err := http.NewRequest("GET", "http://user:pass@testing.local:50080/", nil)
 	// Need to fetch fresh content to verify the ETag.
 	req.Header = http.Header{
 		"X-Go-Proxy-Cache-Force-Fresh": []string{"1"},
@@ -64,7 +65,7 @@ func TestETagIfModifiedSinceWhenChanged(t *testing.T) {
 
 	today := "Thu, 01 Jan 1970 00:00:00 GMT"
 
-	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	req, err := http.NewRequest("GET", "http://user:pass@testing.local:50080/etag", nil)
 	assert.Nil(t, err)
 	req.Host = "testing.local"
 	req.Header = http.Header{
@@ -95,7 +96,7 @@ func TestETagIfModifiedSinceWhenNotChanged(t *testing.T) {
 
 	today := "Thu, 01 Jan 1970 00:00:01 GMT"
 
-	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	req, err := http.NewRequest("GET", "http://user:pass@testing.local:50080/etag", nil)
 	assert.Nil(t, err)
 	req.Host = "testing.local"
 	req.Header = http.Header{
@@ -128,7 +129,7 @@ func TestETagIfUnmodifiedSince(t *testing.T) {
 func TestETagIfNoneMatchAsMatch(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	req, err := http.NewRequest("GET", "http://user:pass@testing.local:50080/etag", nil)
 	assert.Nil(t, err)
 	req.Host = "testing.local"
 	res, err := client.Do(req)
@@ -154,7 +155,7 @@ func TestETagIfNoneMatchAsMatch(t *testing.T) {
 
 	// -------------------------------------------------------------------------
 
-	req, err = http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	req, err = http.NewRequest("GET", "http://user:pass@testing.local:50080/etag", nil)
 	assert.Nil(t, err)
 	req.Host = "testing.local"
 	req.Header = http.Header{
@@ -183,7 +184,7 @@ func TestETagIfNoneMatchAsMatch(t *testing.T) {
 func TestETagIfNoneMatchAsNotMatch(t *testing.T) {
 	client := &http.Client{}
 
-	req, err := http.NewRequest("GET", "http://testing.local:50080/etag", nil)
+	req, err := http.NewRequest("GET", "http://user:pass@testing.local:50080/etag", nil)
 	assert.Nil(t, err)
 	req.Host = "testing.local"
 	req.Header = http.Header{
@@ -218,7 +219,7 @@ func TestETagIfMatchAsNotMatch(t *testing.T) {
 }
 
 func tearDownETag() {
-	req, _ := http.NewRequest("PURGE", "http://testing.local:50080/", nil)
+	req, _ := http.NewRequest("PURGE", "http://user:pass@testing.local:50080/", nil)
 	req.Host = "www.w3.org"
 	client := &http.Client{}
 	_, _ = client.Do(req)

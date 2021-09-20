@@ -34,9 +34,7 @@ import (
 // RequestIDHeader - HTTP Header to be forwarded to the upstream backend.
 const RequestIDHeader = "X-Go-Proxy-Cache-Request-ID"
 
-var r *dnscache.Resolver = &dnscache.Resolver{
-	// TODO! Customize timeout
-}
+var r *dnscache.Resolver = &dnscache.Resolver{}
 
 // ConvertToRequestCallDTO - Generates a storage DTO containing request, response and cache settings.
 func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
@@ -191,7 +189,7 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 
 	return url.URL{
 		Scheme: scheme,
-		User:   balancedURL.User, // TODO! Add tests
+		User:   balancedURL.User,
 		Host:   hostname + overridePort,
 	}, nil
 }
