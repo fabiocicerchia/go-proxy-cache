@@ -81,6 +81,24 @@ func printBanner() {
 	log.Debugf("Repo: https://github.com/fabiocicerchia/go-proxy-cache\n\n")
 }
 
+func printSupport() {
+	fmt.Println("💗 Support the Project 💗")
+	fmt.Println("")
+	fmt.Println("This project is only maintained by one person, [Fabio Cicerchia](https://github.com/fabiocicerchia).")
+	fmt.Println("It started as a simple caching service, now it has a lot of pro functionalities just for FREE 😎")
+	fmt.Println("Maintaining a project is a very time consuming activity, especially when done alone 💪")
+	fmt.Println("I really want to make this project better and become super cool 🚀")
+	fmt.Println("")
+	fmt.Println("Two commercial versions have been planned: [PRO and PREMIUM](https://kodebeat.com/goproxycache.html).")
+	fmt.Println("")
+	fmt.Println("The development of the COMMUNITY version will continue, but priority will be given to the [COMMERCIAL versions](https://kodebeat.com/goproxycache.html).")
+	fmt.Println("  - If you'd like to support this open-source project I'll appreciate any kind of [contribution](https://github.com/sponsors/fabiocicerchia).")
+	fmt.Println("  - If you'd like to sponsor the commercial version, please [get in touch with me](mail:info@fabiocicerchia.it).")
+	fmt.Println("")
+	fmt.Println("---")
+	fmt.Println("")
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -88,6 +106,7 @@ func main() {
 	logger.InitLogs(verboseFlag, logFile)
 
 	printBanner()
+	printSupport()
 
 	log.Debugf("Version: %s\n", AppVersion)
 	log.Debugf("Go: %s\n", runtime.Version())
