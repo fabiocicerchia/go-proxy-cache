@@ -7,7 +7,7 @@
 # Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-FROM golang:1.17.0-alpine3.14 AS builder
+FROM golang:1.17.8-alpine3.14 AS builder
 
 ARG BUILD_CMD=build
 
