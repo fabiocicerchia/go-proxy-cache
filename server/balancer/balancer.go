@@ -190,6 +190,7 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 	if scheme == "" || (scheme != "http" && scheme != "https") {
 		scheme = config.Scheme
 	}
+
 	_, port, err := net.SplitHostPort(url.Host)
 	if err != nil || port == "" {
 		port = config.Port

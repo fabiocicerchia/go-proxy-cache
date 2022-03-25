@@ -62,7 +62,7 @@ func Run(appVersion string, configFile string) {
 	config.Print()
 
 	// Logging Hooks
-	log := logger.NewGlobal()
+	log := logger.GetGlobal()
 	logger.HookSentry(log, config.Config.Log.SentryDsn)
 	logger.HookSyslog(log, config.Config.Log.SyslogProtocol, config.Config.Log.SyslogEndpoint)
 

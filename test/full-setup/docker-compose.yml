@@ -139,19 +139,19 @@ services:
 
   # LOGS - SENTRY
   ##############################################################################
-  sentry:
-    image: sentry:9.1.2
-    depends_on:
-      - postgres
-      - redis
-    environment:
-      SENTRY_SECRET_KEY: test
-      SENTRY_REDIS_HOST: redis
-      SENTRY_POSTGRES_HOST: postgres
-      SENTRY_DB_USER: sentry
-      SENTRY_DB_PASSWORD: secret
-    ports:
-      - "9000:9000" # sentry
+  # sentry:
+  #   image: getsentry/sentry:22.3.0
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   environment:
+  #     SENTRY_SECRET_KEY: test
+  #     SENTRY_REDIS_HOST: redis
+  #     SENTRY_POSTGRES_HOST: postgres
+  #     SENTRY_DB_USER: sentry
+  #     SENTRY_DB_PASSWORD: secret
+  #   ports:
+  #     - "9000:9000" # sentry
   postgres:
     image: postgres:14.2-alpine3.15
     environment:
