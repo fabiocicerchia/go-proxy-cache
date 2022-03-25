@@ -30,11 +30,11 @@ import (
 
 var logFileHandle *os.File
 var logLevel logrus.Level = logrus.InfoLevel
-var log *logrus.Logger
+var Logger *logrus.Logger
 
 // InitLogs - Configures basic settings for logging with logrus.
 func InitLogs(verboseFlag bool, logFile string) {
-	log = GetGlobal()
+	log := GetGlobal()
 
 	log.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
@@ -61,7 +61,7 @@ func SetDebugLevel() {
 func getLogFileWriter(logFile string) *os.File {
 	f, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		log.Fatal(err)
+		Logger.Fatal(err)
 	}
 
 	return f
@@ -77,6 +77,7 @@ func closeLogFile() {
 func Log(req http.Request, reqID string, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
 
+	log := GetGlobal()
 	log.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
 }
 
@@ -114,6 +115,7 @@ func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, 
 
 	logLine = r.Replace(logLine)
 
+	log := GetGlobal()
 	log.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
 }
 
@@ -127,16 +129,17 @@ func LogSetup(server config.Server) {
 		lbEndpointList = "VOID"
 	}
 
+	log := GetGlobal()
 	log.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
 }
 
 // GetGlobal - Returns existing instance of global logger (it'll create a new one if doesn't exist).
 func GetGlobal() *logrus.Logger {
-	if log == nil {
-		log = logrus.New()
+	if Logger == nil {
+		Logger = logrus.New()
 	}
 
-	return log
+	return Logger
 }
 
 // HookSentry - Configures (optionally) the Sentry hook for logrus.

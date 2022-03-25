@@ -38,9 +38,9 @@ func TestLogMessage(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	logger.Logger.SetOutput(&buf)
 	defer func() {
-		log.SetOutput(os.Stderr)
+		logger.Logger.SetOutput(os.Stderr)
 	}()
 
 	config.Config = config.Configuration{
@@ -77,9 +77,9 @@ func TestLogRequest(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	logger.Logger.SetOutput(&buf)
 	defer func() {
-		log.SetOutput(os.Stderr)
+		logger.Logger.SetOutput(os.Stderr)
 	}()
 
 	config.Config = config.Configuration{
@@ -102,9 +102,9 @@ func TestLogSetup(t *testing.T) {
 	setUpLog()
 
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	logger.Logger.SetOutput(&buf)
 	defer func() {
-		log.SetOutput(os.Stderr)
+		logger.Logger.SetOutput(os.Stderr)
 	}()
 
 	cfg := config.Configuration{
@@ -139,9 +139,9 @@ func TestLogSetupWithoutEndpoints(t *testing.T) {
 	setUpLog()
 
 	var buf bytes.Buffer
-	log.SetOutput(&buf)
+	logger.Logger.SetOutput(&buf)
 	defer func() {
-		log.SetOutput(os.Stderr)
+		logger.Logger.SetOutput(os.Stderr)
 	}()
 
 	cfg := config.Configuration{
@@ -173,14 +173,14 @@ func TestLogSetupWithoutEndpoints(t *testing.T) {
 }
 
 func setUpLog() {
-	log.SetFormatter(&log.TextFormatter{
+	logger.Logger.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
 		FullTimestamp:   false,
 		TimestampFormat: " ",
 	})
-	log.SetReportCaller(false)
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+	logger.Logger.SetReportCaller(false)
+	logger.Logger.SetOutput(os.Stdout)
+	logger.Logger.SetLevel(log.InfoLevel)
 }
 
 func tearDownLog() {
