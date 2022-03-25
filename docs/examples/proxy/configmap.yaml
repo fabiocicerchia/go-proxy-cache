@@ -1,0 +1,84 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: gpc-config
+data:
+  config.yml: |
+    # TESTING PURPOSES ONLY
+    # for more details check `config.yml`
+    ################################################################################
+    server:
+      port:
+        http: "50080"
+        https: "50443"
+      timeout:
+        read: 5s
+        read_header: 2s
+        write: 5s
+        idle: 20s
+        handler: -1
+      upstream:
+        health_check:
+          scheme: http
+
+    cache:
+      host: cache-redis.default.svc.cluster.local
+
+    domains:
+      example_com:
+        server:
+          upstream:
+            host: example.com
+            port: 80
+            scheme: http
+
+      example_org:
+        server:
+          upstream:
+            host: example.org
+            port: 80
+            scheme: http
+
+      www_w3_org:
+        server:
+          upstream:
+            host: www.w3.org
+            port: 80
+            scheme: http
+            endpoints:
+            - www.w3.org
+
+      www_testing_local:
+        server:
+          upstream:
+            host: www.testing.local
+            port: 80
+            scheme: http
+            endpoints:
+            - nginx:40080
+
+      testing_local:
+        server:
+          upstream:
+            host: testing.local
+            port: 80
+            scheme: http
+            endpoints:
+            - nginx:40080
+
+      testing_local_ws:
+        server:
+          upstream:
+            host: testing.local
+            scheme: ws
+            endpoints:
+            - nginx:40081
+
+      testing_local_wss:
+        server:
+          upstream:
+            host: testing.local
+            scheme: wss
+            insecure_bridge: true
+            endpoints:
+            - nginx:40082

@@ -1,0 +1,25 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: redis
+  name: cache-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      meta.service: redis
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        meta.service: redis
+    spec:
+      containers:
+      - image: redis:6.2.6-alpine3.15
+        name: redis
+        ports:
+        - containerPort: 6379
+      restartPolicy: Always
+      serviceAccountName: ""

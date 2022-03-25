@@ -110,6 +110,7 @@ type HealthCheck struct {
 	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
 	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
 	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	Port          string        `yaml:"port" envconfig:"HEALTHCHECK_PORT" default:"443"`
 	Scheme        string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
 	AllowInsecure bool          `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
 }

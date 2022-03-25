@@ -12,6 +12,7 @@ package balancer
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -189,10 +190,14 @@ func doHealthCheck(v *Item, config config.HealthCheck) {
 	if scheme == "" || (scheme != "http" && scheme != "https") {
 		scheme = config.Scheme
 	}
+	_, port, err := net.SplitHostPort(url.Host)
+	if err != nil || port == "" {
+		port = config.Port
+	}
 
 	endpointURL := v.Endpoint
 	if url.Scheme != scheme {
-		endpointURL = fmt.Sprintf("%s://%s", scheme, v.Endpoint)
+		endpointURL = fmt.Sprintf("%s://%s:%s", scheme, v.Endpoint, port)
 	}
 
 	req, err := http.NewRequest("HEAD", endpointURL, nil)
