@@ -193,12 +193,14 @@ func DoHealthCheck(v *Item, config config.HealthCheck) {
 		scheme = config.Scheme
 	}
 
+	endpointURL := v.Endpoint
+
 	_, port, err := net.SplitHostPort(url.Host)
 	if err != nil || port == "" {
 		port = config.Port
+		endpointURL = fmt.Sprintf("%s:%s", v.Endpoint, port)
 	}
 
-	endpointURL := v.Endpoint
 	if url.Scheme != scheme {
 		endpointURL = fmt.Sprintf("%s://%s:%s", scheme, v.Endpoint, port)
 	}
