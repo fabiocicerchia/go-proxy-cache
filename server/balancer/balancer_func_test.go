@@ -15,6 +15,7 @@ package balancer_test
 import (
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -32,11 +33,21 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 		Scheme: "http",
 		Port: "8000",
 	}
-	balancer.DoHealthCheck(&v, conf)
+	balancer.DoHealthCheck(v, conf)
 
 	assert.True(t, v.Healthy)
 
 	tearDown()
+}
+
+func initLogs() {
+	log.SetReportCaller(true)
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006/01/02 15:04:05",
+	})
 }
 
 func setUp() {
