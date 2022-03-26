@@ -27,7 +27,7 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 
 	v := &balancer.Item{
 		Healthy: false,
-		Endpoint: "http://0.0.0.0",
+		Endpoint: "http://127.0.0.1",
 	}
 	conf := config.HealthCheck{
 		Scheme: "http",
