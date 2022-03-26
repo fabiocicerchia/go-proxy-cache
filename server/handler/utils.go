@@ -223,6 +223,6 @@ func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Reques
 
 		req.Host = host
 
-		tracing.Inject(span, req)
+		_ = tracing.Inject(span, req)
 	}
 }

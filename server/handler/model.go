@@ -44,8 +44,6 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration
-	propagators  propagation.TextMapPropagator
-	tracer       trace.Tracer
 }
 
 // GetLogger - Get logger instance with RequestID.

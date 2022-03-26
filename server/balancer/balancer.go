@@ -56,6 +56,8 @@ func Init(name string, config config.Upstream) {
 		InitLeastConnection(name, config, enableHealthchecks)
 	case lBRandom:
 		InitRandom(name, config, enableHealthchecks)
+	case lBRoundRobin:
+		InitRoundRobin(name, config, enableHealthchecks)
 	default: // round-robin (default)
 		InitRoundRobin(name, config, enableHealthchecks)
 	}
