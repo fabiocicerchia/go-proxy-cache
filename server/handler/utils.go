@@ -105,6 +105,7 @@ func (rc RequestCall) patchProxyTransport() *http.Transport {
 			}
 			for _, ip := range ips {
 				var dialer net.Dialer
+				// TODO: SA4006: this value of `conn` is never used
 				conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
 				if err == nil {
 					break

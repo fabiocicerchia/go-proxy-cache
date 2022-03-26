@@ -154,6 +154,7 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 		Handler:           muxMiddleware,
 	}
 
+	// TODO: copylocks: return copies lock value: net/http.Server contains sync.Once contains sync.Mutex
 	return server
 }
 
@@ -161,7 +162,9 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 // NOTE: There will be only ONE server listening on a port.
 //       This means the last processed will override all the previous shared
 //       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
+// TODO: copylocks: AttachPlain passes lock by value: net/http.Server contains sync.Once contains sync.Mutex
 func (s *Servers) AttachPlain(domain string, port string, server http.Server) {
+	// TODO: copylocks: literal copies lock value from server: net/http.Server contains sync.Once contains sync.Mutex
 	s.HTTP[port] = Server{Domain: domain, HttpSrv: server}
 }
 
@@ -169,13 +172,16 @@ func (s *Servers) AttachPlain(domain string, port string, server http.Server) {
 // NOTE: There will be only ONE server listening on a port.
 //       This means the last processed will override all the previous shared
 //       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
+// TODO: copylocks: AttachSecure passes lock by value: net/http.Server contains sync.Once contains sync.Mutex
 func (s *Servers) AttachSecure(domain string, port string, server http.Server) {
+	// TODO: copylocks: literal copies lock value from server: net/http.Server contains sync.Once contains sync.Mutex
 	s.HTTPS[port] = Server{Domain: domain, HttpSrv: server}
 }
 
 // InitServers - Returns a http.Server configuration for HTTP and HTTPS.
 func (s *Servers) InitServers(domain string, domainConfig config.Configuration) {
 	srvHTTP := InitServer(domain, domainConfig)
+	// TODO: copylocks: call of s.AttachPlain copies lock value: net/http.Server contains sync.Once contains sync.Mutex
 	s.AttachPlain(domain, domainConfig.Server.Port.HTTP, srvHTTP)
 
 	srvHTTPS := InitServer(domain, domainConfig)
@@ -188,6 +194,7 @@ func (s *Servers) InitServers(domain string, domainConfig config.Configuration) 
 		return
 	}
 
+	// TODO: copylocks: call of s.AttachSecure copies lock value: net/http.Server contains sync.Once contains sync.Mutex
 	s.AttachSecure(domain, domainConfig.Server.Port.HTTPS, srvHTTPS)
 }
 
@@ -216,24 +223,31 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 }
 
 func (s Servers) startListeners() {
+	// TODO: copylocks: range var srvHTTP copies lock: github.com/fabiocicerchia/go-proxy-cache/server.Server contains net/http.Server contains sync.Once contains sync.Mutex
 	for port, srvHTTP := range s.HTTP {
 		srvHTTP.HttpSrv.Addr = ":" + port
 
+		// TODO: copylocks: func passes lock by value: net/http.Server contains sync.Once contains sync.Mutex
 		go func(srv http.Server) {
+			// TODO:  copylocks: call of func(srv http.Server) copies lock value: net/http.Server contains sync.Once contains sync.Mutex
 			logger.GetGlobal().Fatal(srv.ListenAndServe())
 		}(srvHTTP.HttpSrv)
 	}
 
+	// TODO: copylocks: range var srvHTTPS copies lock: github.com/fabiocicerchia/go-proxy-cache/server.Server contains net/http.Server contains sync.Once contains sync.Mutex
 	for port, srvHTTPS := range s.HTTPS {
 		srvHTTPS.HttpSrv.Addr = ":" + port
 
+		// TODO: copylocks: func passes lock by value: net/http.Server contains sync.Once contains sync.Mutex
 		go func(srv http.Server) {
+			// copylocks: call of func(srv http.Server) copies lock value: net/http.Server contains sync.Once contains sync.Mutex
 			logger.GetGlobal().Fatal(srv.ListenAndServeTLS("", ""))
 		}(srvHTTPS.HttpSrv)
 	}
 }
 
 func (s Servers) shutdownServers(ctx context.Context) {
+	// TODO: copylocks: range var v copies lock: github.com/fabiocicerchia/go-proxy-cache/server.Server contains net/http.Server contains sync.Once contains sync.Mutex
 	for k, v := range s.HTTP {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
@@ -241,6 +255,7 @@ func (s Servers) shutdownServers(ctx context.Context) {
 		}
 	}
 
+	// TODO: copylocks: range var v copies lock: github.com/fabiocicerchia/go-proxy-cache/server.Server contains net/http.Server contains sync.Once contains sync.Mutex
 	for k, v := range s.HTTPS {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
