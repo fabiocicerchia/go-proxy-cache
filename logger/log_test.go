@@ -173,6 +173,8 @@ func TestLogSetupWithoutEndpoints(t *testing.T) {
 }
 
 func setUpLog() {
+	logger.Logger = logger.GetGlobal()
+
 	logger.Logger.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
 		FullTimestamp:   false,
