@@ -1,7 +1,7 @@
 //go:build all || functional
 // +build all functional
 
-package balancer_test
+package balancer_test2
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
