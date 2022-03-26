@@ -13,10 +13,8 @@ package balancer_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"net/url"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -32,11 +30,21 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 	}
 	conf := config.HealthCheck{
 		Scheme: "http",
-		Port: 8000,
+		Port: "8000",
 	}
-	doHealthCheck(&v, conf)
+	balancer.DoHealthCheck(&v, conf)
 
-	assert.EqualTrue(t, v.Healthy)
+	assert.True(t, v.Healthy)
 
 	tearDown()
+}
+
+func setUp() {
+	initLogs()
+
+	config.Config = config.Configuration{}
+}
+
+func tearDown() {
+	config.Config = config.Configuration{}
 }

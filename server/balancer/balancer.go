@@ -142,7 +142,7 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 			healthyCounter := 0
 			unhealthyCounter := 0
 			for k, v := range b.Items {
-				doHealthCheck(&v, config)
+				DoHealthCheck(&v, config)
 
 				if v.Healthy {
 					healthyCounter++
@@ -184,7 +184,7 @@ func getClient(timeout time.Duration, tlsFlag bool, allowInsecure bool) *http.Cl
 	return c
 }
 
-func doHealthCheck(v *Item, config config.HealthCheck) {
+func DoHealthCheck(v *Item, config config.HealthCheck) {
 	url, _ := url.Parse(v.Endpoint)
 	scheme := url.Scheme
 	if scheme == "" || (scheme != "http" && scheme != "https") {
