@@ -32,6 +32,7 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 	conf := config.HealthCheck{
 		Scheme: "http",
 		Port: "8000",
+		StatusCodes: []string{"200"},
 	}
 	balancer.DoHealthCheck(v, conf)
 
