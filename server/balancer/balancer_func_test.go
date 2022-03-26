@@ -1,7 +1,7 @@
 //go:build all || functional
 // +build all functional
 
-package balancer_test2
+package balancer_test
 
 //                                                                         __
 // .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
@@ -28,11 +28,11 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 
 	v := &balancer.Item{
 		Healthy: false,
-		Endpoint: "http://0.0.0.0"
+		Endpoint: "http://0.0.0.0",
 	}
 	conf := config.HealthCheck{
 		Scheme: "http",
-		Port: 8000
+		Port: 8000,
 	}
 	doHealthCheck(&v, conf)
 
