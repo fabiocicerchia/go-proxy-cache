@@ -94,7 +94,7 @@ test-unit: ## test unit
 	TESTING=1 go test -v -race -count=1 --tags=unit ./...
 
 test-functional: ## test functional
-	python3 -m http.server &
+	python3 -m http.server &> /dev/null &
 	TESTING=1 go test -v -race -count=1 --tags=functional ./...
 	ps aux | grep "[p]ython3 -m http.server" | awk '{ print $2 }' | xargs kill
 
