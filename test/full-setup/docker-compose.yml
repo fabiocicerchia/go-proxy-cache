@@ -38,7 +38,7 @@ services:
   # STORAGE - REDIS
   ##############################################################################
   redis:
-    image: redis:6.2.5-alpine3.14
+    image: redis:6.2.6-alpine3.15
     ports:
       - "6379:6379" # Redis
     sysctls:
@@ -75,7 +75,7 @@ services:
   # UPSTREAM 2 - NODEJS
   ##############################################################################
   node:
-    image: node:16.7.0-alpine3.14
+    image: node:17.8.0-alpine3.15
     restart: always
     command: "npm start"
     user: "1000:1000"
@@ -93,7 +93,7 @@ services:
   # TRACING - JAEGER
   ##############################################################################
   jaeger:
-    image: jaegertracing/all-in-one:1.26.0
+    image: jaegertracing/all-in-one:1.32.0
     ports:
       - "5775:5775/udp"
       - "6831:6831/udp"
@@ -112,7 +112,7 @@ services:
   # METRICS - PROMETHEUS
   ##############################################################################
   prometheus:
-    image: prom/prometheus:v2.30.0
+    image: prom/prometheus:v2.34.0
     ports:
       - "9090:9090" # Prometheuspbertera/syslogserver
     command: --config.file=/etc/prometheus/prometheus.yml
@@ -122,7 +122,7 @@ services:
   # DASHBOARD - GRAFANA
   ##############################################################################
   grafana:
-    image: grafana/grafana:8.1.4-ubuntu
+    image: grafana/grafana:8.4.4-ubuntu
     ports:
       - "3001:3000" # Grafana
 
@@ -153,7 +153,7 @@ services:
     ports:
       - "9000:9000" # sentry
   postgres:
-    image: postgres:13.4-alpine3.14
+    image: postgres:14.2-alpine3.15
     environment:
       POSTGRES_USER: sentry
       POSTGRES_PASSWORD: secret
