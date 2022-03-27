@@ -23,7 +23,7 @@ import (
 )
 
 func TestHealthCheckWithCustomPort(t *testing.T) {
-	setUp()
+	setUpFunctional()
 
 	v := &balancer.Item{
 		Healthy: false,
@@ -38,10 +38,10 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 
 	assert.True(t, v.Healthy)
 
-	tearDown()
+	tearDownFunctional()
 }
 
-func initLogs() {
+func initLogsFunctional() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.TextFormatter{
@@ -51,12 +51,12 @@ func initLogs() {
 	})
 }
 
-func setUp() {
-	initLogs()
+func setUpFunctional() {
+	initLogsFunctional()
 
 	config.Config = config.Configuration{}
 }
 
-func tearDown() {
+func tearDownFunctional() {
 	config.Config = config.Configuration{}
 }
