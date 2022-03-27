@@ -140,21 +140,16 @@ services:
   # LOGS - SENTRY
   ##############################################################################
   sentry:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.sentry
-      network: host
+    image: sentry:9.1.2
     depends_on:
       - postgres
       - redis
     environment:
-      REDIS_PORT_6379_TCP_ADDR: redis
       SENTRY_SECRET_KEY: test
+      SENTRY_REDIS_HOST: redis
       SENTRY_POSTGRES_HOST: postgres
       SENTRY_DB_USER: sentry
       SENTRY_DB_PASSWORD: secret
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "9000:9000" # sentry
   postgres:
