@@ -94,9 +94,9 @@ test-unit: ## test unit
 	TESTING=1 go test -v -race -count=1 --tags=unit ./...
 
 test-functional: ## test functional
-	PID=$$(python3 -m http.server &> /dev/null &); \
-	TESTING=1 go test -v -race -count=1 --tags=functional ./...; \
-	kill $$PID
+	python3 -m http.server &> /dev/null &
+	TESTING=1 go test -v -race -count=1 --tags=functional ./...
+	pgrep python3 | kill || true
 
 test-endtoend: ## test endtoend
 	go test -v -race -count=1 --tags=endtoend ./...
