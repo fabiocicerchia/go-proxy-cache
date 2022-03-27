@@ -57,7 +57,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	}
 
 	transport := rc.patchProxyTransport()
-	proxy.Dial = transport.Dial
+	proxy.Dial = transport.Dial //nolint:staticcheck SA1019
 	proxy.TLSClientConfig = transport.TLSClientConfig
 
 	proxy.ServeHTTP(rc.Response, &rc.Request)

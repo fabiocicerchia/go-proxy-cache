@@ -148,8 +148,7 @@ type Log struct {
 type Tracing struct {
 	JaegerEndpoint string  `yaml:"jaeger_endpoint" envconfig:"TRACING_JAEGER_ENDPOINT"`
 	Enabled        bool    `yaml:"enabled" envconfig:"TRACING_ENABLED"`
-	// TODO: structtag: struct field tag `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:1` not compatible with reflect.StructTag.Get: bad syntax for struct tag value
-	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:1`
+	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:"1.0"`
 }
 
 // Internals - Defines the config for the internal listening address/port.

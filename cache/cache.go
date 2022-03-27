@@ -14,7 +14,6 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"strings"
@@ -26,6 +25,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/random"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -79,7 +79,9 @@ func (c Object) IsMethodAllowed() bool {
 }
 
 func getRandomSoftExpirationTTL() time.Duration {
-	return time.Duration(rand.Intn(int(DefaultMaxSoftExpirationTTL)-int(DefaultMinSoftExpirationTTL)) + int(DefaultMinSoftExpirationTTL))
+	rnd := random.RandomInt64(int64(DefaultMaxSoftExpirationTTL)-int64(DefaultMinSoftExpirationTTL) + int64(DefaultMinSoftExpirationTTL))
+
+	return time.Duration(rnd)
 }
 
 // GetHeadersChecksum - Returns a SHA256 based on the HTTP Request Headers.

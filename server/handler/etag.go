@@ -45,12 +45,7 @@ func (rc RequestCall) GetResponseWithETag(ctx context.Context, proxy *httputil.R
 
 	rc.Response.SetETag(false)
 
-	// Send 304 Not Modified.
-	// TODO: S1008: should use 'return fresh.IsFresh(rc.Request.Header, rc.Response.Header())'
-	if fresh.IsFresh(rc.Request.Header, rc.Response.Header()) {
-		return true
-	}
-
-	// Serve response with ETag header.
-	return false
+	// Send 304 Not Modified when response is still fresh.
+	// Serve response with ETag header, in case response is not fresh anymore.
+	return fresh.IsFresh(rc.Request.Header, rc.Response.Header())
 }

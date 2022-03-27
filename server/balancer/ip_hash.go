@@ -12,15 +12,16 @@ package balancer
 import (
 	"crypto/sha256"
 	"fmt"
-	"math/rand"
 	"sync"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils/random"
 )
 
 // IpHashBalancer instance.
 type IpHashBalancer struct {
 	NodeBalancer
 
-	hashMap map[string]int
+	hashMap map[string]int64
 }
 
 // NewIpHashBalancer - Creates a new instance.
@@ -31,7 +32,7 @@ func NewIpHashBalancer(name string, items []Item) *IpHashBalancer {
 			M:     sync.RWMutex{},
 			Items: items,
 		},
-		hashMap: make(map[string]int),
+		hashMap: make(map[string]int64),
 	}
 }
 
@@ -66,7 +67,8 @@ func (b *IpHashBalancer) Pick(requestURL string) (string, error) {
 	}
 	b.NodeBalancer.M.RUnlock()
 
-	rnd := rand.Intn(len(healthyNodes))
+	rnd := random.RandomInt64(int64(len(healthyNodes)))
+
 	r := healthyNodes[rnd]
 	b.NodeBalancer.M.Lock()
 	b.hashMap[hash] = rnd
