@@ -96,7 +96,7 @@ test-unit: ## test unit
 test-functional: ## test functional
 	python3 -m http.server &> /dev/null &
 	TESTING=1 go test -v -race -count=1 --tags=functional ./...
-	pgrep python3 | kill || true
+	pgrep python3 | xargs kill || true
 
 test-endtoend: ## test endtoend
 	go test -v -race -count=1 --tags=endtoend ./...
