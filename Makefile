@@ -4,7 +4,7 @@
 # |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
 # |_____|            |__|                   |_____|
 #
-# Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+# Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 IS_LINUX=$(shell (ls -1 /etc/issue || true) | wc -l | awk '{$$1=$$1;print}')
@@ -24,7 +24,7 @@ help: ## prints this help
 	echo " |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|"
 	echo " |_____|            |__|                   |_____|"
 	echo ""
-	echo "Copyright (c) 2020 Fabio Cicerchia. https://fabiocicerchia.it. MIT License"
+	echo "Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License"
 	echo "Repo: https://github.com/fabiocicerchia/go-proxy-cache"
 	echo ""
 	@gawk 'BEGIN { \

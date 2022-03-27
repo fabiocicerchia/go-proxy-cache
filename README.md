@@ -260,7 +260,7 @@ OpenSSL Toolkit. ([http://www.openssl.org/](http://www.openssl.org/))
 
 MIT License
 
-Copyright (c) 2020 Fabio Cicerchia <info@fabiocicerchia.it>
+Copyright (c) 2022 Fabio Cicerchia <info@fabiocicerchia.it>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
