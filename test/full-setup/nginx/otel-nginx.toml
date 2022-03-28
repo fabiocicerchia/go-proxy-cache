@@ -1,0 +1,24 @@
+exporter = "otlp"
+processor = "simple"
+
+[exporters.otlp]
+host = "collector"
+port = 4317
+
+[exporters.jaeger]
+host = "jaeger"
+port = 6831
+transport = "thrift_udp"
+
+[processors.batch]
+max_queue_size = 2048
+schedule_delay_millis = 5000
+max_export_batch_size = 512
+
+[service]
+name = "nginx" # Opentelemetry resource name
+
+[sampler]
+name = "AlwaysOn" # Also: AlwaysOff, TraceIdRatioBased
+ratio = 1
+parent_based = true

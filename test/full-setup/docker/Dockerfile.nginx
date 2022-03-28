@@ -1,6 +1,27 @@
-FROM opentracing/nginx-opentracing:edge
+FROM ubuntu:20.04
+
+RUN apt-get update \
+&& DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
+   apt-get install --no-install-recommends --no-install-suggests -y \
+   build-essential autoconf libtool pkg-config ca-certificates gcc g++ git libcurl4-openssl-dev libpcre3-dev gnupg2 lsb-release curl apt-transport-https software-properties-common zlib1g-dev cmake
+
+RUN curl -o /etc/apt/trusted.gpg.d/nginx_signing.asc https://nginx.org/keys/nginx_signing.key \
+    && apt-add-repository "deb http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+    && /bin/bash -c 'echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900"' | tee /etc/apt/preferences.d/99nginx
+
+RUN apt-get update \
+&& DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
+   apt-get install --no-install-recommends --no-install-suggests -y \
+   nginx
+
+# https://github.com/open-telemetry/opentelemetry-cpp-contrib/actions/workflows/nginx.yml
+# > https://github.com/open-telemetry/opentelemetry-cpp-contrib/actions/runs/2043949860
+#   > https://github.com/open-telemetry/opentelemetry-cpp-contrib/suites/5809661514/artifacts/194408064
+COPY nginx/otel_ngx_module.so /etc/nginx/modules/
 
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/vhost.conf /etc/nginx/conf.d/vhost.conf
 COPY certs /certs
-COPY nginx/jaeger-nginx-config.json /etc/jaeger-nginx-config.json
+COPY nginx/otel-nginx.toml /etc/otel-nginx.toml
+
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]

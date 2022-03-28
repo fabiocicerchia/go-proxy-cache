@@ -1,32 +1,42 @@
 const https = require('https')
 const fs = require('fs')
 const WebSocket = require('ws')
-const opentracing = require('opentracing')
-const initTracer = require('jaeger-client').initTracer
 
-const tracer = initTracer({
+const { getNodeAutoInstrumentations } = require('@opentelemetry/auto-instrumentations-node');
+const { Resource } = require('@opentelemetry/resources');
+const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+const { AlwaysOnSampler } = require("@opentelemetry/core")
+const { WebTracerProvider } = require('@opentelemetry/web');
+const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
+const { trace, context } = require('@opentelemetry/api');
+
+const tracerProvider = new WebTracerProvider({
+  resource: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'ws-server',
+  }),
+  instrumentations: [getNodeAutoInstrumentations()],
+  sampler: new AlwaysOnSampler()
+});
+tracerProvider.addSpanProcessor(new SimpleSpanProcessor(new JaegerExporter({
   serviceName: 'ws-server',
-  sampler: {
-    type: 'const',
-    param: 1
-  },
-  reporter: {
-    collectorEndpoint: 'http://jaeger:14268/api/traces',
-  }
-}, {})
+  endpoint: 'http://jaeger:14268/api/traces'
+})));
+
+// Register the tracer
+tracerProvider.register();
+const tracer = tracerProvider.getTracer('ws-server');
 
 function onConnection (ws, request) {
-  const headersCarrier = request.headers
-
   ws.on('message', function (message) {
-    const wireCtx = tracer.extract(opentracing.FORMAT_HTTP_HEADERS, headersCarrier)
-    const span = tracer.startSpan('http_request', { childOf: wireCtx })
+    var activeSpan = trace.getSpanContext(context.active());
+    const span = tracer.startSpan('http_request', { childOf: activeSpan })
 
-    span.log({ event: 'data_received' })
+    span.addEvent('data_received')
     console.log('Received from client: %s', message)
     ws.send('Server received from client: ' + message)
 
-    span.finish()
+    span.end()
   })
 }
 
