@@ -113,7 +113,7 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 			lwr.ResponseWriter.Header().Set(headers.ContentType, http.DetectContentType(p))
 		}
 
-		lwr.GZipResponse.Write(p)
+		_, _ = lwr.GZipResponse.Write(p)
 	}
 
 	// etag
@@ -126,7 +126,7 @@ func (lwr *LoggedResponseWriter) Write(p []byte) (int, error) {
 
 // ForceWrite - Send content right away.
 func (lwr *LoggedResponseWriter) ForceWrite(p []byte) (int, error) {
-	lwr.Write(p)
+	_, _ = lwr.Write(p)
 
 	return lwr.ResponseWriter.Write(p)
 }
@@ -163,7 +163,7 @@ func (lwr LoggedResponseWriter) SendResponse() {
 	}
 
 	// Serve content.
-	lwr.ResponseWriter.Write(lwr.Content.Bytes())
+	_, _ = lwr.ResponseWriter.Write(lwr.Content.Bytes())
 }
 
 // ETAG ------------------------------------------------------------------------
@@ -197,7 +197,7 @@ func (lwr LoggedResponseWriter) MustServeOriginalResponse(ctx context.Context, r
 // SendNotModifiedResponse - Write the 304 Response.
 func (lwr LoggedResponseWriter) SendNotModifiedResponse() {
 	lwr.ResponseWriter.WriteHeader(http.StatusNotModified)
-	lwr.ResponseWriter.Write(nil)
+	_, _ = lwr.ResponseWriter.Write(nil)
 }
 
 // GZIP ------------------------------------------------------------------------

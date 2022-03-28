@@ -8,7 +8,7 @@ require (
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-redsync/redsync/v4 v4.5.0
-	github.com/gorilla/websocket v1.4.2
+	github.com/gorilla/websocket v1.5.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/opentracing/opentracing-go v1.2.0
@@ -24,7 +24,6 @@ require (
 	github.com/yhat/wsutil v0.0.0-20170731153501-1d66fa95c997
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.30.0
 	go.opentelemetry.io/otel v1.6.0
-	go.opentelemetry.io/otel/trace v1.6.0
 	golang.org/x/crypto v0.0.0-20220321153916-2c7772ba3064
 	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	gopkg.in/yaml.v2 v2.4.0
@@ -53,6 +52,7 @@ require (
 	github.com/uber/jaeger-lib v2.4.1+incompatible // indirect
 	go.opentelemetry.io/otel/internal/metric v0.27.0 // indirect
 	go.opentelemetry.io/otel/metric v0.27.0 // indirect
+	go.opentelemetry.io/otel/trace v1.6.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a // indirect
 	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 // indirect

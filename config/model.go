@@ -110,6 +110,7 @@ type HealthCheck struct {
 	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
 	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
 	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	Port          string        `yaml:"port" envconfig:"HEALTHCHECK_PORT" default:"443"`
 	Scheme        string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
 	AllowInsecure bool          `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
 }
@@ -147,7 +148,7 @@ type Log struct {
 type Tracing struct {
 	JaegerEndpoint string  `yaml:"jaeger_endpoint" envconfig:"TRACING_JAEGER_ENDPOINT"`
 	Enabled        bool    `yaml:"enabled" envconfig:"TRACING_ENABLED"`
-	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:1`
+	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:"1.0"`
 }
 
 // Internals - Defines the config for the internal listening address/port.

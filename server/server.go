@@ -40,13 +40,13 @@ const DefaultTimeoutShutdown time.Duration = 5 * time.Second
 // Server - Contains the core info about an HTTP server.
 type Server struct {
 	Domain  string
-	HttpSrv http.Server
+	HttpSrv *http.Server
 }
 
 // Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {
-	HTTP  map[string]Server
-	HTTPS map[string]Server
+	HTTP  map[string]*Server
+	HTTPS map[string]*Server
 }
 
 var servers *Servers
@@ -62,7 +62,7 @@ func Run(appVersion string, configFile string) {
 	config.Print()
 
 	// Logging Hooks
-	log := logger.NewGlobal()
+	log := logger.GetGlobal()
 	logger.HookSentry(log, config.Config.Log.SentryDsn)
 	logger.HookSyslog(log, config.Config.Log.SyslogProtocol, config.Config.Log.SyslogEndpoint)
 
@@ -81,8 +81,8 @@ func Run(appVersion string, configFile string) {
 
 	// init servers
 	servers = &Servers{
-		HTTP:  make(map[string]Server),
-		HTTPS: make(map[string]Server),
+		HTTP:  make(map[string]*Server),
+		HTTPS: make(map[string]*Server),
 	}
 
 	for _, domain := range config.GetDomains() {
@@ -117,7 +117,7 @@ func Run(appVersion string, configFile string) {
 }
 
 // InitInternals - Generates the internals endpoints (not exposed on public ports :80 :443).
-func InitInternals() http.Server {
+func InitInternals() *http.Server {
 	mux := http.NewServeMux()
 
 	// handlers
@@ -126,11 +126,11 @@ func InitInternals() http.Server {
 	metrics.Register()
 	mux.Handle("/metrics", promhttp.Handler())
 
-	return http.Server{Handler: mux}
+	return &http.Server{Handler: mux}
 }
 
 // InitServer - Generates the http.Server configuration.
-func InitServer(domain string, domainConfig config.Configuration) http.Server {
+func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", tracing.HTTPHandlerFunc(handler.HandleRequest, "handle_request"))
@@ -146,7 +146,7 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}
 
-	server := http.Server{
+	server := &http.Server{
 		ReadTimeout:       timeout.Read * time.Second,
 		WriteTimeout:      timeout.Write * time.Second,
 		IdleTimeout:       timeout.Idle * time.Second,
@@ -161,16 +161,16 @@ func InitServer(domain string, domainConfig config.Configuration) http.Server {
 // NOTE: There will be only ONE server listening on a port.
 //       This means the last processed will override all the previous shared
 //       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
-func (s *Servers) AttachPlain(domain string, port string, server http.Server) {
-	s.HTTP[port] = Server{Domain: domain, HttpSrv: server}
+func (s *Servers) AttachPlain(domain string, port string, server *http.Server) {
+	s.HTTP[port] = &Server{Domain: domain, HttpSrv: server}
 }
 
 // AttachSecure - Adds a new HTTPS server in the listener container.
 // NOTE: There will be only ONE server listening on a port.
 //       This means the last processed will override all the previous shared
 //       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
-func (s *Servers) AttachSecure(domain string, port string, server http.Server) {
-	s.HTTPS[port] = Server{Domain: domain, HttpSrv: server}
+func (s *Servers) AttachSecure(domain string, port string, server *http.Server) {
+	s.HTTPS[port] = &Server{Domain: domain, HttpSrv: server}
 }
 
 // InitServers - Returns a http.Server configuration for HTTP and HTTPS.
@@ -180,7 +180,7 @@ func (s *Servers) InitServers(domain string, domainConfig config.Configuration) 
 
 	srvHTTPS := InitServer(domain, domainConfig)
 
-	err := srvtls.ServerOverrides(domain, &srvHTTPS, domainConfig.Server)
+	err := srvtls.ServerOverrides(domain, srvHTTPS, domainConfig.Server)
 	if err != nil {
 		logger.GetGlobal().Errorf("Skipping '%s' TLS server configuration: %s", domain, err)
 		logger.GetGlobal().Errorf("No HTTPS server will be listening on '%s'", domain)
@@ -219,7 +219,7 @@ func (s Servers) startListeners() {
 	for port, srvHTTP := range s.HTTP {
 		srvHTTP.HttpSrv.Addr = ":" + port
 
-		go func(srv http.Server) {
+		go func(srv *http.Server) {
 			logger.GetGlobal().Fatal(srv.ListenAndServe())
 		}(srvHTTP.HttpSrv)
 	}
@@ -227,7 +227,7 @@ func (s Servers) startListeners() {
 	for port, srvHTTPS := range s.HTTPS {
 		srvHTTPS.HttpSrv.Addr = ":" + port
 
-		go func(srv http.Server) {
+		go func(srv *http.Server) {
 			logger.GetGlobal().Fatal(srv.ListenAndServeTLS("", ""))
 		}(srvHTTPS.HttpSrv)
 	}

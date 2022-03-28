@@ -103,16 +103,17 @@ func (rc RequestCall) patchProxyTransport() *http.Transport {
 			if err != nil {
 				return nil, err
 			}
-			for _, ip := range ips {
-				var dialer net.Dialer
-				conn, err = dialer.DialContext(ctx, network, net.JoinHostPort(ip, port))
-				if err == nil {
-					break
-				}
-			}
 
 			// Timeout Dial
 			d := net.Dialer{Timeout: DefaultTransportDialTimeout}
+
+			for _, ip := range ips {
+				conn, err = d.DialContext(ctx, network, net.JoinHostPort(ip, port))
+				if err == nil {
+					return conn, err
+				}
+			}
+
 			return d.DialContext(ctx, network, address)
 		},
 		DisableKeepAlives: false,
@@ -223,6 +224,6 @@ func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Reques
 
 		req.Host = host
 
-		tracing.Inject(span, req)
+		_ = tracing.Inject(span, req)
 	}
 }

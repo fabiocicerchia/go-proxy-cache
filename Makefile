@@ -94,7 +94,9 @@ test-unit: ## test unit
 	TESTING=1 go test -v -race -count=1 --tags=unit ./...
 
 test-functional: ## test functional
+	python3 -m http.server &> /dev/null &
 	TESTING=1 go test -v -race -count=1 --tags=functional ./...
+	pgrep python3 | xargs kill || true
 
 test-endtoend: ## test endtoend
 	go test -v -race -count=1 --tags=endtoend ./...
@@ -111,9 +113,11 @@ test-http2: ## test HTTP2
 	fi
 
 cover:  ## coverage
+	python3 -m http.server &> /dev/null &
 	TESTING=1 go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
 	go tool cover -func=c.out
 	go tool cover -html=c.out
+	pgrep python3 | xargs kill || true
 
 codeclimate:  ## codeclimate
 ifeq ($(IS_LINUX),1)

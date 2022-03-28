@@ -70,7 +70,7 @@ jobs:
       - name: Install Dependencies
         run: |
           apk update
-          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev openssl
+          apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev openssl python3
 
       - name: Build
         run: make build-race
