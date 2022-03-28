@@ -10,8 +10,9 @@ package balancer
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"math/rand"
 	"sync"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils/random"
 )
 
 // RandomBalancer instance.
@@ -40,7 +41,8 @@ func (b *RandomBalancer) Pick(requestURL string) (string, error) {
 		return "", ErrNoAvailableItem
 	}
 
-	rnd := rand.Intn(len(healthyNodes))
+	rnd := random.RandomInt64(int64(len(healthyNodes)))
+
 	b.NodeBalancer.M.Lock()
 	r := healthyNodes[rnd]
 	b.NodeBalancer.M.Unlock()

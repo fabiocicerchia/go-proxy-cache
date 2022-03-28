@@ -237,6 +237,10 @@ server:
       timeout: ~
       # Interval frequency for health checks.
       interval: ~
+      # Port to be used for requests forwarding.
+      # Default: incoming connection.
+      # Values: 80, 443.
+      port: 443
       # Fallback scheme if endpoint doesn't provide it.
       scheme: https
       # Allow healthchecks on self-signed TLS certificates (or expired/invalid).

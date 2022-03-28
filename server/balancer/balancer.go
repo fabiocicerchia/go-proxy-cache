@@ -12,6 +12,7 @@ package balancer
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -55,6 +56,8 @@ func Init(name string, config config.Upstream) {
 		InitLeastConnection(name, config, enableHealthchecks)
 	case lBRandom:
 		InitRandom(name, config, enableHealthchecks)
+	case lBRoundRobin:
+		InitRoundRobin(name, config, enableHealthchecks)
 	default: // round-robin (default)
 		InitRoundRobin(name, config, enableHealthchecks)
 	}
@@ -141,7 +144,7 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 			healthyCounter := 0
 			unhealthyCounter := 0
 			for k, v := range b.Items {
-				doHealthCheck(&v, config)
+				DoHealthCheck(&v, config)
 
 				if v.Healthy {
 					healthyCounter++
@@ -183,17 +186,30 @@ func getClient(timeout time.Duration, tlsFlag bool, allowInsecure bool) *http.Cl
 	return c
 }
 
-func doHealthCheck(v *Item, config config.HealthCheck) {
+func DoHealthCheck(v *Item, config config.HealthCheck) {
 	url, _ := url.Parse(v.Endpoint)
 	scheme := url.Scheme
 	if scheme == "" || (scheme != "http" && scheme != "https") {
 		scheme = config.Scheme
 	}
 
-	endpointURL := v.Endpoint
-	if url.Scheme != scheme {
-		endpointURL = fmt.Sprintf("%s://%s", scheme, v.Endpoint)
+	hostWithPort := url.Host
+	if hostWithPort == "" {
+		hostWithPort = v.Endpoint
 	}
+	_, port, err := net.SplitHostPort(hostWithPort)
+
+	overridePort := ""
+	if err != nil || port == "" {
+		overridePort = fmt.Sprintf(":%s", config.Port)
+	}
+
+	overrideScheme := ""
+	if url.Scheme != scheme {
+		overrideScheme = fmt.Sprintf("%s://", scheme)
+	}
+
+	endpointURL := fmt.Sprintf("%s%s%s", overrideScheme, v.Endpoint, overridePort)
 
 	req, err := http.NewRequest("HEAD", endpointURL, nil)
 	if err != nil {

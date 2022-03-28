@@ -30,23 +30,25 @@ import (
 
 var logFileHandle *os.File
 var logLevel logrus.Level = logrus.InfoLevel
-var log *logrus.Logger
+var Logger *logrus.Logger
 
 // InitLogs - Configures basic settings for logging with logrus.
 func InitLogs(verboseFlag bool, logFile string) {
-	logrus.SetFormatter(&logrus.TextFormatter{
+	log := GetGlobal()
+
+	log.SetFormatter(&logrus.TextFormatter{
 		ForceColors:     true,
 		FullTimestamp:   true,
 		TimestampFormat: "2006/01/02 15:04:05",
 	})
 
-	logrus.SetReportCaller(verboseFlag)
-	logrus.SetLevel(logLevel)
-	logrus.SetOutput(os.Stdout)
+	log.SetReportCaller(verboseFlag)
+	log.SetLevel(logLevel)
+	log.SetOutput(os.Stdout)
 
 	if logFile != "" {
 		logFileHandle = getLogFileWriter(logFile)
-		logrus.SetOutput(io.MultiWriter(logFileHandle))
+		log.SetOutput(io.MultiWriter(logFileHandle))
 		logrus.RegisterExitHandler(closeLogFile)
 	}
 }
@@ -59,7 +61,7 @@ func SetDebugLevel() {
 func getLogFileWriter(logFile string) *os.File {
 	f, err := os.OpenFile(filepath.Clean(logFile), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
-		logrus.Fatal(err)
+		Logger.Fatal(err)
 	}
 
 	return f
@@ -75,7 +77,8 @@ func closeLogFile() {
 func Log(req http.Request, reqID string, message string) {
 	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
 
-	logrus.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
+	log := GetGlobal()
+	log.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
 }
 
 // LogRequest - Logs the requested URL.
@@ -112,7 +115,8 @@ func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, 
 
 	logLine = r.Replace(logLine)
 
-	logrus.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
+	log := GetGlobal()
+	log.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
 }
 
 // LogSetup - Logs the env variables required for a reverse proxy.
@@ -125,27 +129,17 @@ func LogSetup(server config.Server) {
 		lbEndpointList = "VOID"
 	}
 
-	logrus.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
-}
-
-// New - Creates a new logrus logger.
-func New() *logrus.Logger {
-	return logrus.New()
-}
-
-// NewGlobal - Creates a new global logrus logger.
-func NewGlobal() *logrus.Logger {
-	log = New()
-	return log
+	log := GetGlobal()
+	log.Infof("Server will run on :%s and :%s and redirects to url: %s://%s -> %s\n", server.Port.HTTP, server.Port.HTTPS, forwardProto, forwardHost, lbEndpointList)
 }
 
 // GetGlobal - Returns existing instance of global logger (it'll create a new one if doesn't exist).
 func GetGlobal() *logrus.Logger {
-	if log == nil {
-		return NewGlobal()
+	if Logger == nil {
+		Logger = logrus.New()
 	}
 
-	return log
+	return Logger
 }
 
 // HookSentry - Configures (optionally) the Sentry hook for logrus.

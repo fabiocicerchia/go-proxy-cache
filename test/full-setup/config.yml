@@ -33,7 +33,7 @@ tracing:
   enabled: true
 
 log:
-  sentry_dsn: http://ff6cc3b0c994483f829c8da224973b47:8ffc03c8fd7a474eb8acaea55d6402a1@sentry:9000/2
+  # sentry_dsn: http://ff6cc3b0c994483f829c8da224973b47:8ffc03c8fd7a474eb8acaea55d6402a1@sentry:9000/2
   syslog_protocol: udp
   syslog_endpoint: syslog:514
 

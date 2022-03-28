@@ -17,8 +17,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
@@ -44,8 +42,6 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration
-	propagators  propagation.TextMapPropagator
-	tracer       trace.Tracer
 }
 
 // GetLogger - Get logger instance with RequestID.
