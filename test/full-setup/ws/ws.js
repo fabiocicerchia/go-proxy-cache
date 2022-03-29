@@ -1,33 +1,42 @@
 const https = require('https')
 const fs = require('fs')
 const WebSocket = require('ws')
-const opentracing = require('opentracing')
-const initTracer = require('jaeger-client').initTracer
 
-const tracer = initTracer({
-  serviceName: 'ws-server',
-  sampler: {
-    type: 'const',
-    param: 1
-  },
-  reporter: {
-    collectorEndpoint: 'http://jaeger:14268/api/traces',
-  }
-}, {})
+const { Resource } = require('@opentelemetry/resources');
+const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
+const { AlwaysOnSampler } = require("@opentelemetry/core")
+const { WebTracerProvider } = require('@opentelemetry/web');
+const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
+const api = require('@opentelemetry/api');
+const { JaegerPropagator } = require('@opentelemetry/propagator-jaeger');
+
+const tracerProvider = new WebTracerProvider({
+  resource: new Resource({
+    [SemanticResourceAttributes.SERVICE_NAME]: 'ws-server',
+  }),
+  sampler: new AlwaysOnSampler()
+});
+tracerProvider.addSpanProcessor(new SimpleSpanProcessor(new JaegerExporter({
+  endpoint: 'http://jaeger:14268/api/traces'
+})));
+const propagator = new JaegerPropagator("uber-trace-id")
+
+// Register the tracer
+tracerProvider.register();
+const tracer = tracerProvider.getTracer('ws-server');
 
 function onConnection (ws, request) {
-  const headersCarrier = request.headers
-
   ws.on('message', function (message) {
     console.log(request.headers);
-    const wireCtx = tracer.extract(opentracing.FORMAT_HTTP_HEADERS, headersCarrier)
-    const span = tracer.startSpan('http_request', { childOf: wireCtx })
+    const currentContext = propagator.extract(api.context.active(), request.headers, api.defaultTextMapGetter);
+    const span = tracer.startSpan('init', {}, currentContext);
 
-    span.log({ event: 'data_received' })
+    span.addEvent('data_received')
     console.log('Received from client: %s', message)
     ws.send('Server received from client: ' + message)
 
-    span.finish()
+    span.end()
   })
 }
 

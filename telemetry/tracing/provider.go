@@ -34,7 +34,11 @@ func NewJaegerProvider(appVersion string, jaegerEndpoint string, enabled bool, s
 			Param: sampleRatio,
 		},
 		Reporter: &jaegerConfig.ReporterConfig{
-			LocalAgentHostPort: jaegerEndpoint,
+			// TODO: is it good to have the following settings?
+			// - LocalAgentHostPort
+			// - User
+			// - Password
+			CollectorEndpoint: jaegerEndpoint,
 		},
 	}
 

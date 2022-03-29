@@ -208,6 +208,7 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 func (c *Configuration) copyOverWithTracing(overrides Tracing) {
 	c.Tracing.JaegerEndpoint = utils.Coalesce(overrides.JaegerEndpoint, c.Tracing.JaegerEndpoint).(string)
 	c.Tracing.Enabled = utils.Coalesce(overrides.Enabled, c.Tracing.Enabled).(bool)
+	// TODO: when starting is not using the default value set in the tag. it might happen to other properties as well.
 	c.Tracing.SamplingRatio = utils.Coalesce(overrides.SamplingRatio, c.Tracing.SamplingRatio).(float64)
 }
 

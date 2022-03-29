@@ -11,7 +11,8 @@
   "headers": {
     "jaegerDebugHeader": "jaeger-debug-id",
     "jaegerBaggageHeader": "jaeger-baggage",
-    "traceBaggageHeaderPrefix": "uberctx-"
+    "traceBaggageHeaderPrefix": "uberctx-",
+    "traceContextHeaderName": "uber-trace-id"
   },
   "baggage_restrictions": {
     "denyBaggageOnInitializationFailure": false,

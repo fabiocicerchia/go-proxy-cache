@@ -54,10 +54,7 @@ services:
   # UPSTREAM 1 - NGINX
   ##############################################################################
   nginx:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile.nginx
-      network: host
+    image: opentracing/nginx-opentracing:latest
     restart: always
     depends_on:
       jaeger:
@@ -100,8 +97,9 @@ services:
       - "6832:6832/udp"
       - "5778:5778"
       - "16686:16686"
-      - "14268:14268"
       - "14250:14250"
+      - "14268:14268"
+      - "14269:14269"
       - "9411:9411"
     healthcheck:
       test: ["CMD", "/go/bin/all-in-one-linux", "status"]

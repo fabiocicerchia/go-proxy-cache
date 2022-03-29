@@ -1,4 +1,4 @@
-FROM opentracing/nginx-opentracing:edge
+FROM opentracing/nginx-opentracing
 
 COPY --chown=nginx:nginx nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=nginx:nginx nginx/conf.d/vhost.conf /etc/nginx/conf.d/vhost.conf

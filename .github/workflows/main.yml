@@ -26,12 +26,14 @@ jobs:
         image: jaegertracing/all-in-one:1.32.0
       node:
         image: fabiocicerchia/go-proxy-cache-test:node
+        #image: fabiocicerchia/npm-start:latest
         ports:
           - "9001:9001" # ws
           - "9002:9002" # wss
         #options: >-
         #  -w /home/node/app
         #  -v ${{ github.workspace }}/test/full-setup:/home/node/app
+      # TODO: NEED TO FIND A WAY TO MAKE IT WORKING WITH VOLUMES
       nginx:
         image: fabiocicerchia/go-proxy-cache-test:nginx
         ports:
@@ -42,6 +44,8 @@ jobs:
         options: >-
           --link node
           --link jaeger
+        #  -v ${{ github.workspace }}/test/full-setup/nginx:/etc/nginx/conf.d
+        #  -v ${{ github.workspace }}/test/full-setup/certs:/certs
     steps:
       - uses: actions/checkout@v2
 
@@ -54,6 +58,11 @@ jobs:
         uses: docker://docker
         with:
           args: docker logs "${{ job.services.node.id }}"
+
+      - name: Service Logs - jaeger
+        uses: docker://docker
+        with:
+          args: docker logs "${{ job.services.jaeger.id }}"
 
       # Ref: https://github.community/t/services-and-volumes/16313
       - name: Restart nginx
