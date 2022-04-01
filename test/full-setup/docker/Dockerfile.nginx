@@ -9,4 +9,11 @@ RUN apt-get update \
 
 RUN pip3 install grpcio
 
-COPY --chown=nginx:nginx ./nginx/otel_ngx_module.so /etc/nginx/otel_ngx_module.so
+# Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx#usage
+# Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/actions/runs/2043949860
+COPY --chown=nginx:nginx nginx/otel_ngx_module.so /etc/nginx/otel_ngx_module.so
+COPY --chown=nginx:nginx nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=nginx:nginx nginx/conf.d/vhost.conf /etc/nginx/conf.d/vhost.conf
+COPY --chown=nginx:nginx certs /certs
+COPY --chown=nginx:nginx nginx/otel-nginx.toml /conf/otel-nginx.toml
+COPY --chown=nginx:nginx nginx/.htpasswd /etc/nginx/.htpasswd
