@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -67,7 +68,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 
 	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
 	if forceFresh {
-		escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+		escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
 		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 		rc.GetLogger().Warningf("Forcing Fresh Content on %s", escapedURL)
@@ -133,7 +134,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 		return
 	}
 
-	escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+	escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
 	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
@@ -178,7 +179,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+	escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
 	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 	rc.GetLogger().Debugf("Sync Store Response: %s", escapedURL)

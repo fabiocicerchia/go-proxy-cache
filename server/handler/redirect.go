@@ -12,6 +12,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 )
@@ -21,13 +22,13 @@ func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	targetURL := rc.GetRequestURL()
 	targetURL.Scheme = SchemeHTTPS
 
-	escapedURL := strings.Replace(targetURL, "\n", "", -1)
+	escapedURL := strings.Replace(targetURL.String(), "\n", "", -1)
 	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 	rc.GetLogger().Infof("Redirect to: %s", escapedURL)
 
 	// Just write to client, no need to cache this response.
-	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL, rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
 
 	telemetry.From(ctx).RegisterRedirect(targetURL)
 	telemetry.From(ctx).RegisterStatusCode(rc.DomainConfig.Server.Upstream.RedirectStatusCode)

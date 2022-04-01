@@ -77,7 +77,7 @@ func closeLogFile() {
 func Log(req http.Request, reqID string, message string) {
 	escapedMessage := strings.Replace(message, "\n", "", -1)
 	escapedMessage = strings.Replace(escapedMessage, "\r", "", -1)
-	escapedURL := strings.Replace(req.URL, "\n", "", -1)
+	escapedURL := strings.Replace(req.URL.String(), "\n", "", -1)
 	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 	log := GetGlobal()

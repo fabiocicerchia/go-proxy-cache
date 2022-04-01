@@ -22,6 +22,16 @@ jobs:
           - 6379/tcp
         options: >-
           --entrypoint redis-server
+      jaeger:
+        image: jaegertracing/all-in-one:1.32.0
+      node:
+        image: fabiocicerchia/go-proxy-cache-test:node
+        ports:
+          - "9001:9001" # ws
+          - "9002:9002" # wss
+        #options: >-
+        #  -w /home/node/app
+        #  -v ${{ github.workspace }}/test/full-setup:/home/node/app
       nginx:
         image: fabiocicerchia/go-proxy-cache-test:nginx
         ports:
@@ -31,13 +41,19 @@ jobs:
           - "40443:40443" # https
         options: >-
           --link node
-      node:
-        image: fabiocicerchia/go-proxy-cache-test:node
-        ports:
-          - "9001:9001" # ws
-          - "9002:9002" # wss
+          --link jaeger
     steps:
       - uses: actions/checkout@v2
+
+      - name: Restart node
+        uses: docker://docker
+        with:
+          args: docker restart "${{ job.services.nginx.id }}"
+
+      - name: Service Logs - node
+        uses: docker://docker
+        with:
+          args: docker logs "${{ job.services.node.id }}"
 
       # Ref: https://github.community/t/services-and-volumes/16313
       - name: Restart nginx
@@ -50,16 +66,6 @@ jobs:
         with:
           args: docker logs "${{ job.services.nginx.id }}"
 
-      - name: Restart node
-        uses: docker://docker
-        with:
-          args: docker restart "${{ job.services.nginx.id }}"
-
-      - name: Service Logs - node
-        uses: docker://docker
-        with:
-          args: docker logs "${{ job.services.node.id }}"
-
       - name: Install Dependencies
         run: |
           apk update
@@ -71,7 +77,7 @@ jobs:
       - name: Test
         run: |
           echo "127.0.0.1 testing.local www.testing.local" | tee -a /etc/hosts
-          echo "127.0.0.1 sentry jaeger syslog" | tee -a /etc/hosts
+          echo "127.0.0.1 sentry syslog" | tee -a /etc/hosts
           cd test/full-setup/certs
           ./gen-selfsigned-cert.sh
           ./gen-selfsigned-cert.sh www.w3.org

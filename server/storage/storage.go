@@ -12,6 +12,7 @@ package storage
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -34,7 +35,7 @@ type RequestCallDTO struct {
 func RetrieveCachedContent(ctx context.Context, rc RequestCallDTO, logger *log.Entry) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
-		escapedURL := strings.Replace(rc.CacheObject.CurrentURIObject.URL, "\n", "", -1)
+		escapedURL := strings.Replace(rc.CacheObject.CurrentURIObject.URL.String(), "\n", "", -1)
 		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 		if err == cache.ErrEmptyValue {
 			logger.Infof("Cannot retrieve page %s: %s\n", escapedURL, err)

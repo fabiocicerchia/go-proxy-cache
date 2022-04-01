@@ -12,6 +12,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
@@ -27,7 +28,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")
 
-		escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+		escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
 		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", escapedURL, err)

@@ -12,6 +12,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/yhat/wsutil"
 
@@ -39,7 +40,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 		return
 	}
 
-	escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+	escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
 	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
