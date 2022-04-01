@@ -24,7 +24,6 @@ jobs:
           --entrypoint redis-server
       nginx:
         image: fabiocicerchia/go-proxy-cache-test:nginx
-        #image: nginx:1.21.1-alpine
         ports:
           - "40080:40080" # http
           - "40081:40081" # ws
@@ -32,17 +31,11 @@ jobs:
           - "40443:40443" # https
         options: >-
           --link node
-        #  -v ${{ github.workspace }}/test/full-setup/nginx:/etc/nginx/conf.d
-        #  -v ${{ github.workspace }}/test/full-setup/certs:/certs
       node:
         image: fabiocicerchia/go-proxy-cache-test:node
-        #image: fabiocicerchia/npm-start:latest
         ports:
           - "9001:9001" # ws
           - "9002:9002" # wss
-        #options: >-
-        #  -w /home/node/app
-        #  -v ${{ github.workspace }}/test/full-setup:/home/node/app
     steps:
       - uses: actions/checkout@v2
 

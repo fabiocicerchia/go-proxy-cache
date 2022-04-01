@@ -208,6 +208,7 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 func (c *Configuration) copyOverWithTracing(overrides Tracing) {
 	c.Tracing.JaegerEndpoint = utils.Coalesce(overrides.JaegerEndpoint, c.Tracing.JaegerEndpoint).(string)
 	c.Tracing.Enabled = utils.Coalesce(overrides.Enabled, c.Tracing.Enabled).(bool)
+	c.Tracing.SamplingRatio = utils.Coalesce(overrides.SamplingRatio, c.Tracing.SamplingRatio).(float64)
 }
 
 // --- LOG.

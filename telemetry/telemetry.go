@@ -57,8 +57,6 @@ func (tc TelemetryContext) RegisterRequest(req http.Request) {
 
 // RegisterRequestCall - Sends extra metrics / traces about an incoming HTTP request event.
 func (tc TelemetryContext) RegisterRequestCall(reqID string, reqURL url.URL, scheme string, webSocket bool) {
-	tc.tracingSpan.SetBaggageItem(tracing.BaggageRequestID, reqID)
-
 	tc.tracingSpan.
 		SetTag(tracing.TagRequestId, reqID).
 		SetTag(tracing.TagRequestFullUrl, reqURL.String()).

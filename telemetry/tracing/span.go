@@ -18,9 +18,6 @@ import (
 	"github.com/opentracing/opentracing-go/log"
 )
 
-// BaggageRequestID - Key for OpenTracing baggage Request ID.
-const BaggageRequestID = "request.id"
-
 // TagErrorError - Error
 const TagErrorError = "error.error"
 

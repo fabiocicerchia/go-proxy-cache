@@ -231,8 +231,8 @@ server:
     health_check:
       # Status codes for healthy node.
       # A list of space-separated status codes.
-      # Default: 200
-      status_codes: 200
+      status_codes:
+        - 200
       # Timeout request time.
       timeout: ~
       # Interval frequency for health checks.

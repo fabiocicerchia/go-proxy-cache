@@ -19,6 +19,7 @@ function onConnection (ws, request) {
   const headersCarrier = request.headers
 
   ws.on('message', function (message) {
+    console.log(request.headers);
     const wireCtx = tracer.extract(opentracing.FORMAT_HTTP_HEADERS, headersCarrier)
     const span = tracer.startSpan('http_request', { childOf: wireCtx })
 

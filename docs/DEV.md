@@ -9,8 +9,8 @@
 ## Setup
 
 ```console
-$ docker build -t fabiocicerchia/go-proxy-cache-test:nginx -f test/full-setup/Dockerfile.nginx test/full-setup
-$ docker build -t fabiocicerchia/go-proxy-cache-test:node -f test/full-setup/Dockerfile.node test/full-setup
+$ docker build -t fabiocicerchia/go-proxy-cache-test:nginx -f test/full-setup/docker/Dockerfile.nginx test/full-setup
+$ docker build -t fabiocicerchia/go-proxy-cache-test:node -f test/full-setup/docker/Dockerfile.node test/full-setup
 $ echo "127.0.0.1 testing.local www.testing.local" >> /etc/hosts
 $ cd test/full-setup
 $ ./gen-selfsigned-cert.sh

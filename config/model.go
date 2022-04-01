@@ -107,7 +107,7 @@ func (u Upstream) GetDomainID() string {
 
 // HealthCheck - Defines the health check settings.
 type HealthCheck struct {
-	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true" default:"200"`
+	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
 	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
 	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
 	Port          string        `yaml:"port" envconfig:"HEALTHCHECK_PORT" default:"443"`
@@ -154,7 +154,7 @@ type Tracing struct {
 // Internals - Defines the config for the internal listening address/port.
 type Internals struct {
 	ListeningAddress string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_ADDRESS" default:"127.0.0.1"`
-	ListeningPort    string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_PORT" default:"52021"`
+	ListeningPort    string `yaml:"listening_port" envconfig:"INTERNAL_LISTENING_PORT" default:"52021"`
 }
 
 // DomainSet - Holds the uniqueness details of the domain.

@@ -21,7 +21,7 @@ services:
         BUILD_CMD: build-race
     command: ["go-proxy-cache", "-debug"]
     environment:
-      ENV: test
+      TRACING_ENV: test
     depends_on:
       redis:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
       jaeger:
         condition: service_healthy
     volumes:
-      - ./nginx/vhost.conf:/etc/nginx/conf.d/vhost.conf
+      - ./nginx/conf.d/vhost.conf:/etc/nginx/conf.d/vhost.conf
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd
       - ./certs:/certs
     ports:
@@ -114,7 +114,7 @@ services:
   prometheus:
     image: prom/prometheus:v2.34.0
     ports:
-      - "9090:9090" # Prometheuspbertera/syslogserver
+      - "9090:9090" # Prometheus
     command: --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml

@@ -120,7 +120,7 @@ func IncRequestHost(host string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 		"host":     host,
 	}
 
@@ -132,7 +132,7 @@ func IncHttpMethod(method string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 		"method":   method,
 	}
 
@@ -144,7 +144,7 @@ func IncUrlScheme(scheme string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 		"scheme":   scheme,
 	}
 
@@ -156,7 +156,7 @@ func IncStatusCode(code int) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 		"code":     strconv.Itoa(code),
 	}
 
@@ -164,7 +164,7 @@ func IncStatusCode(code int) {
 
 	labels = prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 	}
 	if code < 200 {
 		request1xx.With(labels).Inc()
@@ -186,7 +186,7 @@ func IncCacheMiss() {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 	}
 
 	cacheMiss.With(labels).Inc()
@@ -197,7 +197,7 @@ func IncCacheStale() {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 	}
 
 	cacheStale.With(labels).Inc()
@@ -208,7 +208,7 @@ func IncCacheHit() {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 	}
 
 	cacheHit.With(labels).Inc()
@@ -219,7 +219,7 @@ func SetHostHealthy(val float64) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 	}
 
 	hostHealthy.With(labels).Set(val)
@@ -230,7 +230,7 @@ func SetHostUnhealthy(val float64) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
-		"env":      os.Getenv("ENV"),
+		"env":      os.Getenv("TRACING_ENV"),
 	}
 
 	hostUnhealthy.With(labels).Set(val)
