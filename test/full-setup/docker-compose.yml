@@ -15,7 +15,7 @@ services:
   go-proxy-cache:
     build:
       context: ../..
-      dockerfile: Dockerfile
+      dockerfile: ./docker/Dockerfile
       network: host
       args:
         BUILD_CMD: build-race

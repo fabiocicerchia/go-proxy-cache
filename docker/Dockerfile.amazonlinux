@@ -1,0 +1,40 @@
+#                                                                         __
+# .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+# |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+# |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+# |_____|            |__|                   |_____|
+#
+# Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+# Repo: https://github.com/fabiocicerchia/go-proxy-cache
+
+FROM amazonlinux:2.0.20220316.0 AS builder
+
+ARG BUILD_CMD=build
+
+WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
+
+ENV CGO_CFLAGS -march=native -O3
+ENV PATH=/usr/local/go/bin:$PATH
+
+RUN yum install -y \
+      gcc \
+      go \
+      make
+
+COPY . ./
+
+RUN make $BUILD_CMD
+
+FROM amazonlinux:2.0.20220316.0
+
+WORKDIR /app
+
+COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/go-proxy-cache /usr/local/bin/
+COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/config.yml.dist /app/config.yml
+
+RUN yum install -y glibc-devel
+
+RUN go-proxy-cache --version \
+    && go-proxy-cache --test
+
+CMD ["go-proxy-cache"]

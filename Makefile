@@ -158,7 +158,18 @@ release: ## release
 	git commit -m "updated changelog for v$$VER"
 	git tag -af v$$VER -m "Release v$$VER"
 
+################################################################################
+##@ DOCKER
+################################################################################
+
 docker-push: ## build and push a docker image
-	docker build -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER .
+	docker build -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER -f docker/Dockerfile .
 	docker push fabiocicerchia/go-proxy-cache:latest
 	docker push fabiocicerchia/go-proxy-cache:$$VER
+
+docker-build-all:
+	docker build -t fabiocicerchia/go-proxy-cache:alpine -f docker/Dockerfile.alpine .
+	docker build -t fabiocicerchia/go-proxy-cache:amazonlinux -f docker/Dockerfile.amazonlinux .
+	docker build -t fabiocicerchia/go-proxy-cache:debian -f docker/Dockerfile.debian .
+	docker build -t fabiocicerchia/go-proxy-cache:fedora -f docker/Dockerfile.fedora .
+	docker build -t fabiocicerchia/go-proxy-cache:ubuntu -f docker/Dockerfile.ubuntu .

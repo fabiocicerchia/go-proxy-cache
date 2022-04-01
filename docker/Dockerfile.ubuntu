@@ -1,0 +1,42 @@
+#                                                                         __
+# .-----.-----.______.-----.----.-----.--.--.--.--.______.----.---.-.----|  |--.-----.
+# |  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|
+# |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
+# |_____|            |__|                   |_____|
+#
+# Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+# Repo: https://github.com/fabiocicerchia/go-proxy-cache
+
+FROM ubuntu:21.10 AS builder
+
+ARG BUILD_CMD=build
+
+WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
+
+ENV CGO_CFLAGS -march=native -O3
+ENV PATH=/usr/local/go/bin:$PATH
+
+RUN apt update \
+    && apt install -y \
+      gcc \
+      make \
+      wget
+
+RUN wget https://go.dev/dl/go1.18.linux-$(dpkg --print-architecture).tar.gz \
+    && tar -C /usr/local -xzf go1.18.linux-$(dpkg --print-architecture).tar.gz
+
+COPY . ./
+
+RUN make $BUILD_CMD
+
+FROM ubuntu:21.10
+
+WORKDIR /app
+
+COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/go-proxy-cache /usr/local/bin/
+COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/config.yml.dist /app/config.yml
+
+RUN go-proxy-cache --version \
+    && go-proxy-cache --test
+
+CMD ["go-proxy-cache"]
