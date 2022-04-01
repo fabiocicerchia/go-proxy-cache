@@ -34,10 +34,12 @@ type RequestCallDTO struct {
 func RetrieveCachedContent(ctx context.Context, rc RequestCallDTO, logger *log.Entry) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
+		escapedURL := strings.Replace(rc.CacheObject.CurrentURIObject.URL, "\n", "", -1)
+		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 		if err == cache.ErrEmptyValue {
-			logger.Infof("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
+			logger.Infof("Cannot retrieve page %s: %s\n", escapedURL, err)
 		} else {
-			logger.Warnf("Cannot retrieve page %s: %s\n", rc.CacheObject.CurrentURIObject.URL.String(), err)
+			logger.Warnf("Cannot retrieve page %s: %s\n", escapedURL, err)
 		}
 
 		telemetry.From(ctx).RegisterEventWithData("Cannot retrieve page", map[string]string{

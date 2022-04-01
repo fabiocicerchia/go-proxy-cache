@@ -27,7 +27,10 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")
 
-		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", rc.Request.URL.String(), err)
+		escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+
+		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", escapedURL, err)
 
 		telemetry.From(ctx).RegisterPurge(status, err)
 		telemetry.From(ctx).RegisterStatusCode(http.StatusNotFound)

@@ -67,7 +67,10 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 
 	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
 	if forceFresh {
-		rc.GetLogger().Warningf("Forcing Fresh Content on %v", rc.Request.URL.String())
+		escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+
+		rc.GetLogger().Warningf("Forcing Fresh Content on %s", escapedURL)
 	}
 
 	if enableCachedResponse && !forceFresh {
@@ -130,8 +133,11 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 		return
 	}
 
+	escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+
 	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
-	rc.GetLogger().Debugf("Req URL: %s", rc.Request.URL.String())
+	rc.GetLogger().Debugf("Req URL: %s", escapedURL)
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
 	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
@@ -172,7 +178,10 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	rc.GetLogger().Debugf("Sync Store Response: %s", rc.Request.URL.String())
+	escapedURL := strings.Replace(rc.Request.URL, "\n", "", -1)
+	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+
+	rc.GetLogger().Debugf("Sync Store Response: %s", escapedURL)
 	stored, err := doStoreResponse(ctx, rcDTO, rc.DomainConfig.Cache)
 
 	tracingSpan.SetTag(tracing.TagStorageCached, stored)

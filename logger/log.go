@@ -75,10 +75,13 @@ func closeLogFile() {
 
 // Log - Logs against a requested URL.
 func Log(req http.Request, reqID string, message string) {
-	logLine := fmt.Sprintf("%s %s %s - %s", req.Proto, req.Method, req.URL.String(), message)
+	escapedMessage := strings.Replace(message, "\n", "", -1)
+	escapedMessage = strings.Replace(escapedMessage, "\r", "", -1)
+	escapedURL := strings.Replace(req.URL, "\n", "", -1)
+	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
 
 	log := GetGlobal()
-	log.WithFields(logrus.Fields{"ReqID": reqID}).Info(logLine)
+	log.WithFields(logrus.Fields{"ReqID": reqID}).Infof("%s %s %s - %s", req.Proto, req.Method, escapedURL, escapedMessage)
 }
 
 // LogRequest - Logs the requested URL.

@@ -74,7 +74,9 @@ func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
 
 func (rdb *RedisClient) lock(ctx context.Context, key string) error {
 	if err := rdb.getMutex(key).Lock(); err != nil {
-		rdb.logger.Errorf("Lock Error on %s: %s", key, err)
+		escapedKey := strings.Replace(key, "\n", "", -1)
+		escapedKey = strings.Replace(escapedKey, "\r", "", -1)
+		rdb.logger.Errorf("Lock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
 			"error": err.Error(),
@@ -87,7 +89,9 @@ func (rdb *RedisClient) lock(ctx context.Context, key string) error {
 
 func (rdb *RedisClient) unlock(ctx context.Context, key string) error {
 	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
-		rdb.logger.Errorf("Unlock Error on %s: %s", key, err)
+		escapedKey := strings.Replace(key, "\n", "", -1)
+		escapedKey = strings.Replace(escapedKey, "\r", "", -1)
+		rdb.logger.Errorf("Unlock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
 			"error": err.Error(),
