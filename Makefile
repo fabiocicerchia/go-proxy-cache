@@ -168,8 +168,8 @@ docker-push: ## build and push a docker image
 	docker push fabiocicerchia/go-proxy-cache:$$VER
 
 docker-build-all:
-	docker build -t fabiocicerchia/go-proxy-cache:alpine -f docker/Dockerfile.alpine .
-	docker build -t fabiocicerchia/go-proxy-cache:amazonlinux -f docker/Dockerfile.amazonlinux .
-	docker build -t fabiocicerchia/go-proxy-cache:debian -f docker/Dockerfile.debian .
-	docker build -t fabiocicerchia/go-proxy-cache:fedora -f docker/Dockerfile.fedora .
-	docker build -t fabiocicerchia/go-proxy-cache:ubuntu -f docker/Dockerfile.ubuntu .
+	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:alpine -f docker/Dockerfile.alpine .
+	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:amazonlinux -f docker/Dockerfile.amazonlinux .
+	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:debian -f docker/Dockerfile.debian .
+	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:fedora -f docker/Dockerfile.fedora .
+	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:ubuntu -f docker/Dockerfile.ubuntu .
