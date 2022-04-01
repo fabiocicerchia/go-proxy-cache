@@ -13,13 +13,12 @@ import (
 	"context"
 	"net/http"
 
-	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+	"go.opentelemetry.io/otel/propagation"
 )
-
-// TagErrorError - Error
-const TagErrorError = "error.error"
 
 // TagProxyEndpoint - Upstream URL
 const TagProxyEndpoint = "proxy.endpoint"
@@ -110,59 +109,61 @@ const TagResponseStatusCode = "response.status_code"
 
 // StartSpanFromRequest retrieves a tracing span from the inbound HTTP request.
 // The tracing can be continued with a child span (if any) so there will be continuity in the tracing.
-func StartSpanFromRequest(operation string, r *http.Request) opentracing.Span {
-	spanCtx, _ := Extract(r)
-	return opentracing.GlobalTracer().StartSpan(operation, ext.RPCServerOption(spanCtx))
+func StartSpanFromRequest(operation string, r *http.Request) (trace.Span, context.Context) {
+	return NewSpan(r.Context(), operation)
 }
 
 // NewSpan returns a new tracing span from the global tracer.
-// Each tracing span must be followed by `defer tracingSpan.Finish()`.
-func NewSpan(operation string) opentracing.Span {
-	return opentracing.GlobalTracer().StartSpan(operation)
+// Each tracing span must be followed by `defer tracingSpan.End()`.
+func NewSpan(ctx context.Context, operation string) (trace.Span, context.Context) {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, operation)
+	return span, ctx
 }
 
 // NewChildSpan returns a new tracing child span from the global tracer.
-// Each tracing span must be followed by `defer tracingSpan.Finish()`.
-func NewChildSpan(ctx context.Context, operation string) opentracing.Span {
-	spanCtx := SpanFromContext(ctx).Context()
-	return opentracing.GlobalTracer().StartSpan(operation, opentracing.ChildOf(spanCtx))
+// Each tracing span must be followed by `defer tracingSpan.End()`.
+func NewChildSpan(ctx context.Context, operation string) trace.Span {
+	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, operation)
+	return span
 }
 
 // Inject into the outbound HTTP Request the tracing span's context.
-func Inject(span opentracing.Span, request *http.Request) error {
-	return span.Tracer().Inject(
-		span.Context(),
-		opentracing.HTTPHeaders,
-		opentracing.HTTPHeadersCarrier(request.Header))
-}
-
-// Extract from the inbound HTTP Request the parent tracing span.
-func Extract(r *http.Request) (opentracing.SpanContext, error) {
-	return opentracing.GlobalTracer().Extract(
-		opentracing.HTTPHeaders,
-		opentracing.HTTPHeadersCarrier(r.Header))
+func Inject(ctx context.Context, request *http.Request) {
+	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(request.Header))
 }
 
 // AddEventsToSpan adds new events to the tracing span.
-func AddEventsToSpan(tracingSpan opentracing.Span, name string, events map[string]string) {
-	tracingSpan.LogFields(log.String("event", name))
-
+func AddEventsToSpan(tracingSpan trace.Span, name string, events map[string]string) {
+	attributes := []attribute.KeyValue{}
 	for k, v := range events {
-		tracingSpan.LogFields(log.String(k, v))
+		attributes = append(attributes, attribute.Key(k).String(v))
 	}
+
+	tracingSpan.AddEvent(name, trace.WithAttributes(attributes...))
 }
 
 // AddErrorToSpan adds a new error event to the tracing span.
-func AddErrorToSpan(tracingSpan opentracing.Span, err error) {
-	ext.LogError(tracingSpan, err)
+func AddErrorToSpan(tracingSpan trace.Span, err error) {
+	tracingSpan.RecordError(err)
 }
 
 // Fail flags the tracing span as failed, and adds an error label.
-func Fail(tracingSpan opentracing.Span, msg string) {
-	tracingSpan.SetTag(TagErrorError, msg)
+func Fail(tracingSpan trace.Span, msg string) {
+	tracingSpan.SetStatus(codes.Error, msg)
 }
 
 // SpanFromContext returns the current tracing span from a context.
-func SpanFromContext(ctx context.Context) opentracing.Span {
-	return opentracing.SpanFromContext(ctx)
+func SpanFromContext(ctx context.Context) trace.Span {
+	return trace.SpanFromContext(ctx)
+}
+
+// AddBoolTag - Add a boolean tag to a tracing span.
+func AddBoolTag(span trace.Span, key string, value bool) {
+	span.SetAttributes(attribute.Key(key).Bool(value))
+}
+
+// SetErrorAndFail - Add an error and a custom failure message to a tracing span.
+func SetErrorAndFail(span trace.Span, err error, msg string) {
+	AddErrorToSpan(span, err)
+	Fail(span, msg)
 }

@@ -47,7 +47,7 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.handle_http_request_and_proxy")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	cached := cache.StatusMiss
 
@@ -78,7 +78,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 
 func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_cached_content")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
@@ -107,12 +107,11 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 
 func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_reverse_proxy_http")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	proxyURL, err := rc.GetUpstreamURL()
 	if err != nil {
-		tracing.AddErrorToSpan(tracingSpan, err)
-		tracing.Fail(tracingSpan, "internal error")
+		tracing.SetErrorAndFail(tracingSpan, err, "internal error")
 
 		rc.GetLogger().Errorf("Cannot process Upstream URL: %s", err.Error())
 		return
@@ -131,7 +130,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	proxy.Transport = rc.patchProxyTransport()
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector(tracingSpan)
+	gpcDirector := rc.ProxyDirector(ctx)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.
@@ -159,7 +158,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 	}
 
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.store_response")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
@@ -169,7 +168,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 	rc.GetLogger().Debugf("Sync Store Response: %s", escapedURL)
 	stored, err := doStoreResponse(ctx, rcDTO, rc.DomainConfig.Cache)
 
-	tracingSpan.SetTag(tracing.TagStorageCached, stored)
+	tracing.AddBoolTag(tracingSpan, tracing.TagStorageCached, stored)
 
 	if err != nil {
 		tracing.AddErrorToSpan(tracingSpan, err)

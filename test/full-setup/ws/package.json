@@ -11,6 +11,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.1.0",
     "@opentelemetry/auto-instrumentations-node": "^0.28.0",
+    "@opentelemetry/core": "^1.0.1",
     "@opentelemetry/exporter-jaeger": "^1.1.1",
     "@opentelemetry/instrumentation": "^0.27.0",
     "@opentelemetry/plugin-http": "^0.18.2",
@@ -18,8 +19,6 @@
     "@opentelemetry/semantic-conventions": "^1.1.1",
     "@opentelemetry/tracing": "^0.24.0",
     "@opentelemetry/web": "^0.24.0",
-    "@opentelemetry/core": "^1.0.1",
-    "@opentelemetry/propagator-jaeger": "1.1.1",
     "ws": "^8.5.0"
   }
 }

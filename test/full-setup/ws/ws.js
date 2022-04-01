@@ -4,12 +4,11 @@ const WebSocket = require('ws')
 
 const { Resource } = require('@opentelemetry/resources');
 const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
-const { AlwaysOnSampler } = require("@opentelemetry/core")
+const { AlwaysOnSampler, W3CTraceContextPropagator } = require("@opentelemetry/core")
 const { WebTracerProvider } = require('@opentelemetry/web');
 const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
 const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
 const api = require('@opentelemetry/api');
-const { JaegerPropagator } = require('@opentelemetry/propagator-jaeger');
 
 const tracerProvider = new WebTracerProvider({
   resource: new Resource({
@@ -20,7 +19,7 @@ const tracerProvider = new WebTracerProvider({
 tracerProvider.addSpanProcessor(new SimpleSpanProcessor(new JaegerExporter({
   endpoint: 'http://jaeger:14268/api/traces'
 })));
-const propagator = new JaegerPropagator("uber-trace-id")
+const propagator = new W3CTraceContextPropagator()
 
 // Register the tracer
 tracerProvider.register();
@@ -30,7 +29,7 @@ function onConnection (ws, request) {
   ws.on('message', function (message) {
     console.log(request.headers);
     const currentContext = propagator.extract(api.context.active(), request.headers, api.defaultTextMapGetter);
-    const span = tracer.startSpan('init', {}, currentContext);
+    const span = tracer.startSpan('http_request', {}, currentContext);
 
     span.addEvent('data_received')
     console.log('Received from client: %s', message)

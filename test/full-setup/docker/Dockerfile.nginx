@@ -1,6 +1,12 @@
-FROM opentracing/nginx-opentracing
+FROM fabiocicerchia/nginx-lua:1.21.6-ubuntu20.04
 
-COPY --chown=nginx:nginx nginx/nginx.conf /etc/nginx/nginx.conf
-COPY --chown=nginx:nginx nginx/conf.d/vhost.conf /etc/nginx/conf.d/vhost.conf
-COPY --chown=nginx:nginx certs /certs
-COPY --chown=nginx:nginx nginx/jaeger-nginx-config.json /etc/nginx/jaeger-nginx-config.json
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ="Europe/London"
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends --no-install-suggests -y \
+      python3 python3-pip
+
+RUN pip3 install grpcio
+
+COPY --chown=nginx:nginx ./nginx/otel_ngx_module.so /etc/nginx/otel_ngx_module.so

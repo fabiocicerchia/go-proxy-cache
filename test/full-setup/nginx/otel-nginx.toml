@@ -1,0 +1,19 @@
+exporter = "otlp"
+processor = "batch"
+
+[exporters.otlp]
+host = "collector"
+port = 4317
+
+[processors.batch]
+max_queue_size = 2048
+schedule_delay_millis = 1000
+max_export_batch_size = 512
+
+[service]
+name = "nginx"
+
+[sampler]
+name = "TraceIdRatioBased"
+ratio = 1
+parent_based = true

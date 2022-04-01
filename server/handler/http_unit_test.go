@@ -13,13 +13,13 @@ package handler_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -55,7 +55,7 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 	r.DomainConfig = cfg
 	proxyURL, err := r.GetUpstreamURL()
 	assert.NoError(t, err)
-	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
+	r.ProxyDirector(context.Background())(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -93,7 +93,7 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 	r.DomainConfig = cfg
 	proxyURL, err := r.GetUpstreamURL()
 	assert.NoError(t, err)
-	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
+	r.ProxyDirector(context.Background())(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -133,7 +133,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 	r.DomainConfig = cfg
 	proxyURL, err := r.GetUpstreamURL()
 	assert.NoError(t, err)
-	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
+	r.ProxyDirector(context.Background())(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -158,7 +158,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 	r.DomainConfig = cfg
 	proxyURL, err = r.GetUpstreamURL()
 	assert.NoError(t, err)
-	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
+	r.ProxyDirector(context.Background())(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
 	assert.Equal(t, "http", r.Request.Header.Get("X-Forwarded-Proto"))
@@ -198,7 +198,7 @@ func TestXForwardedFor(t *testing.T) {
 	r.DomainConfig = cfg
 	_, err := r.GetUpstreamURL()
 	assert.NoError(t, err)
-	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
+	r.ProxyDirector(context.Background())(&r.Request)
 
 	assert.Equal(t, "https", r.Request.Header.Get("X-Forwarded-Proto"))
 	assert.Equal(t, "192.168.1.1, 127.0.0.1", r.Request.Header.Get("X-Forwarded-For"))

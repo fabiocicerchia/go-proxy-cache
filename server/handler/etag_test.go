@@ -21,8 +21,8 @@ import (
 	"regexp"
 	"testing"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/stretchr/testify/assert"
+	"go.opentelemetry.io/otel"
 
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
@@ -53,9 +53,8 @@ func TestGetResponseWithETagWithHTTP2(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	tracingSpan := opentracing.GlobalTracer().StartSpan("")
-	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+	ctx, tracingSpan := otel.GetTracerProvider().Tracer("").Start(reqMock.Context(), "")
+	defer tracingSpan.End()
 
 	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
@@ -89,9 +88,8 @@ func TestGetResponseWithETagWithExistingETag(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	tracingSpan := opentracing.GlobalTracer().StartSpan("")
-	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+	ctx, tracingSpan := otel.GetTracerProvider().Tracer("").Start(reqMock.Context(), "")
+	defer tracingSpan.End()
 
 	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
@@ -125,9 +123,8 @@ func TestGetResponseWithETagGeneratedInternally(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	tracingSpan := opentracing.GlobalTracer().StartSpan("")
-	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+	ctx, tracingSpan := otel.GetTracerProvider().Tracer("").Start(reqMock.Context(), "")
+	defer tracingSpan.End()
 
 	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
@@ -162,9 +159,8 @@ func TestGetResponseWithETagGeneratedInternallyAndFresh(t *testing.T) {
 		Request:  reqMock,
 	}
 
-	tracingSpan := opentracing.GlobalTracer().StartSpan("")
-	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(reqMock.Context(), tracingSpan)
+	ctx, tracingSpan := otel.GetTracerProvider().Tracer("").Start(reqMock.Context(), "")
+	defer tracingSpan.End()
 
 	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 

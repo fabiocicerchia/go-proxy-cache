@@ -33,7 +33,7 @@ func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
 
 func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_reverse_proxy_ws")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	proxyURL, err := rc.GetUpstreamURL()
 	if err != nil {
@@ -53,7 +53,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector(tracingSpan)
+	gpcDirector := rc.ProxyDirector(ctx)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.

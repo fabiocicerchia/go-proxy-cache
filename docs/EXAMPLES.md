@@ -8,7 +8,7 @@ In the folder `test/full-setup` there is complete working environment in Docker:
 - Redis
 - Nginx (for upstream)
 - NodeJS (for ws/wss server)
-- Jaeger (for OpenTracing)
+- Jaeger (for OpenTelemetry)
 - Prometheus (for pulling metrics)
 - Grafana (for visualising metrics)
 

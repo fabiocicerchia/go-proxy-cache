@@ -44,6 +44,7 @@ jobs:
         options: >-
           --link node
           --link jaeger
+          --health-cmd "echo OK"
         #  -v ${{ github.workspace }}/test/full-setup/nginx:/etc/nginx/conf.d
         #  -v ${{ github.workspace }}/test/full-setup/certs:/certs
     steps:

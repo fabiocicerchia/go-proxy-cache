@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/dnscache"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
@@ -210,7 +209,7 @@ func (rc RequestCall) GetUpstreamHost() string {
 }
 
 // ProxyDirector - Add extra behaviour to request.
-func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Request) {
+func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request) {
 	return func(req *http.Request) {
 		upstreamHost := rc.GetUpstreamHost()
 
@@ -236,6 +235,6 @@ func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Reques
 
 		req.Host = upstreamHost
 
-		_ = tracing.Inject(span, req)
+		tracing.Inject(ctx, req)
 	}
 }
