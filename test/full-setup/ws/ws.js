@@ -5,8 +5,8 @@ const WebSocket = require('ws')
 const { Resource } = require('@opentelemetry/resources');
 const { SemanticResourceAttributes } = require('@opentelemetry/semantic-conventions');
 const { AlwaysOnSampler, W3CTraceContextPropagator } = require("@opentelemetry/core")
-const { WebTracerProvider } = require('@opentelemetry/web');
-const { SimpleSpanProcessor } = require('@opentelemetry/tracing');
+const { WebTracerProvider } = require('@opentelemetry/sdk-trace-web');
+const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
 const api = require('@opentelemetry/api');
 
