@@ -46,6 +46,9 @@ build: ## build
 build-race: ## build-race
 	go build -race -o go-proxy-cache main.go
 
+build-race: ## build-multiarch
+	./bin/build-multiarch.sh
+
 ################################################################################
 ##@ SCA
 ################################################################################
