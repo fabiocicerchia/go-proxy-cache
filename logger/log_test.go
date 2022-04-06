@@ -89,7 +89,7 @@ func TestLogRequest(t *testing.T) {
 		},
 	}
 
-	logger.LogRequest(reqMock, lwrMock.StatusCode, lwrMock.Content.Len(), "TestLogRequest", true, "HIT")
+	logger.LogRequest(reqMock, lwrMock.StatusCode, lwrMock.Content.Len(), "TestLogRequest", 1)
 
 	expectedOut := `time=" " level=info msg="example.org - 127.0.0.1 - - ? ? \"/path/to/file\" 404 7 \"https://www.google.com\" \"GoProxyCache\" true HIT" ReqID=TestLogRequest` + "\n"
 
