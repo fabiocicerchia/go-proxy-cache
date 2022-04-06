@@ -71,8 +71,11 @@ jobs:
           apk update
           apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev openssl python3
 
-      - name: Build
+      - name: Build (race)
         run: make build-race
+
+      - name: Build (multi-arch)
+        run: make build-multiarch
 
       - name: Test
         run: |

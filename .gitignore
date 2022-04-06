@@ -54,3 +54,4 @@ test/full-setup/certs/*/*.pem
 test/full-setup/certs/*/*.srl
 test/full-setup/certs/*/*.csr
 test/full-setup/certs/*/*.key
+dist/
