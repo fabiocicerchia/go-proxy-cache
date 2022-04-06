@@ -25,7 +25,7 @@ COPY . ./
 
 RUN make $BUILD_CMD
 
-FROM alpine:3.15.2
+FROM alpine:latest
 
 WORKDIR /app
 
