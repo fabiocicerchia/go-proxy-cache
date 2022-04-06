@@ -115,7 +115,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 
 ### Security
 
-- **HTTP/2 Support**, HTTP/2 Pusher is achievable only if upstream implements [HTTP header `Link`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link).
+- **HTTP/2 Support**, HTTP/2 Pusher achievable only if upstream implements [HTTP header `Link`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Link). Server Push is deprecated (since not really supported in the browsers).
 - **SSL/TLS Certificates via ACME**, provides automatic generation of SSL/TLS certificates from [Let's Encrypt](https://letsencrypt.org/) and any other ACME-based CA.
 - **Using your own SSL/TLS Certificates**, optional.
 

@@ -79,6 +79,7 @@ func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter
 
 	announcedTrailers := handleHeaders(lwr, res)
 
+	// @deprecated
 	PushProxiedResources(lwr, &uriobj)
 
 	handleBody(lwr.ResponseWriter, uriobj.Content)

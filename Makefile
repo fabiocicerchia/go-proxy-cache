@@ -105,12 +105,9 @@ test-ws: ## test websocket
 	cd test/full-setup/ws && npm install
 	node test/full-setup/ws/ws_client.js
 
+# @DEPRECATED
 test-http2: ## test HTTP2
-	MATCHING=$(shell nghttp -ans https://testing.local:50443/push 2> /dev/null | grep 200 | wc -l | xargs); \
-	if [ "$$MATCHING" != "2" ]; then \
-		nghttp -ans https://testing.local:50443/push \
-		exit 1; \
-	fi
+	nghttp -ans https://testing.local:50443/push
 
 cover:  ## coverage
 	python3 -m http.server &> /dev/null &

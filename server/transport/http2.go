@@ -28,7 +28,7 @@ type LinkItem struct {
 	Params map[string]string
 }
 
-// PushProxiedResources - Start HTTP/2 Push of the resources needed.
+// PushProxiedResources - Start HTTP/2 Push of the resources needed. @deprecated
 func PushProxiedResources(lwr *response.LoggedResponseWriter, uriobj *cache.URIObj) {
 	pusher, ok := lwr.ResponseWriter.(http.Pusher)
 	if !ok {
