@@ -163,13 +163,41 @@ release: ## release
 ################################################################################
 
 docker-push: ## build and push a docker image
-	docker build -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER -f docker/Dockerfile .
-	docker push fabiocicerchia/go-proxy-cache:latest
-	docker push fabiocicerchia/go-proxy-cache:$$VER
+	docker buildx build --push -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER -f docker/Dockerfile .
 
-docker-build-all:
-	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:alpine -f docker/Dockerfile.alpine .
-	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:amazonlinux -f docker/Dockerfile.amazonlinux .
-	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:debian -f docker/Dockerfile.debian .
-	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:fedora -f docker/Dockerfile.fedora .
-	docker buildx build --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:ubuntu -f docker/Dockerfile.ubuntu .
+docker-push-ee: ## build and push a docker EE image
+	docker buildx build --push -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:latest -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:$$VER -f docker/Dockerfile .
+
+docker-push-all: docker-push ## build and push multiple docker images for multiarch
+	docker buildx build --push --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:alpine -f docker/Dockerfile.alpine .
+	docker buildx build --push --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:amazonlinux -f docker/Dockerfile.amazonlinux .
+	docker buildx build --push --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:debian -f docker/Dockerfile.debian .
+	docker buildx build --push --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:fedora -f docker/Dockerfile.fedora .
+	docker buildx build --push --platform=amd64,arm64 -t fabiocicerchia/go-proxy-cache:ubuntu -f docker/Dockerfile.ubuntu .
+
+docker-push-all-ee: ## build and push multiple docker EE images for multiarch
+	PLATFORM=amd64 make docker-push-arch-ee
+	PLATFORM=arm64 make docker-push-arch-ee
+
+docker-push-arch-ee: docker-push-ee ## build and push multiple docker EE images for one platform
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:$$VER-alpine-$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:alpine-$$PLATFORM -f docker/Dockerfile.alpine .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:$$VER-amazonlinux-$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:amazonlinux-$$PLATFORM -f docker/Dockerfile.amazonlinux .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:$$VER-debian-$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:debian-$$PLATFORM -f docker/Dockerfile.debian .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:$$VER-fedora-$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:fedora-$$PLATFORM -f docker/Dockerfile.fedora .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:$$VER-ubuntu-$$PLATFORM -t fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:ubuntu-$$PLATFORM -f docker/Dockerfile.ubuntu .
+
+################################################################################
+##@ HELM
+################################################################################
+
+helm-create-package: ## create an helm package from current chart
+	helm package -d kubernetes/helm/charts kubernetes/helm/
+
+helm-update-repo: ## update index chart repo
+	helm repo index kubernetes/helm/
+
+helm-deploy-chart: ## deploy to jfrog artifactory a new helm chart's package
+	export DEPLOY_FILEPATH=kubernetes/helm/charts/$$DEPLOY_FILE \
+	curl -H 'X-Checksum-Deploy: true' -H "X-Checksum-Sha256: $(shell sha256sum $$DEPLOY_FILEPATH | awk '{print $$1}')" \
+		-H "X-JFrog-Art-Api: $$JFROG_APIKEY" -T $$DEPLOY_FILEPATH \
+		"https://fabiocicerchia.jfrog.io/artifactory/go-proxy-cache-ee-helm/$$DEPLOY_FILE"

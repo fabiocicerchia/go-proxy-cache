@@ -1,0 +1,62 @@
+{{- if .Values.redis.enabled -}}
+---
+{{- if .Values.redis.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.prefix }}-cache-redis
+  labels:
+    meta.service: {{ .Values.prefix }}-redis
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.prefix }}-cache-redis
+  minReplicas: {{ .Values.redis.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.redis.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.redis.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.redis.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.redis.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.redis.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+{{- end }}
+---
+{{- if .Values.goproxycache.autoscaling.enabled }}
+apiVersion: autoscaling/v2beta1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Values.prefix }}-go-proxy-cache
+  labels:
+    meta.service: {{ .Values.prefix }}-go-proxy-cache
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.prefix }}-go-proxy-cache
+  minReplicas: {{ .Values.goproxycache.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.goproxycache.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.goproxycache.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        targetAverageUtilization: {{ .Values.goproxycache.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.goproxycache.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        targetAverageUtilization: {{ .Values.goproxycache.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

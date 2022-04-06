@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    meta.service: go-proxy-cache
+  name: go-proxy-cache
+spec:
+  ports:
+  - name: http
+    port: 50080
+    targetPort: http
+  - name: https
+    port: 50443
+    targetPort: https
+  selector:
+    meta.service: go-proxy-cache

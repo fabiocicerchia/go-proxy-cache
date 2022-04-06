@@ -1,0 +1,180 @@
+{{- if .Values.redis.enabled -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: {{ .Values.prefix }}-redis
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+  name: {{ .Values.prefix }}-cache-redis
+spec:
+  {{- if not .Values.redis.autoscaling.enabled }}
+  replicas: {{ .Values.redis.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      meta.service: {{ .Values.prefix }}-redis
+      {{- include "go-proxy-cache.selectorLabels" . | nindent 6 }}
+  strategy: {}
+  template:
+    metadata:
+      {{- with .Values.redis.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        meta.service: {{ .Values.prefix }}-redis
+        {{- include "go-proxy-cache.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.redis.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "go-proxy-cache.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.redis.podSecurityContext | nindent 8 }}
+      containers:
+        - name: redis
+          image: redis:{{ .Values.redis.image.tag }}
+          securityContext:
+            {{- toYaml .Values.redis.securityContext | nindent 12 }}
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          livenessProbe:
+            tcpSocket:
+              port: redis
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 5
+            successThreshold: 1
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.redis.resources | nindent 12 }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.service.port }}
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/config.yml
+              name: gpc-redis-config
+              readOnly: true
+              subPath: config.yml
+      {{- with .Values.redis.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.redis.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      volumes:
+        - configMap:
+            items:
+              - key: redis.conf
+                path: redis.conf
+            name: {{ .Values.prefix }}-gpc-redis-config
+          name: gpc-redis-config
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: {{ .Values.prefix }}-go-proxy-cache
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+  name: {{ .Values.prefix }}-go-proxy-cache
+spec:
+  {{- if not .Values.goproxycache.autoscaling.enabled }}
+  replicas: {{ .Values.goproxycache.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      meta.service: {{ .Values.prefix }}-go-proxy-cache
+      {{- include "go-proxy-cache.selectorLabels" . | nindent 6 }}
+  strategy: {}
+  template:
+    metadata:
+      {{- with .Values.goproxycache.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        meta.service: {{ .Values.prefix }}-go-proxy-cache
+        {{- include "go-proxy-cache.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.goproxycache.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "go-proxy-cache.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.goproxycache.podSecurityContext | nindent 8 }}
+      containers:
+        - name: go-proxy-cache
+          image: fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:{{ .Values.goproxycache.image.tag }}
+          args:
+            - go-proxy-cache
+          securityContext:
+            {{- toYaml .Values.goproxycache.securityContext | nindent 12 }}
+          imagePullPolicy: {{ .Values.goproxycache.image.pullPolicy }}
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 5
+            failureThreshold: 5
+            successThreshold: 1
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 3
+          resources:
+            {{- toYaml .Values.goproxycache.resources | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.goproxycache.service.httpPort }}
+              protocol: TCP
+            - name: https
+              containerPort: {{ .Values.goproxycache.service.httpsPort }}
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/config.yml
+              name: gpc-config
+              readOnly: true
+              subPath: config.yml
+      {{- with .Values.goproxycache.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.goproxycache.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.goproxycache.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      restartPolicy: Always
+      volumes:
+      - configMap:
+          items:
+          - key: config.yml
+            path: config.yml
+          name: {{ .Values.prefix }}-gpc-config
+        name: gpc-config

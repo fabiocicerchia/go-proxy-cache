@@ -61,3 +61,57 @@ Launch wrk then:
 ```console
 $ lsof -p PID | wc -l
 ```
+
+## Helm
+
+### JFrog Artifactory
+
+```console
+export USERNAME=
+export PASSWORD=
+export JFROG_APIKEY=
+
+# CONFIGURE DOCKER
+echo -n "$JFROG_APIKEY" | docker login fabiocicerchia.jfrog.io --username $USERNAME --password-stdin
+
+# DEPLOY DOCKER
+docker tag <IMAGE_ID> fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/<DOCKER_IMAGE>:<DOCKER_TAG>
+
+# CONFIGURE HELM
+helm repo add go-proxy-cache-ee-helm https://fabiocicerchia.jfrog.io/artifactory/api/helm/go-proxy-cache-ee-helm --username $USERNAME --password $PASSWORD
+
+# DEPLOY HELM
+DEPLOY_FILE=<PATH_TO_FILE> make helm-deploy-chart
+```
+
+### Test chart locally
+
+```console
+helm install --dry-run --debug --create-namespace -n gpc-test gpc-test ./kubernetes/helm/
+```
+
+### Test chart remotely
+
+```console
+helm repo update
+helm repo add go-proxy-cache-ee-helm https://fabiocicerchia.jfrog.io/artifactory/api/helm/go-proxy-cache-ee-helm --username $USERNAME --password $PASSWORD
+helm install --dry-run --debug --create-namespace -n gpc-test gpc-test go-proxy-cache-ee-helm/go-proxy-cache-ee
+```
+
+### Uninstall
+
+```console
+helm uninstall -n gpc-test gpc-test
+```
+
+### Update repo index
+
+```console
+make helm-update-repo
+```
+
+### Package chart
+
+```console
+make helm-create-package
+```
