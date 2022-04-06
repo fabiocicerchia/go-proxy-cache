@@ -74,7 +74,6 @@ func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
 }
 
 // RegisterRequestCacheStatus - Registers extra metrics / traces about the cache status.
-
 func (tc TelemetryContext) RegisterRequestCacheStatus(forceFresh bool, enableCachedResponse bool, cached string) {
 	tc.tracingSpan.
 		SetTag(tracing.TagCacheForcedFresh, forceFresh).

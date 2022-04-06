@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 )
@@ -46,6 +47,6 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	telemetry.From(ctx).RegisterStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {
-		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, false, "-")
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusNA)
 	}
 }

@@ -19,6 +19,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
@@ -26,22 +27,6 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
-
-// CacheStatusHit - Value for HIT.
-const CacheStatusHit = 1
-
-// CacheStatusMiss - Value for MISS.
-const CacheStatusMiss = 0
-
-// CacheStatusStale - Value for STALE.
-const CacheStatusStale = -1
-
-// CacheStatusLabel - Labels used for displaying HIT/MISS based on cache usage.
-var CacheStatusLabel = map[int]string{
-	CacheStatusHit:   "HIT",
-	CacheStatusMiss:  "MISS",
-	CacheStatusStale: "STALE",
-}
 
 const enableStoringResponse = true
 const enableCachedResponse = true
@@ -64,7 +49,7 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.handle_http_request_and_proxy")
 	defer tracingSpan.Finish()
 
-	cached := CacheStatusMiss
+	cached := cache.StatusMiss
 
 	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
 	if forceFresh {
@@ -78,16 +63,16 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 		cached = rc.serveCachedContent(ctx)
 	}
 
-	telemetry.From(ctx).RegisterRequestCacheStatus(forceFresh, enableCachedResponse, CacheStatusLabel[cached])
+	telemetry.From(ctx).RegisterRequestCacheStatus(forceFresh, enableCachedResponse, cache.StatusLabel[cached])
 
-	if cached == CacheStatusMiss {
+	if cached == cache.StatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 		rc.serveReverseProxyHTTP(ctx)
 	}
 
 	if enableLoggingRequest {
 		// HIT and STALE considered the same.
-		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cached != CacheStatusMiss, CacheStatusLabel[cached])
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cached)
 	}
 }
 
@@ -102,12 +87,12 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
 		metrics.IncCacheMiss()
 
-		return CacheStatusMiss
+		return cache.StatusMiss
 	}
 
-	cached := CacheStatusHit
+	cached := cache.StatusHit
 	if uriObj.Stale {
-		cached = CacheStatusStale
+		cached = cache.StatusStale
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderStale)
 	} else {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
@@ -141,7 +126,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	rc.GetLogger().Debugf("Req URL: %s", escapedURL)
 	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
 
-	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, CacheStatusLabel[CacheStatusMiss])
+	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, cache.StatusLabel[cache.StatusMiss])
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
 	proxy.Transport = rc.patchProxyTransport()

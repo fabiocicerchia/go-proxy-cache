@@ -1,4 +1,4 @@
-# Kubernets
+# Kubernetes
 
 ```console
 $ kubectl apply -f test/full-setup/kubernetes/k8s.yml

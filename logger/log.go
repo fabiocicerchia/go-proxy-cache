@@ -25,6 +25,7 @@ import (
 	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
@@ -85,7 +86,10 @@ func Log(req http.Request, reqID string, message string) {
 }
 
 // LogRequest - Logs the requested URL.
-func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, cached bool, cachedLabel string) {
+func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, cacheLabel int) {
+	cached := cacheLabel != cache.StatusMiss
+	cachedLabel := cache.StatusLabel[cacheLabel]
+
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
 	logLine := config.Config.Log.Format
