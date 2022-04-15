@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/xid"
@@ -78,9 +79,10 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 func NewRequestCall(res http.ResponseWriter, req *http.Request) RequestCall {
 	reqID := xid.New().String()
 	return RequestCall{
-		ReqID:    reqID,
-		Response: response.NewLoggedResponseWriter(res, reqID),
-		Request:  *req,
+		ReqID:       reqID,
+		RequestTime: time.Now(),
+		Response:    response.NewLoggedResponseWriter(res, reqID),
+		Request:     *req,
 	}
 }
 

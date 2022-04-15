@@ -7,113 +7,140 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+
 var (
 	statusCodes = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_status_codes_total",
-			Help: "Distribution by status codes",
+			Namespace: "gpc",
+			Name:      "status_codes_total",
+			Help:      "Distribution by status codes",
 		},
-		[]string{"hostname", "env", "code"},
+		[]string{"env", "hostname", "code"},
 	)
 	requestHost = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_host_total",
-			Help: "Distribution by Request Host",
+			Namespace: "gpc",
+			Name:      "request_host_total",
+			Help:      "Distribution by Request Host",
 		},
-		[]string{"hostname", "env", "host"},
+		[]string{"env", "hostname", "host"},
 	)
 	httpMethods = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_http_methods_total",
-			Help: "Distribution by HTTP methods",
+			Namespace: "gpc",
+			Name:      "http_methods_total",
+			Help:      "Distribution by HTTP methods",
 		},
-		[]string{"hostname", "env", "method"},
+		[]string{"env", "hostname", "method"},
 	)
 	urlScheme = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_url_scheme_total",
-			Help: "Distribution by URL scheme",
+			Namespace: "gpc",
+			Name:      "url_scheme_total",
+			Help:      "Distribution by URL scheme",
 		},
-		[]string{"hostname", "env", "scheme"},
+		[]string{"env", "hostname", "scheme"},
 	)
 	requestSum = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_sum_total",
-			Help: "Total number of sent requests",
+			Namespace: "gpc",
+			Name:      "request_sum_total",
+			Help:      "Total number of sent requests",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	request1xx = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_1xx_total",
-			Help: "Total number of sent 1xx requests",
+			Namespace: "gpc",
+			Name:      "request_1xx_total",
+			Help:      "Total number of sent 1xx requests",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	request2xx = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_2xx_total",
-			Help: "Total number of sent 2xx requests",
+			Namespace: "gpc",
+			Name:      "request_2xx_total",
+			Help:      "Total number of sent 2xx requests",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	request3xx = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_3xx_total",
-			Help: "Total number of sent 3xx requests",
+			Namespace: "gpc",
+			Name:      "request_3xx_total",
+			Help:      "Total number of sent 3xx requests",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	request4xx = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_4xx_total",
-			Help: "Total number of sent 4xx requests",
+			Namespace: "gpc",
+			Name:      "request_4xx_total",
+			Help:      "Total number of sent 4xx requests",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	request5xx = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_request_5xx_total",
-			Help: "Total number of sent 5xx requests",
+			Namespace: "gpc",
+			Name:      "request_5xx_total",
+			Help:      "Total number of sent 5xx requests",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	hostHealthy = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gpc_host_healthy",
-			Help: "Health state of hosts",
+			Namespace: "gpc",
+			Name:      "host_healthy",
+			Help:      "Health state of hosts",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	hostUnhealthy = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "gpc_host_unhealthy",
-			Help: "Health state of hosts",
+			Namespace: "gpc",
+			Name:      "host_unhealthy",
+			Help:      "Health state of hosts",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	cacheHit = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_cache_hits_total",
-			Help: "The amount of cache hits",
+			Namespace: "gpc",
+			Name:      "cache_hits_total",
+			Help:      "The amount of cache hits",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	cacheMiss = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_cache_miss_total",
-			Help: "The amount of cache misses",
+			Namespace: "gpc",
+			Name:      "cache_miss_total",
+			Help:      "The amount of cache misses",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 	cacheStale = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "gpc_cache_stale_total",
-			Help: "The amount of cache misses",
+			Namespace: "gpc",
+			Name:      "cache_stale_total",
+			Help:      "The amount of cache misses",
 		},
-		[]string{"hostname", "env"},
+		[]string{"env", "hostname"},
 	)
 )
+
+// Register - Add custom metric to prometheus.
+func Register() {
+	prometheus.MustRegister(
+		statusCodes, requestSum,
+		requestHost, httpMethods, urlScheme,
+		request1xx, request2xx, request3xx, request4xx, request5xx,
+		hostHealthy, hostUnhealthy,
+		cacheHit, cacheMiss, cacheStale,
+	)
+}
 
 // IncRequestHost - Increments metrics for gpc_request_host_total.
 func IncRequestHost(host string) {
@@ -236,13 +263,3 @@ func SetHostUnhealthy(val float64) {
 	hostUnhealthy.With(labels).Set(val)
 }
 
-// Register - Add custom metric to prometheus.
-func Register() {
-	prometheus.MustRegister(
-		statusCodes, requestSum,
-		requestHost, httpMethods, urlScheme,
-		request1xx, request2xx, request3xx, request4xx, request5xx,
-		hostHealthy, hostUnhealthy,
-		cacheHit, cacheMiss, cacheStale,
-	)
-}

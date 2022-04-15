@@ -195,12 +195,19 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 	}, nil
 }
 
+// GetUpstreamHost - Retrieve the real upstream host
+func (rc RequestCall) GetUpstreamHost() string {
+	upstream := rc.DomainConfig.Server.Upstream
+	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
+	host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
+
+	return host
+}
+
 // ProxyDirector - Add extra behaviour to request.
 func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Request) {
 	return func(req *http.Request) {
-		upstream := rc.DomainConfig.Server.Upstream
-		overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
-		host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
+		upstreamHost := rc.GetUpstreamHost()
 
 		// The value of r.URL.Host and r.Host are almost always different. On a
 		// proxy server, r.URL.Host is the host of the target server and r.Host is
@@ -222,7 +229,7 @@ func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Reques
 
 		req.Header.Set("X-Forwarded-For", xForwardedFor)
 
-		req.Host = host
+		req.Host = upstreamHost
 
 		_ = tracing.Inject(span, req)
 	}

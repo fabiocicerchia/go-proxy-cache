@@ -45,14 +45,10 @@ func (tc TelemetryContext) RegisterEventWithData(name string, data map[string]st
 
 // RegisterRequest - Sends metrics / traces about an incoming HTTP request event.
 func (tc TelemetryContext) RegisterRequest(req http.Request) {
-	metrics.IncRequestHost(req.Host)
-
 	tc.tracingSpan.
 		SetTag(tracing.TagRequestHost, req.Host).
 		SetTag(tracing.TagRequestUrl, req.URL.String()).
 		SetTag(tracing.TagRequestMethod, req.Method)
-
-	metrics.IncHttpMethod(req.Method)
 }
 
 // RegisterRequestCall - Sends extra metrics / traces about an incoming HTTP request event.
@@ -71,6 +67,12 @@ func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
 	tc.tracingSpan.
 		SetTag(tracing.TagResponseStatusCode, statusCode)
 	metrics.IncStatusCode(statusCode)
+}
+
+// RegisterWholeResponse - Registers the whole response.
+func (tc TelemetryContext) RegisterWholeResponse(reqID string, req http.Request, statusCode int, contentLength int, scheme string, cached bool, stale bool) {
+	tc.RegisterCacheStaleOrHit(stale)
+	tc.RegisterStatusCode(statusCode)
 }
 
 // RegisterRequestCacheStatus - Registers extra metrics / traces about the cache status.

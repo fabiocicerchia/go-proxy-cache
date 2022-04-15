@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/yhat/wsutil"
@@ -39,6 +40,7 @@ var SchemeWSS string = "wss"
 // RequestCall - Main object containing request and response.
 type RequestCall struct {
 	ReqID        string
+	RequestTime  time.Time
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration

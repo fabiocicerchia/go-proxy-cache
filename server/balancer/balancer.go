@@ -71,7 +71,7 @@ func InitRoundRobin(name string, config config.Upstream, enableHealthchecks bool
 	lb[name] = NewRoundRobinBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(&lb[name].(*RoundRobinBalancer).NodeBalancer, config.HealthCheck)
+		CheckHealth(&lb[name].(*RoundRobinBalancer).NodeBalancer, config.Host, config.HealthCheck)
 	}
 }
 
@@ -83,7 +83,7 @@ func InitRandom(name string, config config.Upstream, enableHealthchecks bool) {
 	lb[name] = NewRandomBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(&lb[name].(*RandomBalancer).NodeBalancer, config.HealthCheck)
+		CheckHealth(&lb[name].(*RandomBalancer).NodeBalancer, config.Host, config.HealthCheck)
 	}
 }
 
@@ -95,7 +95,7 @@ func InitLeastConnection(name string, config config.Upstream, enableHealthchecks
 	lb[name] = NewLeastConnectionsBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(&lb[name].(*LeastConnectionsBalancer).NodeBalancer, config.HealthCheck)
+		CheckHealth(&lb[name].(*LeastConnectionsBalancer).NodeBalancer, config.Host, config.HealthCheck)
 	}
 }
 
@@ -107,7 +107,7 @@ func InitIpHash(name string, config config.Upstream, enableHealthchecks bool) {
 	lb[name] = NewIpHashBalancer(name, items)
 
 	if enableHealthchecks {
-		CheckHealth(&lb[name].(*IpHashBalancer).NodeBalancer, config.HealthCheck)
+		CheckHealth(&lb[name].(*IpHashBalancer).NodeBalancer, config.Host, config.HealthCheck)
 	}
 }
 
@@ -129,7 +129,7 @@ func GetUpstreamNode(name string, requestURL url.URL, defaultHost string) string
 }
 
 // CheckHealth - Periodic check on nodes status.
-func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
+func CheckHealth(b *NodeBalancer, host string, config config.HealthCheck) {
 	period := config.Interval
 	if period == 0 {
 		period = HealthCheckInterval
@@ -144,7 +144,7 @@ func CheckHealth(b *NodeBalancer, config config.HealthCheck) {
 			healthyCounter := 0
 			unhealthyCounter := 0
 			for k, v := range b.Items {
-				DoHealthCheck(&v, config)
+				DoHealthCheck(&v, host, config)
 
 				if v.Healthy {
 					healthyCounter++
@@ -186,7 +186,7 @@ func getClient(timeout time.Duration, tlsFlag bool, allowInsecure bool) *http.Cl
 	return c
 }
 
-func DoHealthCheck(v *Item, config config.HealthCheck) {
+func DoHealthCheck(v *Item, host string, config config.HealthCheck) {
 	url, _ := url.Parse(v.Endpoint)
 	scheme := url.Scheme
 	if scheme == "" || (scheme != "http" && scheme != "https") {
@@ -213,7 +213,7 @@ func DoHealthCheck(v *Item, config config.HealthCheck) {
 
 	req, err := http.NewRequest("HEAD", endpointURL, nil)
 	if err != nil {
-		logger.GetGlobal().Errorf("Healthcheck request failed for %s: %s", endpointURL, err) // TODO: Add to trace span?
+		logger.GetGlobal().Errorf("Healthcheck request failed for %s / %s: %s", host, endpointURL, err) // TODO: Add to trace span?
 		return
 	}
 	res, err := getClient(config.Timeout, scheme == "https", config.AllowInsecure).Do(req)

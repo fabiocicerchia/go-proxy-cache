@@ -98,8 +98,7 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 	}
 
-	telemetry.From(ctx).RegisterCacheStaleOrHit(uriObj.Stale)
-	telemetry.From(ctx).RegisterStatusCode(rc.Response.StatusCode)
+	telemetry.From(ctx).RegisterWholeResponse(rc.ReqID, rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.GetScheme(), cached == cache.StatusHit, uriObj.Stale)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
