@@ -130,6 +130,8 @@ services:
     image: grafana/grafana:9.3.8-ubuntu
     ports:
       - "3001:3000" # Grafana
+    volumes:
+      - ../../grafana/provisioning:/etc/grafana/provisioning
 
   # LOGS - SYSLOG
   ##############################################################################

@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 	"strings"
 	"time"
 
@@ -98,7 +99,7 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 	}
 
-	telemetry.From(ctx).RegisterWholeResponse(rc.ReqID, rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.GetScheme(), cached == cache.StatusHit, uriObj.Stale)
+	telemetry.From(ctx).RegisterWholeResponse(rc.ReqID, rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.RequestTime, rc.GetScheme(), cached == cache.StatusHit, uriObj.Stale)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
@@ -150,6 +151,11 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 
 	rc.SendResponse(ctx)
 	rc.storeResponse(ctx)
+
+	metrics.IncUpstreamServerResponses(rc.Response.StatusCode, rc.GetHostname(), rc.GetUpstreamHost())
+	len, _ := strconv.ParseFloat(rc.Response.Header().Get("Content-Length"), 64)
+	metrics.IncUpstreamServerSent(rc.GetHostname(), rc.GetUpstreamHost(), len)
+	metrics.IncUpstreamServerResponseTime(rc.GetHostname(), rc.GetUpstreamHost(), float64(time.Since(rc.RequestTime).Milliseconds()))
 }
 
 func (rc RequestCall) storeResponse(ctx context.Context) {

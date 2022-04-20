@@ -21,6 +21,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -221,11 +222,15 @@ func DoHealthCheck(v *Item, host string, config config.HealthCheck) {
 	v.Healthy = err == nil
 	if err != nil {
 		logger.GetGlobal().Errorf("Healthcheck failed for %s: %s", endpointURL, err) // TODO: Add to trace span?
+		metrics.SetUpstreamServerHealthChecksFails(host, hostWithPort)
 	} else {
 		v.Healthy = slice.ContainsString(config.StatusCodes, strconv.Itoa(res.StatusCode))
 
 		if !v.Healthy {
 			logger.GetGlobal().Errorf("Endpoint %s is not healthy (%d).", endpointURL, res.StatusCode) // TODO: Add to trace span?
+			metrics.SetUpstreamServerHealthChecksUnhealthy(host, hostWithPort)
+		} else {
+			metrics.SetUpstreamServerHealthChecksHealthy(host, hostWithPort)
 		}
 	}
 }

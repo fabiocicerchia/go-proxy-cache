@@ -44,7 +44,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
+	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.Request, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {

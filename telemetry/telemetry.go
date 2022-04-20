@@ -5,6 +5,7 @@ import (
 	"hash"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-http-utils/headers"
 	"go.opentelemetry.io/otel/attribute"
@@ -52,12 +53,10 @@ func (tc TelemetryContext) RegisterRequest(req http.Request) {
 		SetAttributes(attribute.Key(tracing.TagRequestUrl).String(req.URL.String()))
 	tc.tracingSpan.
 		SetAttributes(attribute.Key(tracing.TagRequestMethod).String(req.Method))
-
-	metrics.IncHttpMethod(req.Method)
 }
 
 // RegisterRequestCall - Sends extra metrics / traces about an incoming HTTP request event.
-func (tc TelemetryContext) RegisterRequestCall(reqID string, reqURL url.URL, scheme string, webSocket bool) {
+func (tc TelemetryContext) RegisterRequestCall(reqID string, req http.Request, reqURL url.URL, scheme string, webSocket bool) {
 	tc.tracingSpan.
 		SetAttributes(attribute.Key(tracing.TagRequestId).String(reqID))
 	tc.tracingSpan.
@@ -67,7 +66,7 @@ func (tc TelemetryContext) RegisterRequestCall(reqID string, reqURL url.URL, sch
 	tc.tracingSpan.
 		SetAttributes(attribute.Key(tracing.TagRequestWebsocket).Bool(webSocket))
 
-	metrics.IncUrlScheme(scheme)
+	metrics.IncWholeRequest(reqID, req, scheme)
 }
 
 // RegisterStatusCode - Registers the response status code.
@@ -78,9 +77,12 @@ func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
 }
 
 // RegisterWholeResponse - Registers the whole response.
-func (tc TelemetryContext) RegisterWholeResponse(reqID string, req http.Request, statusCode int, contentLength int, scheme string, cached bool, stale bool) {
+func (tc TelemetryContext) RegisterWholeResponse(reqID string, req http.Request, statusCode int, contentLength int, requestStartTime time.Time, scheme string, cached bool, stale bool) {
 	tc.RegisterCacheStaleOrHit(stale)
 	tc.RegisterStatusCode(statusCode)
+
+	duration := time.Since(requestStartTime).Milliseconds()
+	metrics.IncWholeResponse(reqID, req, statusCode, contentLength, duration, scheme, cached, stale)
 }
 
 // RegisterRequestCacheStatus - Registers extra metrics / traces about the cache status.

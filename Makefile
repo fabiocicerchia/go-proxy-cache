@@ -153,6 +153,7 @@ changelog: .install-changelog ## generate a changelog
 
 release: ## release
 	cat main.go | sed "s/const AppVersion = .*/const AppVersion = \"$$VER\"/" | tee main.go
+	cat main.go | sed "s/const GitCommit = .*/const GitCommit = \"$(shell git rev-parse --short HEAD)\"/" | tee main.go
 	make changelog
 	git add CHANGELOG.md
 	git commit -m "updated changelog for v$$VER"

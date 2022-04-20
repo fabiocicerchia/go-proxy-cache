@@ -17,6 +17,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
 
@@ -57,8 +58,10 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		telemetry.From(ctx).RegisterStatusCode(statusCode)
 
 		if redisOK {
+			metrics.SetUp(1)
 			_ = lwr.WriteBody("REDIS OK\n")
 		} else {
+			metrics.SetUp(0)
 			_ = lwr.WriteBody("REDIS KO\n")
 		}
 	}

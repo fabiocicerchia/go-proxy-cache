@@ -11,6 +11,7 @@ package handler
 
 import (
 	"context"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -75,6 +76,42 @@ func (rc RequestCall) GetRequestURL() url.URL {
 	url.Host = rc.GetHostname()
 
 	return url
+}
+
+func (rc RequestCall) getRequestHeaderLength() int64 {
+	size := 0
+
+	for k, v := range rc.Request.Header {
+		size += len(k)
+		for _, v1 := range v {
+			size += len(v1)
+		}
+	}
+
+	return int64(size)
+}
+
+// GetRequestLength - Return the size of the request
+func (rc RequestCall) GetRequestLength() int64 {
+	headerLength := rc.getRequestHeaderLength()
+
+	if rc.Request.ContentLength > 0 {
+		return rc.Request.ContentLength + headerLength
+	}
+
+	getBody := rc.Request.GetBody
+
+	if getBody != nil {
+		reader, err := getBody()
+		if err == nil {
+			body, err := ioutil.ReadAll(reader)
+			if err == nil {
+				return int64(len(body)) + headerLength
+			}
+		}
+	}
+
+	return headerLength
 }
 
 // GetHostname - Returns only the hostname (without port if present).

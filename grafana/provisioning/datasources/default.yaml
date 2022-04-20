@@ -1,0 +1,9 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    timeInterval: 30s
+    uid: gpcPromDSID
+    url: http://prometheus:9090
+    isDefault: true

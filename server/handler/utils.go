@@ -27,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
@@ -212,6 +213,9 @@ func (rc RequestCall) GetUpstreamHost() string {
 func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request) {
 	return func(req *http.Request) {
 		upstreamHost := rc.GetUpstreamHost()
+
+		metrics.IncUpstreamServerRequests(rc.GetHostname(), upstreamHost)
+		metrics.IncUpstreamServerReceived(rc.GetHostname(), upstreamHost, float64(rc.GetRequestLength()))
 
 		// The value of r.URL.Host and r.Host are almost always different. On a
 		// proxy server, r.URL.Host is the host of the target server and r.Host is
