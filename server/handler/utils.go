@@ -12,6 +12,7 @@ package handler
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -153,6 +154,10 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 	hostname := upstream.Host + overridePort
 
 	balancedEndpoint := balancer.GetUpstreamNode(upstream.GetDomainID(), rc.GetRequestURL(), hostname)
+	if !strings.Contains(balancedEndpoint, "://") {
+		// Ref: https://github.com/golang/go/issues/19297#issuecomment-282651469
+		balancedEndpoint = fmt.Sprintf("//%s", balancedEndpoint)
+	}
 	balancedURL, err := url.Parse(balancedEndpoint)
 	if err != nil {
 		return url.URL{}, err

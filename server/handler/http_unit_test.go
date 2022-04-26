@@ -53,7 +53,8 @@ func TestProxyCallOneItemInLB(t *testing.T) {
 
 	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
 	r.DomainConfig = cfg
-	proxyURL, _ := r.GetUpstreamURL()
+	proxyURL, err := r.GetUpstreamURL()
+	assert.NoError(t, err)
 	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -90,7 +91,8 @@ func TestProxyCallOneItemWithPortInLB(t *testing.T) {
 
 	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
 	r.DomainConfig = cfg
-	proxyURL, _ := r.GetUpstreamURL()
+	proxyURL, err := r.GetUpstreamURL()
+	assert.NoError(t, err)
 	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -129,7 +131,8 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 
 	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
 	r.DomainConfig = cfg
-	proxyURL, _ := r.GetUpstreamURL()
+	proxyURL, err := r.GetUpstreamURL()
+	assert.NoError(t, err)
 	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -153,7 +156,8 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 
 	r = handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
 	r.DomainConfig = cfg
-	proxyURL, _ = r.GetUpstreamURL()
+	proxyURL, err := r.GetUpstreamURL()
+	assert.NoError(t, err)
 	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "localhost", r.Request.Header.Get("X-Forwarded-Host"))
@@ -192,7 +196,8 @@ func TestXForwardedFor(t *testing.T) {
 
 	r := handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
 	r.DomainConfig = cfg
-	_, _ = r.GetUpstreamURL()
+	_, err := r.GetUpstreamURL()
+	assert.NoError(t, err)
 	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 
 	assert.Equal(t, "https", r.Request.Header.Get("X-Forwarded-Proto"))
