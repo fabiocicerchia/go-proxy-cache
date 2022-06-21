@@ -86,7 +86,7 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 	uriObj, err := storage.RetrieveCachedContent(ctx, rcDTO, rc.GetLogger())
 	if err != nil {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
-		metrics.IncCacheMiss()
+		metrics.IncCacheMiss(rc.GetHostname())
 
 		return cache.StatusMiss
 	}

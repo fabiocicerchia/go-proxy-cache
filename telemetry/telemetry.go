@@ -78,7 +78,7 @@ func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
 
 // RegisterWholeResponse - Registers the whole response.
 func (tc TelemetryContext) RegisterWholeResponse(reqID string, req http.Request, statusCode int, contentLength int, requestStartTime time.Time, scheme string, cached bool, stale bool) {
-	tc.RegisterCacheStaleOrHit(stale)
+	tc.RegisterCacheStaleOrHit(req.Host, stale)
 	tc.RegisterStatusCode(statusCode)
 
 	duration := time.Since(requestStartTime).Milliseconds()
@@ -98,11 +98,11 @@ func (tc TelemetryContext) RegisterRequestCacheStatus(forceFresh bool, enableCac
 }
 
 // RegisterCacheStaleOrHit - Registers metrics / traces about the cache status.
-func (tc TelemetryContext) RegisterCacheStaleOrHit(stale bool) {
+func (tc TelemetryContext) RegisterCacheStaleOrHit(server string, stale bool) {
 	if stale {
-		metrics.IncCacheStale()
+		metrics.IncCacheStale(server)
 	} else {
-		metrics.IncCacheHit()
+		metrics.IncCacheHit(server)
 	}
 
 	tc.tracingSpan.

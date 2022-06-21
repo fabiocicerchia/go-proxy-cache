@@ -112,7 +112,7 @@ var (
 			Name:      "cache_hits_total",
 			Help:      "The amount of cache hits",
 		},
-		[]string{"env", "hostname"},
+		[]string{"env", "hostname", "server"},
 	)
 	cacheMiss = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -120,7 +120,7 @@ var (
 			Name:      "cache_miss_total",
 			Help:      "The amount of cache misses",
 		},
-		[]string{"env", "hostname"},
+		[]string{"env", "hostname", "server"},
 	)
 	cacheStale = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -128,7 +128,7 @@ var (
 			Name:      "cache_stale_total",
 			Help:      "The amount of cache misses",
 		},
-		[]string{"env", "hostname"},
+		[]string{"env", "hostname", "server"},
 	)
 
 	// EE Metrics --------------------------------------------------------------
@@ -337,33 +337,36 @@ func IncStatusCode(code int) {
 }
 
 // IncCacheMiss - Increments metrics for gpc_cache_miss_total.
-func IncCacheMiss() {
+func IncCacheMiss(server string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
 		"env":      os.Getenv("TRACING_ENV"),
+		"server":   server,
 	}
 
 	cacheMiss.With(labels).Inc()
 }
 
 // IncCacheStale - Increments metrics for gpc_cache_stale_total.
-func IncCacheStale() {
+func IncCacheStale(server string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
 		"env":      os.Getenv("TRACING_ENV"),
+		"server":   server,
 	}
 
 	cacheStale.With(labels).Inc()
 }
 
 // IncCacheHit - Increments metrics for gpc_cache_hits_total.
-func IncCacheHit() {
+func IncCacheHit(server string) {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
 		"env":      os.Getenv("TRACING_ENV"),
+		"server":   server,
 	}
 
 	cacheHit.With(labels).Inc()
