@@ -49,7 +49,7 @@ func TestHTTP2ClientCall(t *testing.T) {
 
 	res.Body.Close()
 
-	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
+	assert.NotEqual(t, "", res.Header.Get("X-Go-Proxy-Cache-Status"))
 
 	assert.Equal(t, "HTTP/2.0", res.Proto)
 	assert.Equal(t, 2, res.ProtoMajor)

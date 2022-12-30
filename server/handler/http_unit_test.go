@@ -156,7 +156,7 @@ func TestProxyCallThreeItemsInLB(t *testing.T) {
 
 	r = handler.NewRequestCall(httptest.NewRecorder(), &reqMock)
 	r.DomainConfig = cfg
-	proxyURL, err := r.GetUpstreamURL()
+	proxyURL, err = r.GetUpstreamURL()
 	assert.NoError(t, err)
 	r.ProxyDirector(opentracing.GlobalTracer().StartSpan(""))(&r.Request)
 

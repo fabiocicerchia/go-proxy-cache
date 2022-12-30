@@ -13,6 +13,7 @@ package test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -20,12 +21,21 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/http2"
 )
 
 func TestETagValidResponse(t *testing.T) {
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: &http2.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+			DisableCompression: true,
+			AllowHTTP:          false,
+		},
+	}
 
-	req, err := http.NewRequest("GET", "http://user:pass@testing.local:50080/", nil)
+	req, err := http.NewRequest("GET", "https://user:pass@testing.local:50443/", nil)
 	// Need to fetch fresh content to verify the ETag.
 	req.Header = http.Header{
 		"X-Go-Proxy-Cache-Force-Fresh": []string{"1"},
@@ -46,11 +56,11 @@ func TestETagValidResponse(t *testing.T) {
 
 	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
 	// this is the real ETag from w3.org
-	assert.Regexp(t, regexp.MustCompile(`^\"[0-9a-f]{4}-[0-9a-f]{13};[0-9a-f]{2}-[0-9a-f]{13}-gzip\"$`), res.Header.Get("ETag"))
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9a-f]{4}-[0-9a-f]{13};[0-9a-f]{2}-[0-9a-f]{13}$`), res.Header.Get("ETag"))
 
-	assert.Equal(t, "HTTP/1.1", res.Proto)
-	assert.Equal(t, 1, res.ProtoMajor)
-	assert.Equal(t, 1, res.ProtoMinor)
+	assert.Equal(t, "HTTP/2.0", res.Proto)
+	assert.Equal(t, 2, res.ProtoMajor)
+	assert.Equal(t, 0, res.ProtoMinor)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")

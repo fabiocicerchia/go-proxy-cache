@@ -11,10 +11,12 @@
 ```console
 $ docker build -t fabiocicerchia/go-proxy-cache-test:nginx -f test/full-setup/docker/Dockerfile.nginx test/full-setup
 $ docker build -t fabiocicerchia/go-proxy-cache-test:node -f test/full-setup/docker/Dockerfile.node test/full-setup
-$ echo "127.0.0.1 testing.local www.testing.local" >> /etc/hosts
+$ echo "127.0.0.1 testing.local www.testing.local" | sudo tee -a /etc/hosts
 $ cd test/full-setup
+$ cd certs
 $ ./gen-selfsigned-cert.sh
 $ ./gen-selfsigned-cert.sh www.w3.org
+$ cd ..
 $ docker-compose up
 ```
 

@@ -73,6 +73,12 @@ func (c Object) IsStatusAllowed() bool {
 	return slice.ContainsInt(c.AllowedStatuses, c.CurrentURIObject.StatusCode)
 }
 
+// IsEmptyBodyAllowed - Checks if an empty body is allowed to be cached.
+func (c Object) IsEmptyBodyAllowed() bool {
+	isRedirect := c.CurrentURIObject.StatusCode == http.StatusMovedPermanently || c.CurrentURIObject.StatusCode == http.StatusFound
+	return isRedirect && slice.LenSliceBytes(c.CurrentURIObject.Content) == 0
+}
+
 // IsMethodAllowed - Checks if a HTTP method is allowed to be cached.
 func (c Object) IsMethodAllowed() bool {
 	return slice.ContainsString(c.AllowedMethods, c.CurrentURIObject.Method)
@@ -111,6 +117,8 @@ func (u URIObj) GetHeadersChecksum(meta []string) string {
 
 // IsValid - Verifies the validity of a cacheable object.
 func (c Object) IsValid() (bool, error) {
+	// TODO: fix this, it'll prevent a 301/302 to be cached since it doesn't have any body.
+	// if !c.IsStatusAllowed() && !c.IsEmptyBodyAllowed() {
 	if !c.IsStatusAllowed() || slice.LenSliceBytes(c.CurrentURIObject.Content) == 0 {
 		return false, errors.Wrapf(errNotAllowed,
 			"status %d - content length %d",

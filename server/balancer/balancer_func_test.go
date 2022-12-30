@@ -34,7 +34,7 @@ func TestHealthCheckWithCustomPort(t *testing.T) {
 		Port: "8000",
 		StatusCodes: []string{"200"},
 	}
-	balancer.DoHealthCheck(v, conf)
+	balancer.DoHealthCheck(v, "localhost", conf)
 
 	assert.True(t, v.Healthy)
 
