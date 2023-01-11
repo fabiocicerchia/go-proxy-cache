@@ -6,7 +6,7 @@ package main
 // |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
 // |_____|            |__|                   |_____|
 //
-// Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Copyright (c) 2023 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
@@ -77,7 +77,7 @@ func printBanner() {
 	log.Debugf("|  _  |  _  |______|  _  |   _|  _  |_   _|  |  |______|  __|  _  |  __|     |  -__|")
 	log.Debugf("|___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|")
 	log.Debugf("|_____|            |__|                   |_____|\n\n")
-	log.Debugf("Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License")
+	log.Debugf("Copyright (c) 2023 Fabio Cicerchia. https://fabiocicerchia.it. MIT License")
 	log.Debugf("Repo: https://github.com/fabiocicerchia/go-proxy-cache\n\n")
 }
 

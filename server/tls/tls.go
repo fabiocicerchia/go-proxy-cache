@@ -6,7 +6,7 @@ package tls
 // |___  |_____|      |   __|__| |_____|__.__|___  |      |____|___._|____|__|__|_____|
 // |_____|            |__|                   |_____|
 //
-// Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
+// Copyright (c) 2023 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (

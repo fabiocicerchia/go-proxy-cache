@@ -9,7 +9,7 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 
 [![MIT License](https://img.shields.io/badge/License-MIT-brightgreen.svg?longCache=true)](LICENSE)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
-![Maintenance](https://img.shields.io/maintenance/yes/2021)
+![Maintenance](https://img.shields.io/maintenance/yes/2023)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
   
 ![Last Commit](https://img.shields.io/github/last-commit/fabiocicerchia/go-proxy-cache)
@@ -260,7 +260,7 @@ OpenSSL Toolkit. ([http://www.openssl.org/](http://www.openssl.org/))
 
 MIT License
 
-Copyright (c) 2022 Fabio Cicerchia <info@fabiocicerchia.it>
+Copyright (c) 2023 Fabio Cicerchia <info@fabiocicerchia.it>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
