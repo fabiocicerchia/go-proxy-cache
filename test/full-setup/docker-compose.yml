@@ -64,9 +64,6 @@ services:
         condition: service_healthy
     volumes:
       - ./nginx/otel-nginx.toml:/conf/otel-nginx.toml
-      # Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx#usage
-      # Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/actions/runs/2043949860
-      - ./nginx/otel_ngx_module.so:/etc/nginx/otel_ngx_module.so
       - ./nginx/conf.d/vhost.conf:/etc/nginx/conf.d/vhost.conf
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
@@ -98,9 +95,20 @@ services:
   # TRACING - COLLECTOR
   ##############################################################################
   collector:
+    # TODO: the 0.69.0 is not working with nginx configuration (need to find the correct otel_ngx_module.so)
+    # image: otel/opentelemetry-collector:0.69.0
     image: otel/opentelemetry-collector:0.35.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
     volumes:
-      - ./collector/collector.yml:/etc/otel/config.yaml
+      - ./collector/collector.yml:/etc/otel-collector-config.yaml
+    ports:
+      - "1888:1888"   # pprof extension
+      - "8888:8888"   # Prometheus metrics exposed by the collector
+      - "8889:8889"   # Prometheus exporter metrics
+      - "13133:13133" # health_check extension
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP http receiver
+      - "55679:55679" # zpages extension
 
   # TRACING - JAEGER
   ##############################################################################

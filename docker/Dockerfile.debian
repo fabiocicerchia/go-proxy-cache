@@ -7,7 +7,7 @@
 # Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-FROM golang:1.18.0-bullseye AS builder
+FROM golang:1.19.5-bullseye AS builder
 
 ARG BUILD_CMD=build
 
@@ -19,7 +19,7 @@ COPY . ./
 
 RUN make $BUILD_CMD
 
-FROM debian:bullseye-20220328-slim
+FROM debian:bullseye-20230109-slim
 
 WORKDIR /app
 

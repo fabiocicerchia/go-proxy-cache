@@ -1,17 +1,19 @@
+# https://opentelemetry.io/docs/collector/configuration/
 receivers:
   otlp:
     protocols:
       grpc:
-
-exporters:
-  logging:
-    logLevel: debug
-  jaeger:
-    endpoint: jaeger:14250
-    insecure: true
+      http:
 
 processors:
   batch:
+
+exporters:
+  logging:
+    loglevel: debug
+  jaeger:
+    endpoint: jaeger:14250
+    insecure: true
 
 service:
   pipelines:
