@@ -180,7 +180,7 @@ func getClient(timeout time.Duration, tlsFlag bool, allowInsecure bool) *http.Cl
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: allowInsecure,
 			},
-		}
+		} //#nosec G402
 	}
 
 	return c

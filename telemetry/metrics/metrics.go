@@ -7,7 +7,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-
 var (
 	statusCodes = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -262,4 +261,3 @@ func SetHostUnhealthy(val float64) {
 
 	hostUnhealthy.With(labels).Set(val)
 }
-

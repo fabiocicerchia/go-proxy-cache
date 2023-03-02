@@ -13,7 +13,7 @@ package response
 const CacheStatusHeader = "X-Go-Proxy-Cache-Status"
 
 // CacheBypassHeader - HTTP Header for showing cache status.
-const CacheBypassHeader = "X-Go-Proxy-Cache-Force-Fresh"
+const CacheBypassHeader = "X-Go-Proxy-Cache-Force-Fresh" //#nosec G101
 
 // CacheStatusHeaderHit - Cache status HIT for HTTP Header X-Go-Proxy-Cache-Status.
 const CacheStatusHeaderHit = "HIT"

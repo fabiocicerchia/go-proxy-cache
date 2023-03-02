@@ -11,8 +11,8 @@ package tls
 
 import (
 	crypto_tls "crypto/tls"
-	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/pkg/errors"
 
@@ -101,7 +101,7 @@ func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate,
 
 // InitCertManager - Initialise the Certification Manager for auto generation.
 func InitCertManager(host string, email string) *autocert.Manager {
-	cacheDir, err := ioutil.TempDir("", "cache_dir")
+	cacheDir, err := os.MkdirTemp("", "cache_dir")
 	if err != nil {
 		logger.GetGlobal().Fatal(err)
 		return nil

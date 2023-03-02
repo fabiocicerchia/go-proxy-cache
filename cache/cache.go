@@ -85,7 +85,7 @@ func (c Object) IsMethodAllowed() bool {
 }
 
 func getRandomSoftExpirationTTL() time.Duration {
-	rnd := random.RandomInt64(int64(DefaultMaxSoftExpirationTTL)-int64(DefaultMinSoftExpirationTTL) + int64(DefaultMinSoftExpirationTTL))
+	rnd := random.RandomInt64(int64(DefaultMaxSoftExpirationTTL) - int64(DefaultMinSoftExpirationTTL) + int64(DefaultMinSoftExpirationTTL))
 
 	return time.Duration(rnd)
 }

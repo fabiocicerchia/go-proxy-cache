@@ -56,10 +56,10 @@ build-multiarch: ## build-multiarch
 sca: lint sec fmt staticcheck tlsfuzzer ## sca checks
 
 lint: ## lint
-	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.42.0 golangci-lint run -v ./...
+	docker run --rm -v $$PWD:/app -w /app golangci/golangci-lint:v1.51.0 golangci-lint run -v ./...
 
 sec: ## security scan
-	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh -s latest
+	curl -sfL https://raw.githubusercontent.com/securego/gosec/master/install.sh | sh
 	./bin/gosec ./...
 
 fmt: ## format code

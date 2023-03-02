@@ -236,7 +236,7 @@ func TestGetETagWeak(t *testing.T) {
 
 	etag := lwr.GetETag(true)
 
-	assert.Regexp(t, regexp.MustCompile(`^\"W/[0-9]+-[0-9a-f]{40}\"$`), etag)
+	assert.Regexp(t, regexp.MustCompile(`^\"W/[0-9]+-[0-9a-f]{64}\"$`), etag)
 }
 
 func TestGetETagNotWeak(t *testing.T) {
@@ -248,7 +248,7 @@ func TestGetETagNotWeak(t *testing.T) {
 
 	etag := lwr.GetETag(false)
 
-	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), etag)
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{64}\"$`), etag)
 }
 
 func TestSetETagWeak(t *testing.T) {
@@ -259,7 +259,7 @@ func TestSetETagWeak(t *testing.T) {
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestSetETagWeak")
 	lwr.SetETag(true)
 
-	assert.Regexp(t, regexp.MustCompile(`^\"W/[0-9]+-[0-9a-f]{40}\"$`), lwr.ResponseWriter.Header().Get("ETag"))
+	assert.Regexp(t, regexp.MustCompile(`^\"W/[0-9]+-[0-9a-f]{64}\"$`), lwr.ResponseWriter.Header().Get("ETag"))
 }
 
 func TestSetETagNotWeak(t *testing.T) {
@@ -270,7 +270,7 @@ func TestSetETagNotWeak(t *testing.T) {
 	lwr := response.NewLoggedResponseWriter(rwMock, "TestSetETagNotWeak")
 	lwr.SetETag(false)
 
-	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), lwr.ResponseWriter.Header().Get("ETag"))
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{64}\"$`), lwr.ResponseWriter.Header().Get("ETag"))
 }
 
 func TestInitGZipBuffer(t *testing.T) {

@@ -1,5 +1,5 @@
 # TODO: code smell, should be configured in github actions
-FROM node:16.8.0-alpine3.14
+FROM node:19.4.0-alpine3.17
 
 WORKDIR /home/node/app
 

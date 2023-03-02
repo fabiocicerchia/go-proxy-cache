@@ -13,7 +13,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -50,7 +50,7 @@ func NewLoggedResponseWriter(w http.ResponseWriter, reqID string) *LoggedRespons
 	lwr := &LoggedResponseWriter{
 		ReqID:          reqID,
 		ResponseWriter: w,
-		hash:           sha1.New(),
+		hash:           sha256.New(),
 	}
 	lwr.Reset()
 

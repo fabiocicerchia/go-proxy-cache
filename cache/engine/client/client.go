@@ -12,8 +12,8 @@ package client
 import (
 	"context"
 	"fmt"
-	"time"
 	"strings"
+	"time"
 
 	goredislib "github.com/go-redis/redis/v8"
 	"github.com/go-redsync/redsync/v4"

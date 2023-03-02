@@ -126,7 +126,12 @@ func InitInternals() *http.Server {
 	metrics.Register()
 	mux.Handle("/metrics", promhttp.Handler())
 
-	return &http.Server{Handler: mux}
+	timeout := config.Config.Server.Timeout
+
+	return &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: timeout.ReadHeader * time.Second,
+	}
 }
 
 // InitServer - Generates the http.Server configuration.
@@ -159,16 +164,18 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 
 // AttachPlain - Adds a new HTTP server in the listener container.
 // NOTE: There will be only ONE server listening on a port.
-//       This means the last processed will override all the previous shared
-//       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
+//
+//	This means the last processed will override all the previous shared
+//	settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 func (s *Servers) AttachPlain(domain string, port string, server *http.Server) {
 	s.HTTP[port] = &Server{Domain: domain, HttpSrv: server}
 }
 
 // AttachSecure - Adds a new HTTPS server in the listener container.
 // NOTE: There will be only ONE server listening on a port.
-//       This means the last processed will override all the previous shared
-//       settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
+//
+//	This means the last processed will override all the previous shared
+//	settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 func (s *Servers) AttachSecure(domain string, port string, server *http.Server) {
 	s.HTTPS[port] = &Server{Domain: domain, HttpSrv: server}
 }

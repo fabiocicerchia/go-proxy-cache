@@ -132,7 +132,7 @@ func TestGetResponseWithETagGeneratedInternally(t *testing.T) {
 	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
 	assert.False(t, serveNotModified)
-	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), rr.Header().Get("ETag"))
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{64}\"$`), rr.Header().Get("ETag"))
 }
 
 func TestGetResponseWithETagGeneratedInternallyAndFresh(t *testing.T) {
@@ -169,5 +169,5 @@ func TestGetResponseWithETagGeneratedInternallyAndFresh(t *testing.T) {
 	serveNotModified := rcMock.GetResponseWithETag(ctx, proxy)
 
 	assert.True(t, serveNotModified)
-	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{40}\"$`), rr.Header().Get("ETag"))
+	assert.Regexp(t, regexp.MustCompile(`^\"[0-9]+-[0-9a-f]{64}\"$`), rr.Header().Get("ETag"))
 }

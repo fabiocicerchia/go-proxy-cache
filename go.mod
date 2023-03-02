@@ -1,6 +1,6 @@
 module github.com/fabiocicerchia/go-proxy-cache
 
-go 1.19
+go 1.20
 
 require (
 	github.com/evalphobia/logrus_sentry v0.8.2
