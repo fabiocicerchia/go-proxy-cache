@@ -12,7 +12,6 @@ package config
 import (
 	"crypto/tls"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,7 +47,7 @@ func newFromEnv() Configuration {
 func getFromYaml(file string) (Configuration, error) {
 	YamlConfig := Configuration{}
 
-	data, err := ioutil.ReadFile(filepath.Clean(file))
+	data, err := os.ReadFile(filepath.Clean(file))
 	if err != nil {
 		return YamlConfig, err
 	}

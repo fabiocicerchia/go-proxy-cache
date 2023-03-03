@@ -16,8 +16,8 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // TagProxyEndpoint - Upstream URL
@@ -123,7 +123,7 @@ func NewSpan(ctx context.Context, operation string) (trace.Span, context.Context
 // NewChildSpan returns a new tracing child span from the global tracer.
 // Each tracing span must be followed by `defer tracingSpan.End()`.
 func NewChildSpan(ctx context.Context, operation string) trace.Span {
-	ctx, span := otel.GetTracerProvider().Tracer("").Start(ctx, operation)
+	_, span := otel.GetTracerProvider().Tracer("").Start(ctx, operation)
 	return span
 }
 

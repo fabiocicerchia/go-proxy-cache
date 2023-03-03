@@ -11,7 +11,7 @@ package handler
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -104,7 +104,7 @@ func (rc RequestCall) GetRequestLength() int64 {
 	if getBody != nil {
 		reader, err := getBody()
 		if err == nil {
-			body, err := ioutil.ReadAll(reader)
+			body, err := io.ReadAll(reader)
 			if err == nil {
 				return int64(len(body)) + headerLength
 			}
