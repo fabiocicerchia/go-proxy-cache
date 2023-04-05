@@ -44,9 +44,8 @@ func getCommonConfig() config.Configuration {
 			},
 		},
 		Cache: config.Cache{
-			Host: utils.GetEnv("REDIS_HOST", "localhost"),
-			Port: "6379",
-			DB:   0,
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
@@ -187,8 +186,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
+			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
 			DB:              4,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -265,8 +263,7 @@ func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
+			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
 			DB:              4,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -367,8 +364,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
+			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
 			DB:              5,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -666,8 +662,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
+			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
 			DB:              11,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},

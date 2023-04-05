@@ -34,9 +34,8 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host: utils.GetEnv("REDIS_HOST", "localhost"),
-			Port: "6379",
-			DB:   0,
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.
@@ -80,9 +79,8 @@ func TestHealthcheckWithRedis(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Host: utils.GetEnv("REDIS_HOST", "localhost"),
-			Port: "6379",
-			DB:   0,
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,   // after 2nd request, if meet FailureRate goes open.

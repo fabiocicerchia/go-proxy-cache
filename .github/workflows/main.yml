@@ -88,7 +88,7 @@ jobs:
           ./go-proxy-cache -debug -config=test/full-setup/config.yml &
           make test
         env:
-          REDIS_HOST: redis
+          REDIS_HOSTS: redis:6379
           NGINX_HOST_80: nginx:40080
           NGINX_HOST_443: nginx:40443
           NGINX_HOST_WS: nginx:40081
@@ -100,7 +100,7 @@ jobs:
           make cover
           make codecov
         env:
-          REDIS_HOST: redis
+          REDIS_HOSTS: redis:6379
           NGINX_HOST_80: nginx:40080
           NGINX_HOST_443: nginx:40443
           NGINX_HOST_WS: nginx:40081

@@ -192,8 +192,8 @@ func (c *Configuration) copyOverWithUpstream(overrides Server) {
 
 // --- CACHE.
 func (c *Configuration) copyOverWithCache(overrides Cache) {
-	c.Cache.Host = utils.Coalesce(overrides.Host, c.Cache.Host).(string)
-	c.Cache.Port = utils.Coalesce(overrides.Port, c.Cache.Port).(string)
+	c.Cache.Hosts = utils.Coalesce(overrides.Hosts, c.Cache.Hosts).([]string)
+	//c.Cache.Port = utils.Coalesce(overrides.Port, c.Cache.Port).(string)
 	c.Cache.Password = utils.Coalesce(overrides.Password, c.Cache.Password).(string)
 	c.Cache.DB = utils.Coalesce(overrides.DB, c.Cache.DB).(int)
 	c.Cache.TTL = utils.Coalesce(overrides.TTL, c.Cache.TTL).(int)

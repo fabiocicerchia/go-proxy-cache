@@ -35,6 +35,6 @@ redis-b46545bbd-65tn9             1/1     Running   0          1s
 
 $ export NGINX_HOST_80=localhost:40080
 $ export NGINX_HOST_443=localhost:40443
-$ export REDIS_HOST=localhost
+$ export REDIS_HOSTS=localhost:6379
 $ make test
 ```

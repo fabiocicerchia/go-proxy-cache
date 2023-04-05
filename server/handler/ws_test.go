@@ -43,8 +43,7 @@ func TestEndToEndHandleWSRequestAndProxy(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
+			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -101,8 +100,7 @@ func TestEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Host:            utils.GetEnv("REDIS_HOST", "localhost"),
-			Port:            "6379",
+			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},

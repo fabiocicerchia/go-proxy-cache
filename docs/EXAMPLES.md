@@ -44,8 +44,7 @@ $ docker run \
     --env FORWARD_SCHEME=https \
     --env LB_ENDPOINT_LIST=www.google.com \
     --env REDIS_DB=0 \
-    --env REDIS_HOST=localhost \
-    --env REDIS_PORT=6379 \
+    --env REDIS_HOSTS=localhost:6379 \
     --env REDIS_PASSWORD= \
     -p 8080:80 \
     -p 8443:443 \

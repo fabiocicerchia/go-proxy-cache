@@ -55,3 +55,5 @@ test/full-setup/certs/*/*.srl
 test/full-setup/certs/*/*.csr
 test/full-setup/certs/*/*.key
 dist/
+
+go-proxy-cache

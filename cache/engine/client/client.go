@@ -31,17 +31,18 @@ var ctx = context.Background()
 
 // RedisClient - Redis Client structure.
 type RedisClient struct {
-	*goredislib.Client
-	*redsync.Redsync
-	Name   string
-	Mutex  map[string]*redsync.Mutex
-	logger *log.Logger
+	Client  goredislib.UniversalClient
+	Redsync *redsync.Redsync
+	Name    string
+	Mutex   map[string]*redsync.Mutex
+	logger  *log.Logger
 }
 
 // Connect - Connects to DB.
 func Connect(connName string, config config.Cache, logger *log.Logger) *RedisClient {
-	client := goredislib.NewClient(&goredislib.Options{
-		Addr:     config.Host + ":" + config.Port,
+
+	client := goredislib.NewUniversalClient(&goredislib.UniversalOptions{
+		Addrs:    config.Hosts,
 		Password: config.Password,
 		DB:       config.DB,
 	})
