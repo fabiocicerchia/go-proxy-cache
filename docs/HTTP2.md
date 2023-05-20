@@ -5,14 +5,14 @@
 The functionality is deprecated since not really supported in the browsers.
 
 More details:
- - [Current implementation](https://www.w3.org/TR/preload/)
- - [What it was supposed to be like](https://medium.com/@mena.meseha/http-2-server-push-tutorial-d8714154ef9a)
- - HTTP/2 Push is dead:
-   - [Chrome to remove HTTP/2 Push](https://www.ctrl.blog/entry/http2-push-chromium-deprecation.html)
-   - [Google Developers intent to remove HTTP/2 Push](https://community.cloudflare.com/t/google-developers-intent-to-remove-http-2-push/261338)
-   - [Intent to Remove: HTTP/2 and gQUIC server push](https://groups.google.com/a/chromium.org/g/blink-dev/c/K3rYLvmQUBY/m/vOWBKZGoAQAJ)
-   - [HTTP/2 Push is dead](https://evertpot.com/http-2-push-is-dead/)
- - Alternative: [103 Early Hints](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/103)
+- [Current implementation](https://www.w3.org/TR/preload/)
+- [What it was supposed to be like](https://medium.com/@mena.meseha/http-2-server-push-tutorial-d8714154ef9a)
+- HTTP/2 Push is dead:
+  - [Chrome to remove HTTP/2 Push](https://www.ctrl.blog/entry/http2-push-chromium-deprecation.html)
+  - [Google Developers intent to remove HTTP/2 Push](https://community.cloudflare.com/t/google-developers-intent-to-remove-http-2-push/261338)
+  - [Intent to Remove: HTTP/2 and gQUIC server push](https://groups.google.com/a/chromium.org/g/blink-dev/c/K3rYLvmQUBY/m/vOWBKZGoAQAJ)
+  - [HTTP/2 Push is dead](https://evertpot.com/http-2-push-is-dead/)
+- Alternative: [103 Early Hints](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/103)
 
 ### Upstream
 
