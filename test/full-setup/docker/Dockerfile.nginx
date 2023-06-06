@@ -2,10 +2,32 @@ ARG image=ubuntu:22.04
 FROM $image AS build
 
 RUN apt-get update \
-&& DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
+   && DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
    apt-get install --no-install-recommends --no-install-suggests -y \
-   build-essential autoconf libtool pkg-config ca-certificates gcc g++ git libcurl4-openssl-dev libpcre3-dev gnupg2 lsb-release curl apt-transport-https software-properties-common zlib1g-dev cmake
-
+      apt-transport-https \
+      autoconf \
+      build-essential \
+      ca-certificates \
+      cmake \
+      curl \
+      g++ \
+      gcc \
+      git \
+      gnupg2 \
+      libc++-15-dev \
+      libcurl4 \
+      libcurl4-openssl-dev \
+      libgtest-dev \
+      libpcre3-dev \
+      libprotobuf-dev \
+      libthrift-dev \
+      libtool \
+      lsb-release \
+      pkg-config \
+      protobuf-compiler \
+      software-properties-common \
+      zlib1g-dev \
+      libgmock-dev
 
 RUN curl -o /etc/apt/trusted.gpg.d/nginx_signing.asc https://nginx.org/keys/nginx_signing.key \
     && apt-add-repository "deb http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
@@ -16,28 +38,26 @@ RUN apt-get update \
    apt-get install --no-install-recommends --no-install-suggests -y \
    nginx
 
-RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.49.2 \
+RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.51.0 \
   https://github.com/grpc/grpc \
   && cd grpc \
   && mkdir -p cmake/build \
   && cd cmake/build \
-  && cmake \
-    -DgRPC_INSTALL=ON \
-    -DgRPC_BUILD_TESTS=OFF \
+  && cmake -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=/install \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DgRPC_BUILD_GRPC_NODE_PLUGIN=OFF \
-    -DgRPC_BUILD_GRPC_OBJECTIVE_C_PLUGIN=OFF \
-    -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF \
-    -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF \
-    -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF \
-    -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF \
+    -DCMAKE_PREFIX_PATH=/install \
+    -DWITH_OTLP=ON \
+    -DWITH_OTLP_GRPC=ON \
+    -DWITH_OTLP_HTTP=OFF \
+    -DBUILD_TESTING=OFF \
+    -DWITH_EXAMPLES=OFF \
     -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     ../.. \
   && make -j2 \
   && make install
 
-RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.8.1 \
+RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.9.1 \
   https://github.com/open-telemetry/opentelemetry-cpp.git \
   && cd opentelemetry-cpp \
   && mkdir build \
@@ -56,13 +76,14 @@ RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.8.1 \
   && make -j2 \
   && make install
 
-RUN git clone https://github.com/open-telemetry/opentelemetry-cpp-contrib.git /opentelemetry-cpp-contrib
-
-RUN mkdir -p otel-nginx/build && mkdir -p otel-nginx/src
-RUN cp -r /opentelemetry-cpp-contrib/instrumentation/nginx/src/* otel-nginx/src/
-RUN cp /opentelemetry-cpp-contrib/instrumentation/nginx/CMakeLists.txt otel-nginx/
-RUN cp /opentelemetry-cpp-contrib/instrumentation/nginx/nginx.cmake otel-nginx/
-RUN cd otel-nginx/build \
+RUN git clone https://github.com/open-telemetry/opentelemetry-cpp-contrib.git /opentelemetry-cpp-contrib \
+  && git clone https://github.com/open-telemetry/opentelemetry-proto.git /opentelemetry-proto \
+  && mkdir -p otel-nginx/build && mkdir -p otel-nginx/src \
+  && cp -r /opentelemetry-cpp-contrib/instrumentation/nginx/src/* otel-nginx/src/ \
+  && cp /opentelemetry-cpp-contrib/instrumentation/nginx/CMakeLists.txt otel-nginx/ \
+  && cp -r /opentelemetry-proto/opentelemetry/proto otel-nginx/ \
+  && cp /opentelemetry-cpp-contrib/instrumentation/nginx/nginx.cmake otel-nginx/ \
+  && cd otel-nginx/build \
   && cmake -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH=/install \
     -DCMAKE_INSTALL_PREFIX=/usr/share/nginx/modules \
@@ -70,7 +91,7 @@ RUN cd otel-nginx/build \
   && make -j2 \
   && make install
 
-FROM fabiocicerchia/nginx-lua:1.23.3-ubuntu22.04
+FROM fabiocicerchia/nginx-lua:1.25.0-ubuntu22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ="Europe/London"
@@ -82,7 +103,8 @@ RUN apt-get update \
 RUN pip3 install grpcio
 
 # Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx#usage
-COPY --from=build /otel-nginx/build/otel_ngx_module.so /etc/nginx/otel_ngx_module.so
+COPY --from=build /install /usr
+COPY --from=build /usr/share/nginx/modules /usr/share/nginx/modules
 COPY --chown=nginx:nginx nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=nginx:nginx nginx/conf.d/vhost.conf /etc/nginx/conf.d/vhost.conf
 COPY --chown=nginx:nginx certs /certs
