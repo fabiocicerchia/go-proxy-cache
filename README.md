@@ -229,7 +229,7 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 - WebSocket and TimeoutHandler are not working together, because TimeoutHandler doesn't support Hijacker, so in order to have WebSocket support the setting `TimeoutHandler` must be set to `-1`.
 - `context deadline exceeded`  
   The reason is because the timeout on the context.Context of the client side of the request is shorter than the timeout
-  in the server side handler. This means that the client gives up before any response is written.
+  in the server side handler. This means that the client gives up before any response is written. 
 
 ## References
 
