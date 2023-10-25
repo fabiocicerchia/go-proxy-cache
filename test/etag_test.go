@@ -56,16 +56,16 @@ func TestETagValidResponse(t *testing.T) {
 
 	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
 	// this is the real ETag from w3.org
-	assert.Regexp(t, regexp.MustCompile(`^\"[0-9a-f]{4}-[0-9a-f]{13}-gzip"$`), res.Header.Get("ETag"))
+	assert.Regexp(t, regexp.MustCompile(`\w\/"[a-z, 0-9]{32}`), res.Header.Get("ETag"))
 
 	assert.Equal(t, "HTTP/2.0", res.Proto)
 	assert.Equal(t, 2, res.ProtoMajor)
 	assert.Equal(t, 0, res.ProtoMinor)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, string(body), "<!doctype html>")
+	assert.Contains(t, string(body), "<title>W3C</title>")
+	assert.Contains(t, string(body), "</body>\n\n</html>\n")
 
 	tearDownETag()
 }
