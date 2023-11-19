@@ -138,9 +138,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	// --- HIT
 
@@ -161,9 +161,9 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	// --- PURGE
 
@@ -201,7 +201,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 }

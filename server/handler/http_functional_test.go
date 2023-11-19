@@ -126,9 +126,9 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	tearDownHTTPFunctional()
 }
@@ -607,9 +607,9 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	tearDownHTTPFunctional()
 }
@@ -649,9 +649,9 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	tearDownHTTPFunctional()
 }
@@ -707,9 +707,9 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	// --- HIT
 
@@ -729,9 +729,9 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, body, "</body>\n</html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	tearDownHTTPFunctional()
 }
