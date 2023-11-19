@@ -123,7 +123,7 @@ spec:
         {{- toYaml .Values.goproxycache.podSecurityContext | nindent 8 }}
       containers:
         - name: go-proxy-cache
-          image: fabiocicerchia.jfrog.io/go-proxy-cache-ee-docker/go-proxy-cache:{{ .Values.goproxycache.image.tag }}
+          image: fabiocicerchia/go-proxy-cache:{{ .Values.goproxycache.image.tag }}
           args:
             - go-proxy-cache
           securityContext:

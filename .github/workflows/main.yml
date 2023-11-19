@@ -39,7 +39,7 @@ jobs:
           -v ${{ github.workspace }}/collector:/etc/otel
       # TODO: NEED TO FIND A WAY TO MAKE IT WORKING WITH VOLUMES
       nginx:
-        image: fabiocicerchia/go-proxy-cache-test:nginx-ee
+        image: fabiocicerchia/go-proxy-cache-test:nginx
         ports:
           - "40080:40080" # http
           - "40081:40081" # ws
