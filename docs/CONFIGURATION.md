@@ -249,8 +249,8 @@ server:
 # --- CACHE
 cache:
   # --- REDIS SERVER
-  host: localhost
-  port: "6379"
+  hosts: 
+    - localhost:6379
   password: ~
   db: 0
   # --- TTL

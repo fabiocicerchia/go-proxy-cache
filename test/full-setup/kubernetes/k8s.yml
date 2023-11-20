@@ -349,7 +349,8 @@ data:
 #           handler: -1
 
 #       cache:
-#         host: redis
+#         hosts:
+#           - redis
 
 #       domains:
 #         example_com:

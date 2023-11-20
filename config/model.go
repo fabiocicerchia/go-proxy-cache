@@ -126,7 +126,7 @@ type Timeout struct {
 
 // Cache - Defines the config for the cache backend.
 type Cache struct {
-	Hosts           []string `yaml:"host" envconfig:"REDIS_HOSTS" split_words:"true"`
+	Hosts           []string `yaml:"hosts" envconfig:"REDIS_HOSTS"`
 	Password        string   `yaml:"password" envconfig:"REDIS_PASSWORD"`
 	DB              int      `yaml:"db" envconfig:"REDIS_DB"`
 	TTL             int      `yaml:"ttl" envconfig:"DEFAULT_TTL"`

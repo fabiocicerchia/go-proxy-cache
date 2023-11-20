@@ -51,6 +51,61 @@ services:
       timeout: 3s
       retries: 30
 
+  # STORAGE - REDIS CLUSTER
+  ##############################################################################
+  redis-cluster:
+      image: 'redis:6.2.12-alpine3.17'
+      command: redis-cli --cluster create 172.20.0.36:6379 172.20.0.37:6379 172.20.0.38:6379 --cluster-replicas 0 --cluster-yes
+      networks:
+        app_subnet:
+          ipv4_address: 172.20.0.30
+      depends_on:
+        - redisCluster1
+        - redisCluster2
+        - redisCluster3
+
+  redisCluster1:
+    image: redis:6.2.12-alpine3.17
+    command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
+    ports:
+      - "6380:6379"
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.36
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  redisCluster2:
+    image: redis:6.2.12-alpine3.17
+    command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
+    ports:
+      - "6381:6379"
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.37
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
+  redisCluster3:
+    image: redis:6.2.12-alpine3.17
+    command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
+    ports:
+      - "6382:6379"
+    networks:
+      app_subnet:
+        ipv4_address: 172.20.0.38
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+
   # UPSTREAM 1 - NGINX
   ##############################################################################
   nginx:
@@ -159,3 +214,10 @@ services:
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432" # postgres
+
+networks:
+  app_subnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
