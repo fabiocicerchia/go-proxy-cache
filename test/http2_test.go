@@ -56,9 +56,9 @@ func TestHTTP2ClientCall(t *testing.T) {
 	assert.Equal(t, 0, res.ProtoMinor)
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
-	assert.Contains(t, string(body), "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, string(body), `<title>World Wide Web Consortium (W3C)</title>`)
-	assert.Contains(t, string(body), "</body>\n</html>\n")
+	assert.Contains(t, string(body), "<!doctype html>")
+	assert.Contains(t, string(body), "<title>W3C</title>")
+	assert.Contains(t, string(body), "</body>\n\n</html>\n")
 
 	tearDownHttp2()
 }
