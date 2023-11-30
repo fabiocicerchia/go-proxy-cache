@@ -20,6 +20,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 )
 
 var configFile string
@@ -29,6 +30,9 @@ var testFlag bool
 
 // AppVersion - The go-proxy-cache's version.
 const AppVersion = "1.3.0"
+
+// GitCommit - The go-proxy-cache's git commit reference.
+const GitCommit = "NA"
 
 func initFlags() {
 	var debug, version bool
@@ -113,6 +117,8 @@ func main() {
 	log.Debugf("Threads: %d\n", runtime.NumCPU())
 	log.Debugf("OS: %s\n", runtime.GOOS)
 	log.Debugf("Arch: %s\n\n", runtime.GOARCH)
+
+	metrics.SetBuildInfo(GitCommit, AppVersion)
 
 	server.Run(AppVersion, configFile)
 }

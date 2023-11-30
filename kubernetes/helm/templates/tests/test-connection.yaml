@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "go-proxy-cache.fullname" . }}-test-connection"
+  labels:
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "go-proxy-cache.fullname" . }}:{{ .Values.goproxycache.service.httpPort }}']
+  restartPolicy: Never

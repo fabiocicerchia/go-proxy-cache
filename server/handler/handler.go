@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"time"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/xid"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -31,9 +30,8 @@ const HttpMethodPurge = "PURGE"
 
 // HandleRequest - Handles the entrypoint and directs the traffic to the right handler.
 func HandleRequest(res http.ResponseWriter, req *http.Request) {
-	tracingSpan := tracing.StartSpanFromRequest("server.handle_request", req)
-	defer tracingSpan.Finish()
-	ctx := opentracing.ContextWithSpan(context.Background(), tracingSpan)
+	tracingSpan, ctx := tracing.StartSpanFromRequest("server.handle_request", req)
+	defer tracingSpan.End()
 
 	telemetry.From(ctx).RegisterRequest(*req)
 
@@ -46,7 +44,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
+	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.Request, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {

@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/rs/dnscache"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
@@ -28,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
@@ -210,9 +210,12 @@ func (rc RequestCall) GetUpstreamHost() string {
 }
 
 // ProxyDirector - Add extra behaviour to request.
-func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Request) {
+func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request) {
 	return func(req *http.Request) {
 		upstreamHost := rc.GetUpstreamHost()
+
+		metrics.IncUpstreamServerRequests(rc.GetHostname(), upstreamHost)
+		metrics.IncUpstreamServerReceived(rc.GetHostname(), upstreamHost, float64(rc.GetRequestLength()))
 
 		// The value of r.URL.Host and r.Host are almost always different. On a
 		// proxy server, r.URL.Host is the host of the target server and r.Host is
@@ -236,6 +239,6 @@ func (rc RequestCall) ProxyDirector(span opentracing.Span) func(req *http.Reques
 
 		req.Host = upstreamHost
 
-		_ = tracing.Inject(span, req)
+		tracing.Inject(ctx, req)
 	}
 }

@@ -10,34 +10,35 @@ package tracing
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"io"
 	"os"
 
-	opentracing "github.com/opentracing/opentracing-go"
-	jaeger "github.com/uber/jaeger-client-go"
-	jaegerConfig "github.com/uber/jaeger-client-go/config"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/sdk/resource"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 )
 
-// TODO: Move from OpenTracing to OpenTelemetry
-
 // NewJaegerProvider returns a new instance of Jaeger.
-func NewJaegerProvider(appVersion string, jaegerEndpoint string, enabled bool, sampleRatio float64) (opentracing.Tracer, io.Closer, error) {
-	cfg := jaegerConfig.Configuration{
-		ServiceName: "go-proxy-cache",
-		Disabled:    !enabled,
-		Tags: []opentracing.Tag{
-			{Key: "service.version", Value: appVersion},
-			{Key: "service.env", Value: os.Getenv("TRACING_ENV")},
-		},
-		Sampler: &jaegerConfig.SamplerConfig{
-			Type:  "probabilistic",
-			Param: sampleRatio,
-		},
-		Reporter: &jaegerConfig.ReporterConfig{
-			LocalAgentHostPort: jaegerEndpoint,
-		},
+func NewJaegerProvider(appVersion string, jaegerEndpoint string, sampleRatio float64) (*tracesdk.TracerProvider, error) {
+	// Create the Jaeger exporter
+	// TODO: is it good to have the following settings: LocalAgentHostPort, User, Password.
+	exp, err := jaeger.New(jaeger.WithCollectorEndpoint(jaeger.WithEndpoint(jaegerEndpoint)))
+	if err != nil {
+		return nil, err
 	}
 
-	tracer, closer, err := cfg.NewTracer(jaegerConfig.Logger(jaeger.StdLogger))
-	return tracer, closer, err
+	tp := tracesdk.NewTracerProvider(
+		tracesdk.WithSampler(tracesdk.TraceIDRatioBased(sampleRatio)),
+		// Always be sure to batch in production.
+		tracesdk.WithBatcher(exp),
+		// Record information about this application in a Resource.
+		tracesdk.WithResource(resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceNameKey.String("go-proxy-cache"),
+			attribute.String("service.version", appVersion),
+			attribute.String("service.env", os.Getenv("TRACING_ENV")),
+		)),
+	)
+	return tp, nil
 }

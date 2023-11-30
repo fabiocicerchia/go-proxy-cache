@@ -1,5 +1,21 @@
 # Kubernetes
 
+## Helm Chart
+
+Create a `values.yaml` from the [default one](kuberneters/helm/values.yaml).
+
+```console
+$ helm install --create-namespace -n gpc-test gpc-test -f values.yaml ./kubernetes/helm/
+```
+
+## Kustomize
+
+```console
+$ kubectl apply -k ./kubernetes/kustomize
+```
+
+## Manifest Example
+
 ```console
 $ kubectl apply -f test/full-setup/kubernetes/k8s.yml
 service/go-proxy-cache created

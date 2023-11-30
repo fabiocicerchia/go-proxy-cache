@@ -1,0 +1,35 @@
+{{- if .Values.redis.enabled -}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-cache-redis
+  labels:
+    meta.service: {{ .Values.prefix }}-redis
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: redis
+    port: {{ .Values.redis.service.port }}
+    targetPort: redis
+  selector:
+    meta.service: {{ .Values.prefix }}-redis
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.prefix }}-go-proxy-cache
+  labels:
+    meta.service: {{ .Values.prefix }}-go-proxy-cache
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+spec:
+  ports:
+  - name: http
+    port: {{ .Values.goproxycache.service.httpPort }}
+    targetPort: http
+  - name: https
+    port: {{ .Values.goproxycache.service.httpsPort }}
+    targetPort: https
+  selector:
+    meta.service: {{ .Values.prefix }}-go-proxy-cache

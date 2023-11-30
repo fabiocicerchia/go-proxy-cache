@@ -1,0 +1,33 @@
+# https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx
+# https://github.com/open-telemetry/opentelemetry-cpp-contrib/blob/main/instrumentation/nginx/test/conf/otel-nginx.toml
+exporter = "otlp"
+processor = "batch"
+
+[exporters.otlp]
+# Alternatively the OTEL_EXPORTER_OTLP_ENDPOINT environment variable can also be used.
+host = "collector"
+port = 4317
+# Optional: enable SSL, for endpoints that support it
+# use_ssl = true
+# Optional: set a filesystem path to a pem file to be used for SSL encryption
+# (when use_ssl = true)
+# ssl_cert_path = "/path/to/cert.pem"
+
+[processors.batch]
+max_queue_size = 2048
+schedule_delay_millis = 1000
+max_export_batch_size = 512
+
+[service]
+# Can also be set by the OTEL_SERVICE_NAME environment variable.
+name = "nginx" # Opentelemetry resource name
+
+[sampler]
+name = "AlwaysOn" # Also: AlwaysOff, TraceIdRatioBased
+ratio = 1
+parent_based = false # true
+
+#[exporters.jaeger]
+#host = "localhost"
+#port = 9090
+#transport = "thrift_udp"

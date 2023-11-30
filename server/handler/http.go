@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,7 +48,7 @@ var DefaultTransportDialTimeout time.Duration = 15 * time.Second
 // HandleHTTPRequestAndProxy - Handles the HTTP requests and proxies to backend server.
 func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.handle_http_request_and_proxy")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	cached := cache.StatusMiss
 
@@ -78,14 +79,14 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 
 func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_cached_content")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
 	uriObj, err := storage.RetrieveCachedContent(ctx, rcDTO, rc.GetLogger())
 	if err != nil {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
-		metrics.IncCacheMiss()
+		metrics.IncCacheMiss(rc.GetHostname())
 
 		return cache.StatusMiss
 	}
@@ -98,7 +99,7 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 	}
 
-	telemetry.From(ctx).RegisterWholeResponse(rc.ReqID, rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.GetScheme(), cached == cache.StatusHit, uriObj.Stale)
+	telemetry.From(ctx).RegisterWholeResponse(rc.ReqID, rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.RequestTime, rc.GetScheme(), cached == cache.StatusHit, uriObj.Stale)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
@@ -107,12 +108,11 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 
 func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.serve_reverse_proxy_http")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	proxyURL, err := rc.GetUpstreamURL()
 	if err != nil {
-		tracing.AddErrorToSpan(tracingSpan, err)
-		tracing.Fail(tracingSpan, "internal error")
+		tracing.SetErrorAndFail(tracingSpan, err, "internal error")
 
 		rc.GetLogger().Errorf("Cannot process Upstream URL: %s", err.Error())
 		return
@@ -131,7 +131,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	proxy.Transport = rc.patchProxyTransport()
 
 	originalDirector := proxy.Director
-	gpcDirector := rc.ProxyDirector(tracingSpan)
+	gpcDirector := rc.ProxyDirector(ctx)
 	proxy.Director = func(req *http.Request) {
 		// the default director implementation returned by httputil.NewSingleHostReverseProxy
 		// takes care of setting the request Scheme, Host, and Path.
@@ -151,6 +151,11 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 
 	rc.SendResponse(ctx)
 	rc.storeResponse(ctx)
+
+	metrics.IncUpstreamServerResponses(rc.Response.StatusCode, rc.GetHostname(), rc.GetUpstreamHost())
+	len, _ := strconv.ParseFloat(rc.Response.Header().Get("Content-Length"), 64)
+	metrics.IncUpstreamServerSent(rc.GetHostname(), rc.GetUpstreamHost(), len)
+	metrics.IncUpstreamServerResponseTime(rc.GetHostname(), rc.GetUpstreamHost(), float64(time.Since(rc.RequestTime).Milliseconds()))
 }
 
 func (rc RequestCall) storeResponse(ctx context.Context) {
@@ -159,7 +164,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 	}
 
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.store_response")
-	defer tracingSpan.Finish()
+	defer tracingSpan.End()
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
@@ -169,7 +174,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 	rc.GetLogger().Debugf("Sync Store Response: %s", escapedURL)
 	stored, err := doStoreResponse(ctx, rcDTO, rc.DomainConfig.Cache)
 
-	tracingSpan.SetTag(tracing.TagStorageCached, stored)
+	tracing.AddBoolTag(tracingSpan, tracing.TagStorageCached, stored)
 
 	if err != nil {
 		tracing.AddErrorToSpan(tracingSpan, err)

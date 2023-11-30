@@ -10,7 +10,6 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
@@ -18,16 +17,15 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
-	opentracing "github.com/opentracing/opentracing-go"
 )
 
 // HandleHealthcheck - Returns healthcheck status.
 func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, req *http.Request) {
 	return func(res http.ResponseWriter, req *http.Request) {
-		tracingSpan := tracing.StartSpanFromRequest("server.handle_healthcheck", req)
-		defer tracingSpan.Finish()
-		ctx := opentracing.ContextWithSpan(context.Background(), tracingSpan)
+		tracingSpan, ctx := tracing.StartSpanFromRequest("server.handle_healthcheck", req)
+		defer tracingSpan.End()
 
 		rc := NewRequestCall(res, req)
 		rc.DomainConfig, _ = config.DomainConf(req.Host, rc.GetScheme())
@@ -60,8 +58,10 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		telemetry.From(ctx).RegisterStatusCode(statusCode)
 
 		if redisOK {
+			metrics.SetUp(1)
 			_ = lwr.WriteBody("REDIS OK\n")
 		} else {
+			metrics.SetUp(0)
 			_ = lwr.WriteBody("REDIS KO\n")
 		}
 	}

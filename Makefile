@@ -153,12 +153,37 @@ changelog: .install-changelog ## generate a changelog
 
 release: ## release
 	cat main.go | sed "s/const AppVersion = .*/const AppVersion = \"$$VER\"/" | tee main.go
+	cat main.go | sed "s/const GitCommit = .*/const GitCommit = \"$(shell git rev-parse --short HEAD)\"/" | tee main.go
 	make changelog
 	git add CHANGELOG.md
 	git commit -m "updated changelog for v$$VER"
 	git tag -af v$$VER -m "Release v$$VER"
 
-docker-push: ## build and push a docker image
-	docker build -t fabiocicerchia/go-proxy-cache:latest -t fabiocicerchia/go-proxy-cache:$$VER .
-	docker push fabiocicerchia/go-proxy-cache:latest
-	docker push fabiocicerchia/go-proxy-cache:$$VER
+################################################################################
+##@ DOCKER
+################################################################################
+
+docker-push-all: ## build and push multiple docker images for multiarch
+	PLATFORM=amd64 make docker-push-arch
+	PLATFORM=arm64 make docker-push-arch
+
+docker-push-arch: docker-push ## build and push multiple docker images for one platform
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia/go-proxy-cache:$$VER-alpine-$$PLATFORM -t fabiocicerchia/go-proxy-cache:alpine-$$PLATFORM -f docker/Dockerfile.alpine .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia/go-proxy-cache:$$VER-amazonlinux-$$PLATFORM -t fabiocicerchia/go-proxy-cache:amazonlinux-$$PLATFORM -f docker/Dockerfile.amazonlinux .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia/go-proxy-cache:$$VER-debian-$$PLATFORM -t fabiocicerchia/go-proxy-cache:debian-$$PLATFORM -f docker/Dockerfile.debian .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia/go-proxy-cache:$$VER-fedora-$$PLATFORM -t fabiocicerchia/go-proxy-cache:fedora-$$PLATFORM -f docker/Dockerfile.fedora .
+	docker buildx build --push --platform=$$PLATFORM -t fabiocicerchia/go-proxy-cache:$$VER-ubuntu-$$PLATFORM -t fabiocicerchia/go-proxy-cache:ubuntu-$$PLATFORM -f docker/Dockerfile.ubuntu .
+
+################################################################################
+##@ HELM
+################################################################################
+
+helm-create-package: ## create an helm package from current chart
+	helm package -d kubernetes/helm/charts kubernetes/helm/
+
+helm-update-repo: ## update index chart repo
+	helm repo index kubernetes/helm/
+
+helm-deploy-chart: ## deploy to a new helm chart's package
+	export DEPLOY_FILEPATH=kubernetes/helm/charts/$$DEPLOY_FILE
+	echo "Manually push the file $$DEPLOY_FILEPATH to GitHub"

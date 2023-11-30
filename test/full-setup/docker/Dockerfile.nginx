@@ -1,6 +1,112 @@
-FROM opentracing/nginx-opentracing:edge
+ARG image=ubuntu:22.04
+FROM $image AS build
 
+RUN apt-get update \
+   && DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
+   apt-get install --no-install-recommends --no-install-suggests -y \
+      apt-transport-https \
+      autoconf \
+      build-essential \
+      ca-certificates \
+      cmake \
+      curl \
+      g++ \
+      gcc \
+      git \
+      gnupg2 \
+      libc++-15-dev \
+      libcurl4 \
+      libcurl4-openssl-dev \
+      libgtest-dev \
+      libpcre3-dev \
+      libprotobuf-dev \
+      libthrift-dev \
+      libtool \
+      lsb-release \
+      pkg-config \
+      protobuf-compiler \
+      software-properties-common \
+      zlib1g-dev \
+      libgmock-dev
+
+RUN curl -o /etc/apt/trusted.gpg.d/nginx_signing.asc https://nginx.org/keys/nginx_signing.key \
+    && apt-add-repository "deb http://nginx.org/packages/mainline/ubuntu `lsb_release -cs` nginx" \
+    && /bin/bash -c 'echo -e "Package: *\nPin: origin nginx.org\nPin: release o=nginx\nPin-Priority: 900"' | tee /etc/apt/preferences.d/99nginx
+
+RUN apt-get update \
+&& DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
+   apt-get install --no-install-recommends --no-install-suggests -y \
+   nginx
+
+RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.51.0 \
+  https://github.com/grpc/grpc \
+  && cd grpc \
+  && mkdir -p cmake/build \
+  && cd cmake/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/install \
+    -DCMAKE_PREFIX_PATH=/install \
+    -DWITH_OTLP=ON \
+    -DWITH_OTLP_GRPC=ON \
+    -DWITH_OTLP_HTTP=OFF \
+    -DBUILD_TESTING=OFF \
+    -DWITH_EXAMPLES=OFF \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    ../.. \
+  && make -j2 \
+  && make install
+
+RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.9.1 \
+  https://github.com/open-telemetry/opentelemetry-cpp.git \
+  && cd opentelemetry-cpp \
+  && mkdir build \
+  && cd build \
+  && cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=/install \
+    -DCMAKE_PREFIX_PATH=/install \
+    -DWITH_OTLP=ON \
+    -DWITH_OTLP_GRPC=ON \
+    -DWITH_OTLP_HTTP=OFF \
+    -DBUILD_TESTING=OFF \
+    -DWITH_EXAMPLES=OFF \
+    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    .. \
+  && make -j2 \
+  && make install
+
+RUN git clone https://github.com/open-telemetry/opentelemetry-cpp-contrib.git /opentelemetry-cpp-contrib \
+  && git clone https://github.com/open-telemetry/opentelemetry-proto.git /opentelemetry-proto \
+  && mkdir -p otel-nginx/build && mkdir -p otel-nginx/src \
+  && cp -r /opentelemetry-cpp-contrib/instrumentation/nginx/src/* otel-nginx/src/ \
+  && cp /opentelemetry-cpp-contrib/instrumentation/nginx/CMakeLists.txt otel-nginx/ \
+  && cp -r /opentelemetry-proto/opentelemetry/proto otel-nginx/ \
+  && cp /opentelemetry-cpp-contrib/instrumentation/nginx/nginx.cmake otel-nginx/ \
+  && cd otel-nginx/build \
+  && cmake -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_PREFIX_PATH=/install \
+    -DCMAKE_INSTALL_PREFIX=/usr/share/nginx/modules \
+    .. \
+  && make -j2 \
+  && make install
+
+FROM fabiocicerchia/nginx-lua:1.25.0-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ="Europe/London"
+
+RUN apt-get update \
+    && apt-get install --no-install-recommends --no-install-suggests -y \
+      python3 python3-pip gcc libstdc++6
+
+RUN pip3 install grpcio
+
+# Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx#usage
+COPY --from=build /install /usr
+COPY --from=build /usr/share/nginx/modules /usr/share/nginx/modules
 COPY --chown=nginx:nginx nginx/nginx.conf /etc/nginx/nginx.conf
 COPY --chown=nginx:nginx nginx/conf.d/vhost.conf /etc/nginx/conf.d/vhost.conf
 COPY --chown=nginx:nginx certs /certs
-COPY --chown=nginx:nginx nginx/jaeger-nginx-config.json /etc/nginx/jaeger-nginx-config.json
+COPY --chown=nginx:nginx nginx/otel-nginx.toml /conf/otel-nginx.toml
+COPY --chown=nginx:nginx nginx/.htpasswd /etc/nginx/.htpasswd

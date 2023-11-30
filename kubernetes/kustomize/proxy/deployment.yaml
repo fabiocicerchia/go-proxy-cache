@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    meta.service: go-proxy-cache
+  name: go-proxy-cache
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      meta.service: go-proxy-cache
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        meta.service: go-proxy-cache
+    spec:
+      containers:
+        - name: go-proxy-cache
+          image: fabiocicerchia/go-proxy-cache:latest
+          args:
+          - go-proxy-cache
+          ports:
+            - name: http
+              containerPort: 50080
+              protocol: TCP
+            - name: https
+              containerPort: 50443
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/config.yml
+              name: go-proxy-cache-config-yml
+              subPath: config.yml
+              readOnly: true
+        restartPolicy: Always
+        serviceAccountName: ""
+        volumes:
+          - name: go-proxy-cache-config-yml
+            configMap:
+              name: prod-gpc-config
+              items:
+                - key: config.yml
+                  path: config.yml

@@ -29,8 +29,9 @@ cache:
   host: redis
 
 tracing:
-  jaeger_endpoint: jaeger:6831
+  jaeger_endpoint: http://jaeger:14268/api/traces
   enabled: true
+  sampling_ratio: 1.0
 
 log:
   # sentry_dsn: http://ff6cc3b0c994483f829c8da224973b47:8ffc03c8fd7a474eb8acaea55d6402a1@sentry:9000/2

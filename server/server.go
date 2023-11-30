@@ -17,9 +17,10 @@ import (
 	"syscall"
 	"time"
 
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -67,17 +68,20 @@ func Run(appVersion string, configFile string) {
 	logger.HookSyslog(log, config.Config.Log.SyslogProtocol, config.Config.Log.SyslogEndpoint)
 
 	// Init tracing
-	tracer, closer, err := tracing.NewJaegerProvider(
-		appVersion,
-		config.Config.Tracing.JaegerEndpoint,
-		config.Config.Tracing.Enabled,
-		config.Config.Tracing.SamplingRatio,
-	)
-	if err != nil {
-		log.Fatalln(err)
+	if config.Config.Tracing.Enabled {
+		tracerProvider, err := tracing.NewJaegerProvider(
+			appVersion,
+			config.Config.Tracing.JaegerEndpoint,
+			config.Config.Tracing.SamplingRatio,
+		)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		// Register the TraceContext propagator globally.
+		otel.SetTracerProvider(tracerProvider)
+		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	}
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
 
 	// init servers
 	servers = &Servers{

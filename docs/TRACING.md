@@ -1,11 +1,11 @@
 # Tracing
 
-Go Proxy Cache supports OpenTracing, specifically Jaeger.
+Go Proxy Cache supports OpenTelemetry, specifically Jaeger.
 
 Use the environment variable `TRACING_ENV` to customise the tracing.
 
 There is a unique key used in order to be able to match the request against multiple services.
-The main Request ID key in OpenTracing is `request.id`, it is also sent to the upstream backend as an additional HTTP header (ie. `X-Go-Proxy-Cache-Request-ID`).
+The main Request ID key in OpenTelemetry is `request.id`, it is also sent to the upstream backend as an additional HTTP header (ie. `X-Go-Proxy-Cache-Request-ID`).
 
 For every request these are the tracing spans (and relative tags) created:
 
