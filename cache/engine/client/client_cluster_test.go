@@ -14,6 +14,7 @@ package client_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,10 +29,10 @@ import (
 )
 
 // this is to verify any possible data race condition
-const redisConnName = "testing"
-const clashingKey = "test"
+const clusterRedisConnName = "testing"
+const clusterClashingKey = "test"
 
-func initLogs() {
+func initLogsCluster() {
 	log.SetReportCaller(true)
 	log.SetLevel(log.DebugLevel)
 	log.SetFormatter(&log.TextFormatter{
@@ -41,12 +42,12 @@ func initLogs() {
 	})
 }
 
-func TestCircuitBreakerWithPingTimeout(t *testing.T) {
-	initLogs()
+func TestClusterCircuitBreakerWithPingTimeout(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -57,35 +58,35 @@ func TestCircuitBreakerWithPingTimeout(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(clusterRedisConnName, logger.GetGlobal()).State().String())
 
 	val := rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(clusterRedisConnName, logger.GetGlobal()).State().String())
 
 	_ = rdb.Close()
 
 	val = rdb.Ping()
 	assert.False(t, val)
-	assert.Equal(t, "half-open", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
+	assert.Equal(t, "half-open", circuit_breaker.CB(clusterRedisConnName, logger.GetGlobal()).State().String())
 
-	rdb = client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb = client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
 	val = rdb.Ping()
 	assert.True(t, val)
-	assert.Equal(t, "closed", circuit_breaker.CB(redisConnName, logger.GetGlobal()).State().String())
+	assert.Equal(t, "closed", circuit_breaker.CB(clusterRedisConnName, logger.GetGlobal()).State().String())
 }
 
-func TestClose(t *testing.T) {
-	initLogs()
+func TestCloseCluster(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -96,9 +97,9 @@ func TestClose(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
 	assert.True(t, rdb.Ping())
 
@@ -107,12 +108,12 @@ func TestClose(t *testing.T) {
 	assert.False(t, rdb.Ping())
 }
 
-func TestSetGet(t *testing.T) {
-	initLogs()
+func TestClusterSetGet(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -123,25 +124,25 @@ func TestSetGet(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(context.Background(), clashingKey, "sample", 0)
+	done, err := rdb.Set(context.Background(), clusterClashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := rdb.Get(clashingKey)
+	value, err := rdb.Get(clusterClashingKey)
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 }
 
-func TestSetGetWithExpiration(t *testing.T) {
-	initLogs()
+func TestClusterSetGetWithExpiration(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -152,27 +153,27 @@ func TestSetGetWithExpiration(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(context.Background(), clashingKey, "sample", 1*time.Millisecond)
+	done, err := rdb.Set(context.Background(), clusterClashingKey, "sample", 1*time.Millisecond)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
 	time.Sleep(10 * time.Millisecond) // let it expire in Redis
 
-	value, err := rdb.Get(clashingKey)
+	value, err := rdb.Get(clusterClashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
 }
 
-func TestDel(t *testing.T) {
-	initLogs()
+func TestClusterDel(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -183,32 +184,32 @@ func TestDel(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(context.Background(), clashingKey, "sample", 0)
+	done, err := rdb.Set(context.Background(), clusterClashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
-	value, err := rdb.Get(clashingKey)
+	value, err := rdb.Get(clusterClashingKey)
 	assert.Equal(t, "sample", value)
 	assert.Nil(t, err)
 
-	err = rdb.Del(context.Background(), clashingKey)
+	err = rdb.Del(context.Background(), clusterClashingKey)
 	assert.Nil(t, err)
 
-	value, err = rdb.Get(clashingKey)
+	value, err = rdb.Get(clusterClashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
 }
 
-func TestExpire(t *testing.T) {
-	initLogs()
+func TestClusterExpire(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -219,31 +220,31 @@ func TestExpire(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(context.Background(), clashingKey, "sample", 0)
+	done, err := rdb.Set(context.Background(), clusterClashingKey, "sample", 0)
 	assert.True(t, done)
 	assert.Nil(t, err)
 
 	// redis: commands.go:36: specified duration is 100ms, but minimal supported value is 1s - truncating to 1s
-	err = rdb.Expire(clashingKey, 100*time.Millisecond)
+	err = rdb.Expire(clusterClashingKey, 100*time.Millisecond)
 	assert.Nil(t, err)
 
 	time.Sleep(2 * time.Second)
 
-	value, err := rdb.Get(clashingKey)
+	value, err := rdb.Get(clusterClashingKey)
 	assert.Equal(t, "", value)
 	assert.Nil(t, err)
 }
 
-func TestPushList(t *testing.T) {
-	initLogs()
+func TestClusterPushList(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -254,79 +255,79 @@ func TestPushList(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	err := rdb.Push(context.Background(), clashingKey, []string{"a", "b", "c"})
+	err := rdb.Push(context.Background(), clusterClashingKey, []string{"a", "b", "c"})
 	assert.Nil(t, err)
 
-	value, err := rdb.List(clashingKey)
+	value, err := rdb.List(clusterClashingKey)
 	assert.Equal(t, []string{"a", "b", "c"}, value)
 	assert.Nil(t, err)
 }
 
-func TestDelWildcardNoMatch(t *testing.T) {
-	initLogs()
+func TestClusterDelWildcardNoMatch(t *testing.T) {
+    initLogsCluster()
 
-	cfg := config.Configuration{
-		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
-			DB:    0,
-		},
-		CircuitBreaker: circuit_breaker.CircuitBreaker{
-			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
-			FailureRate: 0.5,              // 1 out of 2 fails, or more
-			Interval:    0,                // doesn't clears counts
-			Timeout:     time.Duration(1), // clears state immediately
-		},
-	}
+    cfg := config.Configuration{
+        Cache: config.Cache{
+            Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
+            DB:    0,
+        },
+        CircuitBreaker: circuit_breaker.CircuitBreaker{
+            Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+            FailureRate: 0.5,              // 1 out of 2 fails, or more
+            Interval:    0,                // doesn't clears counts
+            Timeout:     time.Duration(1), // clears state immediately
+        },
+    }
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+    circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+    rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
-	assert.True(t, done)
-	assert.Nil(t, err)
-	done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
-	assert.True(t, done)
-	assert.Nil(t, err)
-	done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
-	assert.True(t, done)
-	assert.Nil(t, err)
+    done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
+    assert.True(t, done)
+    assert.Nil(t, err)
+    done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
+    assert.True(t, done)
+    assert.Nil(t, err)
+    done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
+    assert.True(t, done)
+    assert.Nil(t, err)
 
-	value, err := rdb.Get("test_1")
-	assert.Equal(t, "sample", value)
-	assert.Nil(t, err)
-	value, err = rdb.Get("test_2")
-	assert.Equal(t, "sample", value)
-	assert.Nil(t, err)
-	value, err = rdb.Get("test_3")
-	assert.Equal(t, "sample", value)
-	assert.Nil(t, err)
+    value, err := rdb.Get("test_1")
+    assert.Equal(t, "sample", value)
+    assert.Nil(t, err)
+    value, err = rdb.Get("test_2")
+    assert.Equal(t, "sample", value)
+    assert.Nil(t, err)
+    value, err = rdb.Get("test_3")
+    assert.Equal(t, "sample", value)
+    assert.Nil(t, err)
 
-	len, err := rdb.DelWildcard(context.Background(), "missing_*")
-	assert.Equal(t, 0, len)
-	assert.Nil(t, err)
+    len, err := rdb.DelWildcard(context.Background(), "missing_*")
+    assert.Equal(t, 0, len)
+    assert.Nil(t, err)
 
-	value, err = rdb.Get("test_1")
-	assert.Equal(t, "sample", value)
-	assert.Nil(t, err)
-	value, err = rdb.Get("test_2")
-	assert.Equal(t, "sample", value)
-	assert.Nil(t, err)
-	value, err = rdb.Get("test_3")
-	assert.Equal(t, "sample", value)
-	assert.Nil(t, err)
+    value, err = rdb.Get("test_1")
+    assert.Equal(t, "sample", value)
+    assert.Nil(t, err)
+    value, err = rdb.Get("test_2")
+    assert.Equal(t, "sample", value)
+    assert.Nil(t, err)
+    value, err = rdb.Get("test_3")
+    assert.Equal(t, "sample", value)
+    assert.Nil(t, err)
 }
 
-func TestDelWildcard(t *testing.T) {
-	initLogs()
+func TestClusterDelWildcard(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -337,9 +338,9 @@ func TestDelWildcard(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
 	assert.True(t, done)
@@ -376,12 +377,12 @@ func TestDelWildcard(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestPurgeAll(t *testing.T) {
-	initLogs()
+func TestClusterPurgeAll(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -392,9 +393,9 @@ func TestPurgeAll(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
 	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
 	assert.True(t, done)
@@ -431,12 +432,12 @@ func TestPurgeAll(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestEncodeDecode(t *testing.T) {
-	initLogs()
+func TestClusterEncodeDecode(t *testing.T) {
+	initLogsCluster()
 
 	cfg := config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -447,9 +448,9 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
 	str := []byte("test string")
 	var decoded []byte

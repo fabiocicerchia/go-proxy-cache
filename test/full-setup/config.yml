@@ -26,7 +26,8 @@ server:
       allow_insecure: true
 
 cache:
-  host: redis
+  hosts:
+    - redis:6379
 
 tracing:
   jaeger_endpoint: http://jaeger:14268/api/traces

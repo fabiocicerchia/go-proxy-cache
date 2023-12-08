@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	goredislib "github.com/go-redis/redis/v8"
@@ -31,17 +32,18 @@ var ctx = context.Background()
 
 // RedisClient - Redis Client structure.
 type RedisClient struct {
-	*goredislib.Client
-	*redsync.Redsync
-	Name   string
-	Mutex  map[string]*redsync.Mutex
-	logger *log.Logger
+	Client  goredislib.UniversalClient
+	Redsync *redsync.Redsync
+	Name    string
+	Mutex   map[string]*redsync.Mutex
+	logger  *log.Logger
 }
 
 // Connect - Connects to DB.
 func Connect(connName string, config config.Cache, logger *log.Logger) *RedisClient {
-	client := goredislib.NewClient(&goredislib.Options{
-		Addr:     config.Host + ":" + config.Port,
+
+	client := goredislib.NewUniversalClient(&goredislib.UniversalOptions{
+		Addrs:    config.Hosts,
 		Password: config.Password,
 		DB:       config.DB,
 	})
@@ -105,12 +107,26 @@ func (rdb *RedisClient) unlock(ctx context.Context, key string) error {
 
 // PurgeAll - Purges all the existing keys on a DB.
 func (rdb *RedisClient) PurgeAll() (bool, error) {
+	// multiple redis instances
+	if rdb.Client.ClusterSlots(ctx).Err() == nil {
+		clusterClient := rdb.Client.(*goredislib.ClusterClient)
+		err := clusterClient.ForEachShard(ctx, func(ctx context.Context, client *goredislib.Client) error {
+			return rdb.purgeAllKeys(client)
+		})
+		return err == nil, err
+	}
+	
+	// single redis instance
+	err := rdb.purgeAllKeys(rdb.Client)
+	return err == nil, err
+}
+
+func (rdb *RedisClient) purgeAllKeys(client goredislib.UniversalClient) error {
 	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
-		err := rdb.Client.FlushDB(ctx).Err()
+		err := client.FlushDB(ctx).Err()
 		return nil, err
 	})
-
-	return err == nil, err
+	return err
 }
 
 // Ping - Tests the connection.
@@ -167,47 +183,15 @@ func (rdb *RedisClient) Del(ctx context.Context, key string) error {
 	return err
 }
 
-// DelWildcard - Removes the matching keys based on a pattern.
-func (rdb *RedisClient) DelWildcard(ctx context.Context, key string) (int, error) {
-	k, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
-		keys, err := rdb.Client.Keys(ctx, key).Result()
-		return keys, err
-	})
-
-	if err != nil {
-		return 0, nil
-	}
-
-	return rdb.deleteKeys(ctx, key, k.([]string))
+type Counter struct {
+	mu      sync.Mutex
+	counter int
 }
 
-// DelWildcard - Removes the matching keys based on a pattern.
-func (rdb *RedisClient) deleteKeys(ctx context.Context, keyID string, keys []string) (int, error) {
-	l := len(keys)
-
-	if l == 0 {
-		return 0, nil
-	}
-
-	_, errDel := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doDeleteKeys(ctx, keyID, keys))
-
-	return l, errDel
-}
-
-func (rdb *RedisClient) doDeleteKeys(ctx context.Context, keyID string, keys []string) func() (interface{}, error) {
-	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, keyID); errLock != nil {
-			return nil, errLock
-		}
-
-		err := rdb.Client.Del(ctx, keys...).Err()
-
-		if errUnlock := rdb.unlock(ctx, keyID); errUnlock != nil {
-			return nil, errUnlock
-		}
-
-		return nil, err
-	}
+func (c *Counter) increment(num int) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.counter = c.counter + num
 }
 
 // List - Returns the values in a list.

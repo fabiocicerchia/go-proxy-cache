@@ -259,8 +259,8 @@ tracing:
 # --- CACHE
 cache:
   # --- REDIS SERVER
-  host: 127.0.0.1
-  port: "6379"
+  hosts: 
+    - localhost:6379
   password: ~
   db: 0
   # --- TTL

@@ -16,6 +16,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,71 +32,20 @@ import (
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
-func TestEndToEndCallPurgeDoNothing(t *testing.T) {
+func TestClusterEndToEndHandleWSRequestAndProxy(t *testing.T) {
+
 	initLogs()
 
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
+				Host:      "testing.local",
+				Scheme:    "ws",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_WS", "localhost:40081")},
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
-			DB:              0,
-			AllowedStatuses: []int{200, 301, 302},
-			AllowedMethods:  []string{"HEAD", "GET"},
-		},
-		CircuitBreaker: circuit_breaker.CircuitBreaker{
-			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
-			FailureRate: 0.5,              // 1 out of 2 fails, or more
-			Interval:    time.Duration(1), // clears counts immediately
-			Timeout:     time.Duration(1), // clears state immediately
-		},
-	}
-
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
-	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
-
-	// --- PURGE
-
-	req, err := http.NewRequest("PURGE", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	assert.Nil(t, err)
-
-	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest)
-
-	_, err = engine.GetConn(domainID).PurgeAll()
-	assert.Nil(t, err)
-
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusNotFound, rr.Code)
-
-	body := rr.Body.String()
-
-	assert.Equal(t, body, "KO")
-}
-
-func TestEndToEndCallPurge(t *testing.T) {
-	initLogs()
-
-	config.Config = config.Configuration{
-		Server: config.Server{
-			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
-			},
-		},
-		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -113,13 +63,16 @@ func TestEndToEndCallPurge(t *testing.T) {
 	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
-	// --- MISS
+	// --- WEBSOCKET
 
 	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
-	req.TLS = &tls.ConnectionState{} // mock a fake https
+	req.Header = http.Header{
+		"Connection": []string{"upgrade"},
+		"Upgrade":    []string{"websocket"},
+	}
 	assert.Nil(t, err)
 
 	rr := httptest.NewRecorder()
@@ -134,72 +87,64 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+	assert.Equal(t, "", body)
+}
 
-	assert.Contains(t, body, "<!doctype html>")
-	assert.Contains(t, body, "<title>W3C</title>")
-	assert.Contains(t, body, "</body>\n\n</html>\n")
+func TestClusterEndToEndHandleWSRequestAndProxySecure(t *testing.T) {
 
-	// --- HIT
+	initLogs()
 
-	req, err = http.NewRequest("GET", "/", nil)
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "testing.local",
+				Scheme:    "ws",
+				Endpoints: []string{utils.GetEnv("NGINX_HOST_WSS", "localhost:40082")},
+			},
+		},
+		Cache: config.Cache{
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
+			DB:              0,
+			AllowedStatuses: []int{200, 301, 302},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5,              // 1 out of 2 fails, or more
+			Interval:    time.Duration(1), // clears counts immediately
+			Timeout:     time.Duration(1), // clears state immediately
+		},
+	}
+
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
+
+	// --- WEBSOCKET
+
+	req, err := http.NewRequest("GET", "/", nil)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
 	req.TLS = &tls.ConnectionState{} // mock a fake https
+	req.Header = http.Header{
+		"Connection": []string{"upgrade"},
+		"Upgrade":    []string{"websocket"},
+	}
 	assert.Nil(t, err)
 
-	rr = httptest.NewRecorder()
-	h = http.HandlerFunc(handler.HandleRequest)
+	rr := httptest.NewRecorder()
+	h := http.HandlerFunc(handler.HandleRequest)
+
+	_, err = engine.GetConn(domainID).PurgeAll()
+	assert.Nil(t, err)
+
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
 
-	assert.Equal(t, "HIT", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
+	body := rr.Body.String()
 
-	body = rr.Body.String()
-
-	assert.Contains(t, body, "<!doctype html>")
-	assert.Contains(t, body, "<title>W3C</title>")
-	assert.Contains(t, body, "</body>\n\n</html>\n")
-
-	// --- PURGE
-
-	req, err = http.NewRequest("PURGE", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	req.TLS = &tls.ConnectionState{} // mock a fake https
-	assert.Nil(t, err)
-
-	rr = httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	body = rr.Body.String()
-
-	assert.Equal(t, "OK", body)
-
-	// --- MISS
-
-	req, err = http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	req.TLS = &tls.ConnectionState{} // mock a fake https
-	assert.Nil(t, err)
-
-	rr = httptest.NewRecorder()
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusOK, rr.Code)
-
-	assert.Equal(t, "MISS", rr.HeaderMap["X-Go-Proxy-Cache-Status"][0])
-
-	body = rr.Body.String()
-
-	assert.Contains(t, body, "<!doctype html>")
-	assert.Contains(t, body, "<title>W3C</title>")
-	assert.Contains(t, body, "</body>\n\n</html>\n")
+	assert.Equal(t, "", body)
 }

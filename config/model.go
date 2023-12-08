@@ -126,8 +126,7 @@ type Timeout struct {
 
 // Cache - Defines the config for the cache backend.
 type Cache struct {
-	Host            string   `yaml:"host" envconfig:"REDIS_HOST"`
-	Port            string   `yaml:"port" envconfig:"REDIS_PORT"`
+	Hosts           []string `yaml:"hosts" envconfig:"REDIS_HOSTS"`
 	Password        string   `yaml:"password" envconfig:"REDIS_PASSWORD"`
 	DB              int      `yaml:"db" envconfig:"REDIS_DB"`
 	TTL             int      `yaml:"ttl" envconfig:"DEFAULT_TTL"`
@@ -219,7 +218,6 @@ var Config Configuration = Configuration{
 		GZip: false,
 	},
 	Cache: Cache{
-		Port:            "6379",
 		DB:              0,
 		TTL:             0,
 		AllowedStatuses: []int{200, 301, 302},

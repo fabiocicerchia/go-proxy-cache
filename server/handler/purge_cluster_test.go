@@ -16,6 +16,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ import (
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
-func TestEndToEndCallPurgeDoNothing(t *testing.T) {
+func TestClusterEndToEndCallPurgeDoNothing(t *testing.T) {
 	initLogs()
 
 	config.Config = config.Configuration{
@@ -43,7 +44,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -83,7 +84,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	assert.Equal(t, body, "KO")
 }
 
-func TestEndToEndCallPurge(t *testing.T) {
+func TestClusterEndToEndCallPurge(t *testing.T) {
 	initLogs()
 
 	config.Config = config.Configuration{
@@ -95,7 +96,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              0,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},

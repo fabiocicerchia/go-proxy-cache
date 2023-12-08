@@ -15,6 +15,7 @@ package handler_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,12 +30,12 @@ import (
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
-func TestHealthcheckWithoutRedis(t *testing.T) {
+func TestClusterHealthcheckWithoutRedis(t *testing.T) {
 	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -74,12 +75,12 @@ func TestHealthcheckWithoutRedis(t *testing.T) {
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 }
 
-func TestHealthcheckWithRedis(t *testing.T) {
+func TestClusterHealthcheckWithRedis(t *testing.T) {
 	initLogs()
 
 	config.Config = config.Configuration{
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{

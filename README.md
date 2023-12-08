@@ -171,7 +171,8 @@ server:
     redirect_status_code: 301
 
 cache:
-  host: localhost
+  hosts: 
+    - localhost:6379
 
 domains:
   example_com:

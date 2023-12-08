@@ -23,9 +23,8 @@
 - `LB_ENDPOINT_LIST`
 - `REDIRECT_STATUS_CODE` = `301`
 - `REDIS_DB`
-- `REDIS_HOST`
+- `REDIS_HOSTS`
 - `REDIS_PASSWORD`
-- `REDIS_PORT`
 - `SENTRY_DSN`
 - `SERVER_HTTPS_PORT`
 - `SERVER_HTTP_PORT`
@@ -250,8 +249,8 @@ server:
 # --- CACHE
 cache:
   # --- REDIS SERVER
-  host: localhost
-  port: "6379"
+  hosts: 
+    - localhost:6379
   password: ~
   db: 0
   # --- TTL

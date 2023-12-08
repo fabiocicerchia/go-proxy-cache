@@ -22,7 +22,8 @@ data:
           scheme: http
 
     cache:
-      host: cache-redis.default.svc.cluster.local
+      hosts: 
+        - cache-redis.default.svc.cluster.local
 
     domains:
       example_com:

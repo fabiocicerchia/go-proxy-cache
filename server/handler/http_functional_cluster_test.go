@@ -17,6 +17,7 @@ import (
 	"crypto/tls"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -32,7 +33,7 @@ import (
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
-func getCommonConfig() config.Configuration {
+func getCommonClusterConfig() config.Configuration {
 	initLogs()
 
 	return config.Configuration{
@@ -44,7 +45,7 @@ func getCommonConfig() config.Configuration {
 			},
 		},
 		Cache: config.Cache{
-			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
@@ -58,8 +59,8 @@ func getCommonConfig() config.Configuration {
 
 // --- HTTP
 
-func TestHTTPEndToEndCallRedirect(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPEndToEndCallRedirect(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 1
 	config.Config.Server.Upstream.Host = "testing.local"
 	config.Config.Server.Upstream.Scheme = "http"
@@ -85,11 +86,11 @@ func TestHTTPEndToEndCallRedirect(t *testing.T) {
 	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
 	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPEndToEndCallWithoutCache(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 2
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
@@ -129,13 +130,13 @@ func TestHTTPEndToEndCallWithoutCache(t *testing.T) {
 	assert.Contains(t, body, "<title>W3C</title>")
 	assert.Contains(t, body, "</body>\n\n</html>\n")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
+func TestClusterHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 	t.Skip("Found a regression due to an expected change in the endpoint")
 
-	config.Config = getCommonConfig()
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 3
 	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
@@ -171,10 +172,10 @@ func TestHTTPEndToEndCallWithCacheMiss(t *testing.T) {
 
 	assert.Contains(t, body, "")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
+func TestClusterHTTPEndToEndCallWithCacheHit(t *testing.T) {
 	t.Skip("Found a regression due to an expected change in the endpoint")
 
 	config.Config = config.Configuration{
@@ -186,7 +187,7 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              4,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -248,10 +249,10 @@ func TestHTTPEndToEndCallWithCacheHit(t *testing.T) {
 
 	assert.Contains(t, body, "")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
+func TestClusterHTTPEndToEndCallWithCacheBypass(t *testing.T) {
 	t.Skip("Found a regression due to an expected change in the endpoint")
 
 	config.Config = config.Configuration{
@@ -263,7 +264,7 @@ func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              4,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -349,10 +350,10 @@ func TestHTTPEndToEndCallWithCacheBypass(t *testing.T) {
 
 	assert.Contains(t, body, "")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
+func TestClusterHTTPEndToEndCallWithCacheStale(t *testing.T) {
 	t.Skip("Found a regression due to an expected change in the endpoint")
 
 	config.Config = config.Configuration{
@@ -364,7 +365,7 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              5,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -404,9 +405,9 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 
 	body := rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>Standards - W3C</title>`)
-	assert.Contains(t, body, "</div></body></html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	// --- HIT
 
@@ -426,9 +427,9 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>Standards - W3C</title>`)
-	assert.Contains(t, body, "</div></body></html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
 	// Manual Timeout All Fresh Keys
 	_, _ = engine.GetConn(domainID).DelWildcard(context.Background(), "DATA@@GET@@https://www.w3.org/standards/@@*/fresh")
@@ -451,50 +452,15 @@ func TestHTTPEndToEndCallWithCacheStale(t *testing.T) {
 
 	body = rr.Body.String()
 
-	assert.Contains(t, body, "<!DOCTYPE html PUBLIC")
-	assert.Contains(t, body, `<title>Standards - W3C</title>`)
-	assert.Contains(t, body, "</div></body></html>\n")
+	assert.Contains(t, body, "<!doctype html>")
+	assert.Contains(t, body, "<title>W3C</title>")
+	assert.Contains(t, body, "</body>\n\n</html>\n")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPEndToEndCallWithHTTPSRedirect(t *testing.T) {
-	config.Config = config.Configuration{
-		Server: config.Server{
-			Upstream: config.Upstream{
-				Host:               "testing.local",
-				Scheme:             "http",
-				Endpoints:          []string{utils.GetEnv("NGINX_HOST_80", "localhost:40080")},
-				HTTP2HTTPS:         true,
-				RedirectStatusCode: http.StatusFound,
-			},
-		},
-	}
-	config.Config.Cache.DB = 6
-
-	domainID := config.Config.Server.Upstream.GetDomainID()
-	balancer.InitRoundRobin(domainID, config.Config.Server.Upstream, false)
-
-	req, err := http.NewRequest("GET", "/", nil)
-	req.URL.Scheme = config.Config.Server.Upstream.Scheme
-	req.URL.Host = config.Config.Server.Upstream.Host
-	req.Host = config.Config.Server.Upstream.Host
-	assert.Nil(t, err)
-
-	rr := httptest.NewRecorder()
-	h := http.HandlerFunc(handler.HandleRequest)
-
-	h.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusFound, rr.Code)
-
-	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
-
-	tearDownHTTPFunctional()
-}
-
-func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPEndToEndCallWithMissingDomain(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 7
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
@@ -525,13 +491,13 @@ func TestHTTPEndToEndCallWithMissingDomain(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotImplemented, rr.Code)
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
 // --- HTTPS
 
-func TestHTTPSEndToEndCallRedirect(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPSEndToEndCallRedirect(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 8
 	config.Config.Server.Upstream.Host = "testing.local"
 	config.Config.Server.Upstream.Scheme = "http"
@@ -563,11 +529,11 @@ func TestHTTPSEndToEndCallRedirect(t *testing.T) {
 	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
 	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPSEndToEndCallWithoutCache(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 9
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
@@ -607,11 +573,11 @@ func TestHTTPSEndToEndCallWithoutCache(t *testing.T) {
 	assert.Contains(t, body, "<title>W3C</title>")
 	assert.Contains(t, body, "</body>\n\n</html>\n")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 10
 	config.Config.Server.Upstream = config.Upstream{
 		Host:      "www.w3.org",
@@ -649,10 +615,10 @@ func TestHTTPSEndToEndCallWithCacheMiss(t *testing.T) {
 	assert.Contains(t, body, "<title>W3C</title>")
 	assert.Contains(t, body, "</body>\n\n</html>\n")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
+func TestClusterHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
@@ -662,7 +628,7 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 			},
 		},
 		Cache: config.Cache{
-			Hosts:           []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			Hosts:           strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
 			DB:              11,
 			AllowedStatuses: []int{200, 301, 302},
 			AllowedMethods:  []string{"HEAD", "GET"},
@@ -728,11 +694,11 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	assert.Contains(t, body, "<title>W3C</title>")
 	assert.Contains(t, body, "</body>\n\n</html>\n")
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
-	config.Config = getCommonConfig()
+func TestClusterHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
+	config.Config = getCommonClusterConfig()
 	config.Config.Cache.DB = 12
 	config.Config.Domains = make(config.Domains)
 	conf := config.Config
@@ -763,9 +729,9 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotImplemented, rr.Code)
 
-	tearDownHTTPFunctional()
+	tearDownHTTPFunctionalCluster()
 }
 
-func tearDownHTTPFunctional() {
+func tearDownHTTPFunctionalCluster() {
 	config.Config = config.Configuration{}
 }
