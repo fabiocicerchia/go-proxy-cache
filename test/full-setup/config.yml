@@ -46,6 +46,9 @@ domains:
         host: example.com
         health_check:
           scheme: http
+    jwt:
+      jwks_refresh_interval: 60
+      jwks_url: http://testJwksUrlYaml.com
 
   example_org:
     server:
@@ -53,6 +56,9 @@ domains:
         host: example.org
         health_check:
           scheme: http
+    jwt:
+      excluded_paths:
+        - /
 
   www_w3_org:
     server:
@@ -63,6 +69,9 @@ domains:
       tls:
         cert_file: certs/www.w3.org/server.pem
         key_file: certs/www.w3.org/server.key
+    jwt:
+      excluded_paths:
+        - /
 
   www_testing_local:
     server:
@@ -73,6 +82,9 @@ domains:
         - nginx:40080
         health_check:
           scheme: http
+    jwt:
+      excluded_paths:
+        - /
 
   testing_local:
     server:
@@ -83,6 +95,9 @@ domains:
         - http://user:pass@nginx:40080
         health_check:
           scheme: http
+    jwt:
+      excluded_paths:
+        - /
 
   testing_local_https:
     server:
@@ -95,6 +110,9 @@ domains:
         health_check:
           scheme: https
           allow_insecure: true
+    jwt:
+      excluded_paths:
+        - /
 
   testing_local_ws:
     server:
@@ -105,6 +123,9 @@ domains:
         - nginx:40081
         health_check:
           scheme: http
+    jwt:
+      excluded_paths:
+        - /
 
   testing_local_wss:
     server:
@@ -116,3 +137,6 @@ domains:
         - nginx:40082
         health_check:
           scheme: http
+    jwt:
+      excluded_paths:
+        - /

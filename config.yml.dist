@@ -306,6 +306,19 @@ tracing:
   # Default: 1.0
   sampling_ratio: 1.0
 
+# --- JWT  (careful, setting JWT config here affects all domains)
+# jwt:
+#   # A list of space-separated paths.
+#   excluded_paths:
+#     - /
+#   # A list of space-separated scopes to be allowed.
+#   allowed_scopes:
+#     - scope1, scope2
+#   # The JSON Web Key Set (JWKS) URL where it is stored the the public keys used to verify the JSON Web Token (JWT).
+#   jwks_url: ~
+#   # Time in minutes that takes for JWKS to refresh automatically
+#   jwks_refresh_interval: 15
+
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################
 domains:

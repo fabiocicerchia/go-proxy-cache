@@ -10,12 +10,15 @@ package config
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"crypto/tls"
 	"net/http"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/sirupsen/logrus"
 )
 
 // DefaultTimeoutRead - Default value used for http.Server.ReadTimeout
@@ -57,6 +60,7 @@ type Configuration struct {
 	Log            Log                           `yaml:"log"`
 	Tracing        Tracing                       `yaml:"tracing"`
 	domainsCache   map[string]Configuration
+	Jwt		   	   Jwt					 		 `yaml:"jwt"`
 }
 
 // Domains - Overrides per domain.
@@ -160,6 +164,23 @@ type Internals struct {
 type DomainSet struct {
 	Host   string
 	Scheme string
+}
+
+// Jwt - Defines the config for the jwt validation.
+type Jwt struct {
+	ExcludedPaths       []string   `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
+	AllowedScopes       []string   `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
+	JwksUrl             string     `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
+	JwksRefreshInterval int        `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
+	JwkCache            *jwk.Cache
+	Context             context.Context
+	Logger              *logrus.Logger
+}
+
+// Jwt - Defines the jwt validation error.
+type JwtError struct {
+	ErrorCode        string `json:"errorCode"`
+	ErrorDescription string `json:"errorDescription"`
 }
 
 // Config - Holds the server configuration.
