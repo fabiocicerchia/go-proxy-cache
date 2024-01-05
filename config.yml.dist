@@ -313,6 +313,11 @@ domains:
     server:
       upstream:
         host: example.com
+    jwt:
+      included_paths:
+        - /
+      allowed_scopes:
+        - scope1, scope2
 
   example_org:
     server:

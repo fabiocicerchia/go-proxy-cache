@@ -137,6 +137,7 @@ func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
 	c.copyOverWithCache(overrides.Cache)
 	c.copyOverWithTracing(overrides.Tracing)
 	c.copyOverWithLog(overrides.Log)
+	c.copyOverWithJwt(overrides.Jwt)
 }
 
 // --- SERVER.
@@ -215,6 +216,13 @@ func (c *Configuration) copyOverWithLog(overrides Log) {
 	c.Log.SentryDsn = utils.Coalesce(overrides.SentryDsn, c.Log.SentryDsn).(string)
 	c.Log.SyslogProtocol = utils.Coalesce(overrides.SyslogProtocol, c.Log.SyslogProtocol).(string)
 	c.Log.SyslogEndpoint = utils.Coalesce(overrides.SyslogEndpoint, c.Log.SyslogEndpoint).(string)
+}
+
+// --- JWT.
+func (c *Configuration) copyOverWithJwt(overrides Jwt) {
+	c.Jwt.IncludedPaths = utils.Coalesce(overrides.IncludedPaths, c.Jwt.IncludedPaths).([]string)
+	c.Jwt.AllowedScopes = utils.Coalesce(overrides.AllowedScopes, c.Jwt.AllowedScopes).([]string)
+	c.Jwt.JwksUrl = utils.Coalesce(overrides.JwksUrl, c.Jwt.JwksUrl).(string)
 }
 
 // Print - Shows the current configuration.

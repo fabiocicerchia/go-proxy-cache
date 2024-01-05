@@ -27,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/server/jwt"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -143,7 +144,7 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", tracing.HTTPHandlerFunc(handler.HandleRequest, "handle_request"))
-
+	
 	// basic
 	var muxMiddleware http.Handler = mux
 
@@ -160,7 +161,7 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 		WriteTimeout:      timeout.Write * time.Second,
 		IdleTimeout:       timeout.Idle * time.Second,
 		ReadHeaderTimeout: timeout.ReadHeader * time.Second,
-		Handler:           muxMiddleware,
+		Handler:           jwt.JWTHandler(muxMiddleware),
 	}
 
 	return server
