@@ -41,7 +41,7 @@ func TestETagValidResponse(t *testing.T) {
 		"X-Go-Proxy-Cache-Force-Fresh": []string{"1"},
 	}
 	assert.Nil(t, err)
-	req.Host = "www.w3.org"
+	req.Host = "example.org"
 	res, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -55,8 +55,8 @@ func TestETagValidResponse(t *testing.T) {
 	res.Body.Close()
 
 	assert.Equal(t, "MISS", res.Header.Get("X-Go-Proxy-Cache-Status"))
-	// this is the real ETag from w3.org
-	assert.Regexp(t, regexp.MustCompile(`\w\/"[a-z, 0-9]{32}`), res.Header.Get("ETag"))
+	// this is the real ETag from example.org
+	assert.Regexp(t, regexp.MustCompile(`[0-9]{9}`), res.Header.Get("ETag"))
 
 	assert.Equal(t, "HTTP/2.0", res.Proto)
 	assert.Equal(t, 2, res.ProtoMajor)
@@ -64,8 +64,8 @@ func TestETagValidResponse(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	assert.Contains(t, string(body), "<!doctype html>")
-	assert.Contains(t, string(body), "<title>W3C</title>")
-	assert.Contains(t, string(body), "</body>\n\n</html>\n")
+	assert.Contains(t, string(body), "<title>Example Domain</title>")
+	assert.Contains(t, string(body), "</body>\n</html>\n")
 
 	tearDownETag()
 }

@@ -41,6 +41,11 @@
 - `TLS_KEY_FILE`
 - `TRACING_ENABLED`
 - `TRACING_JAEGER_ENDPOINT`
+- `JWT_EXCLUDED_PATHS`
+- `JWT_ALLOWED_SCOPES`
+- `JWT_JWKS_URL`
+- `JWT_JWKS_URL_<domain_name_specified_in_config.yml>`
+- `JWT_REFRESH_INTERVAL`
 
 ## YAML
 
@@ -352,6 +357,19 @@ tracing:
   # Set the sampling ratio for tracing (float).
   # Default: 1.0
   sampling_ratio: 1.0
+
+# --- JWT
+# jwt:
+#   # A list of space-separated paths.
+#   excluded_paths:
+#     - /
+#   # A list of space-separated scopes to be allowed.
+#   allowed_scopes:
+#     - scope1, scope2
+#   # The JSON Web Key Set (JWKS) URL where it is stored the the public keys used to verify the JSON Web Token (JWT).
+#   jwks_url: ~
+#   # Time in minutes that takes for JWKS to refresh automatically
+#   jwks_refresh_interval: 15
 
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################
