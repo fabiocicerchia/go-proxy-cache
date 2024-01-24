@@ -41,6 +41,9 @@
 - `TLS_KEY_FILE`
 - `TRACING_ENABLED`
 - `TRACING_JAEGER_ENDPOINT`
+- `JWT_INCLUDED_PATHS`
+- `JWT_ALLOWED_SCOPES`
+- `JWT_JWKS_URL`
 
 ## YAML
 
@@ -352,6 +355,17 @@ tracing:
   # Set the sampling ratio for tracing (float).
   # Default: 1.0
   sampling_ratio: 1.0
+
+# --- JWT
+jwt:
+  # A list of space-separated paths.
+  included_paths:
+    - /
+  # A list of space-separated scopes to be allowed.
+  allowed_scopes:
+    - scope1, scope2
+  # The JSON Web Key Set (JWKS) URL where it is stored the the public keys used to verify the JSON Web Token (JWT).
+  jwks_url: ~
 
 ### PER DOMAIN CONFIGURATION OVERRIDE
 ################################################################################

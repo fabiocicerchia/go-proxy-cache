@@ -167,9 +167,9 @@ type DomainSet struct {
 
 // Jwt - Defines the config for the jwt validation.
 type Jwt struct {
-	IncludedPaths []string	`yaml:"included_paths" envconfig:"INCLUDED_PATHS"`
-	AllowedScopes []string	`yaml:"allowed_scopes" envconfig:"ALLOWED_SCOPES"`
-	JwksUrl       string	`yaml:"jwks_url"`
+	IncludedPaths []string	`yaml:"included_paths" envconfig:"JWT_INCLUDED_PATHS" split_words:"true"`
+	AllowedScopes []string	`yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
+	JwksUrl       string	`yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
 	Context        context.Context
 	Logger         *logrus.Logger
 }
