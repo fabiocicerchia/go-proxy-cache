@@ -7,7 +7,7 @@
 # Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-FROM amazonlinux:2.0.20220316.0 AS builder
+FROM amazonlinux:2.0.20240412.0 AS builder
 
 ARG BUILD_CMD=build
 
@@ -25,7 +25,7 @@ COPY . ./
 
 RUN make $BUILD_CMD
 
-FROM amazonlinux:2.0.20220316.0
+FROM amazonlinux:2.0.20240412.0
 
 WORKDIR /app
 
