@@ -19,7 +19,7 @@ COPY . ./
 
 RUN make $BUILD_CMD
 
-FROM debian:bullseye-20230109-slim
+FROM debian:bullseye-20240513-slim
 
 WORKDIR /app
 
