@@ -28,11 +28,11 @@ import (
 )
 
 func TestAllowedScope(t *testing.T) {
-	co := &config.Jwt{AllowedScopes: []string{"admin"}}
-	res := haveAllowedScope([]string{""}, co.AllowedScopes)
+	jwtConfig := &config.Jwt{AllowedScopes: []string{"admin"}}
+	res := haveAllowedScope([]string{""}, jwtConfig.AllowedScopes)
 	assert.Equal(t, res, false, "No scope provided, should be false")
 
-	res = haveAllowedScope([]string{"admin"}, co.AllowedScopes)
+	res = haveAllowedScope([]string{"admin"}, jwtConfig.AllowedScopes)
 	assert.Equal(t, res, true, "Admin is provided and allowed, should be true")
 
 	res = haveAllowedScope([]string{"admin"}, []string{})
@@ -81,9 +81,8 @@ func TestValidateJWTWithoutAnyToken(t *testing.T) {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
 	publicKey := &privateKey.PublicKey
 	_, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
-	co = &jwtConfig
 
-	err := ValidateJWT(w, req, keySet)
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, w.Code, 401, "No token provided status code should be 401")
@@ -100,9 +99,8 @@ func TestValidateJWTWithoutAnyKeySet(t *testing.T) {
 	config.InitJWT(&jwtConfig)
 	w := httptest.NewRecorder()
 	req.Header.Add("Authorization", "Bearer "+scpExpiredToken)
-	co = &jwtConfig
 
-	_, err := getKeySet(w)
+	_, err := getKeySet(w, &jwtConfig)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, w.Code, 401, "failed to unmarshal JWK set: EOF")
@@ -118,9 +116,8 @@ func TestValidateJWTWithAnExpiredToken(t *testing.T) {
 	config.InitJWT(&jwtConfig)
 	w := httptest.NewRecorder()
 	req.Header.Add("Authorization", "Bearer "+scpExpiredToken)
-	co = &jwtConfig
 
-	err := ValidateJWT(w, req, keySet)
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, w.Code, 401, "exp not satisfied")
@@ -137,9 +134,8 @@ func TestValidateJWTWithoutAnyScopeInTheConfig(t *testing.T) {
 	config.InitJWT(&jwtConfig)
 	w := httptest.NewRecorder()
 	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
-	co = &jwtConfig
 
-	err := ValidateJWT(w, req, keySet)
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
 
 	assert.NotNil(t, err)
 	assert.Equal(t, w.Code, 401, "Invalid Scope")
@@ -158,11 +154,10 @@ func TestValidateJWTWithScopeConfigAndScopeClaimToken(t *testing.T) {
 	config.InitJWT(&jwtConfig)
 	w := httptest.NewRecorder()
 	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
-	co = &jwtConfig
 
-	keySet, err := getKeySet(w)
+	keySet, err := getKeySet(w, &jwtConfig)
 	assert.Nil(t, err)
-	err = ValidateJWT(w, req, keySet)
+	err = ValidateJWT(w, req, keySet, &jwtConfig)
 
 	assert.Nil(t, err)
 	assert.Equal(t, w.Code, 200, "Status OK")
@@ -181,11 +176,10 @@ func TestValidateJWTWithScopeConfigAndScpClaimToken(t *testing.T) {
 	config.InitJWT(&jwtConfig)
 	w := httptest.NewRecorder()
 	req.Header.Add("Authorization", "Bearer "+scpGoodToken)
-	co = &jwtConfig
 
-	keySet, err := getKeySet(w)
+	keySet, err := getKeySet(w, &jwtConfig)
 	assert.Nil(t, err)
-	err = ValidateJWT(w, req, keySet)
+	err = ValidateJWT(w, req, keySet, &jwtConfig)
 
 	assert.Nil(t, err)
 	assert.Equal(t, w.Code, 200, "Status OK")
@@ -204,11 +198,10 @@ func TestValidateJWTWithMultipleKeysInKeySet(t *testing.T) {
 	config.InitJWT(&jwtConfig)
 	w := httptest.NewRecorder()
 	req.Header.Add("Authorization", "Bearer "+scopeGoodTokenMultiple)
-	co = &jwtConfig
 
-	keySet, err := getKeySet(w)
+	keySet, err := getKeySet(w, &jwtConfig)
 	assert.Nil(t, err)
-	err = ValidateJWT(w, req, keySet)
+	err = ValidateJWT(w, req, keySet, &jwtConfig)
 
 	assert.Nil(t, err)
 	assert.Equal(t, w.Code, 200, "Status OK")
@@ -261,9 +254,9 @@ func TestRefreshKeySet(t *testing.T) {
 	config.InitJWT(&domainConf.Jwt)
 	config.Config.Domains["example_com"] = domainConf
 	w := httptest.NewRecorder()
-	co = &domainConf.Jwt
+	jwtConfig = domainConf.Jwt
 
-	keySet1, err := getKeySet(w)
+	keySet1, err := getKeySet(w, &jwtConfig)
 	assert.Nil(t, err)
 
 	ts.Close()
@@ -271,7 +264,7 @@ func TestRefreshKeySet(t *testing.T) {
 	ts = CreateTestServer(t, jsonJWKKeySetSingle2, jsonJWKKeySetMultiple2, 8081)
 	time.Sleep(time.Duration(2) * time.Second)
 
-	keySet2, err := getKeySet(w)
+	keySet2, err := getKeySet(w, &jwtConfig)
 	assert.Nil(t, err)
 
 	assert.NotEqualValues(t, keySet1, keySet2)
@@ -281,7 +274,7 @@ func TestRefreshKeySet(t *testing.T) {
 	ts = CreateTestServer(t, jsonJWKKeySetSingle3, jsonJWKKeySetMultiple3, 8081)
 	time.Sleep(time.Duration(2) * time.Second)
 
-	keySet3, err := getKeySet(w)
+	keySet3, err := getKeySet(w, &jwtConfig)
 	assert.Nil(t, err)
 
 	assert.NotEqualValues(t, keySet2, keySet3)

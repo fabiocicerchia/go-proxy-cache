@@ -8,7 +8,6 @@ import (
 )
 
 func TestContains(t *testing.T) {
-
 	v := []string{"a", "b"}
 	res := slice.ContainsString(v, "a")
 	if !res {
@@ -38,45 +37,45 @@ func TestContains(t *testing.T) {
 }
 
 func TestIsExcluded(t *testing.T) {
-	co = &config.Jwt{ExcludedPaths: []string{"/a"}}
-	res := IsExcluded(co.ExcludedPaths, "/a")
+	jwtConfig := &config.Jwt{ExcludedPaths: []string{"/a"}}
+	res := IsExcluded(jwtConfig.ExcludedPaths, "/a")
 	if !res {
 		t.Error("Expected true but got", res)
 	}
 
-	res = IsExcluded(co.ExcludedPaths, "/b")
+	res = IsExcluded(jwtConfig.ExcludedPaths, "/b")
 	if res {
 		t.Error("Expected false but got", res)
 	}
 
-	co.ExcludedPaths = []string{`^/c/[0-9]+$`}
-	res = IsExcluded(co.ExcludedPaths, `/c`)
+	jwtConfig.ExcludedPaths = []string{`^/c/[0-9]+$`}
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c`)
 	if res {
 		t.Error("Expected false but got", res)
 	}
-	res = IsExcluded(co.ExcludedPaths, `/c/1234`)
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c/1234`)
 	if !res {
 		t.Error("Expected true but got", res)
 	}
-	res = IsExcluded(co.ExcludedPaths, `/c/1234/d`)
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c/1234/d`)
 	if res {
 		t.Error("Expected false but got", res)
 	}
 
-	co.ExcludedPaths = []string{`^/c\/[0-9]+\/d\?.+$`}
-	res = IsExcluded(co.ExcludedPaths, `/c`)
+	jwtConfig.ExcludedPaths = []string{`^/c\/[0-9]+\/d\?.+$`}
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c`)
 	if res {
 		t.Error("Expected false but got", res)
 	}
-	res = IsExcluded(co.ExcludedPaths, `/c/1234/d`)
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c/1234/d`)
 	if res {
 		t.Error("Expected false but got", res)
 	}
-	res = IsExcluded(co.ExcludedPaths, `/c/1234/f?key1=val1&key2=val2`)
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c/1234/f?key1=val1&key2=val2`)
 	if res {
 		t.Error("Expected false but got", res)
 	}
-	res = IsExcluded(co.ExcludedPaths, `/c/1234/d?key1=val1&key2=val2`)
+	res = IsExcluded(jwtConfig.ExcludedPaths, `/c/1234/d?key1=val1&key2=val2`)
 	if !res {
 		t.Error("Expected true but got", res)
 	}

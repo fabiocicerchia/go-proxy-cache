@@ -11,8 +11,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
-var co *config.Jwt
-
 func errorJson(resp http.ResponseWriter, statuscode int, error *config.JwtError) {
 	resp.WriteHeader(statuscode)
 	resp.Header().Add("Content-Type", "application/json; charset=utf-8")
@@ -20,14 +18,14 @@ func errorJson(resp http.ResponseWriter, statuscode int, error *config.JwtError)
 	resp.Write(json_error)
 }
 
-func logJWTErrorAndAbort(w http.ResponseWriter, err error) error {
-	co.Logger.Info("Error jwt:", err)
+func logJWTErrorAndAbort(w http.ResponseWriter, err error, jwtConfig *config.Jwt) error {
+	jwtConfig.Logger.Info("Error jwt:", err)
 	errorJson(w, http.StatusUnauthorized, &config.JwtError{ErrorCode: "JsonWebTokenError", ErrorDescription: err.Error()})
 
 	return http.ErrAbortHandler
 }
 
-func ValidateJWT(w http.ResponseWriter, r *http.Request, keySet jwk.Set) error {
+func ValidateJWT(w http.ResponseWriter, r *http.Request, keySet jwk.Set, jwtConfig *config.Jwt) error {
 	token, err := jwt.ParseRequest(r,
 		jwt.WithKeySet(keySet),
 		jwt.WithValidate(true),
@@ -35,13 +33,15 @@ func ValidateJWT(w http.ResponseWriter, r *http.Request, keySet jwk.Set) error {
 		jwt.WithTypedClaim("scp", json.RawMessage{}),
 	)
 	if err != nil {
-		return logJWTErrorAndAbort(w, err)
+		return logJWTErrorAndAbort(w, err, jwtConfig)
 	}
+
 	if err := jwt.Validate(token); err != nil {
-		return logJWTErrorAndAbort(w, err)
+		return logJWTErrorAndAbort(w, err, jwtConfig)
 	}
+
 	scopes := getScopes(token)
-	haveAllowedScope := haveAllowedScope(scopes, co.AllowedScopes)
+	haveAllowedScope := haveAllowedScope(scopes, jwtConfig.AllowedScopes)
 	if !haveAllowedScope {
 		errorJson(w, http.StatusUnauthorized, &config.JwtError{ErrorCode: "InvalidScope", ErrorDescription: "Invalid Scope"})
 		return http.ErrAbortHandler
@@ -50,10 +50,10 @@ func ValidateJWT(w http.ResponseWriter, r *http.Request, keySet jwk.Set) error {
 	return nil
 }
 
-func getKeySet(w http.ResponseWriter) (jwk.Set, error) {
-	keySet, err := co.JwkCache.Get(co.Context, co.JwksUrl)
+func getKeySet(w http.ResponseWriter, jwtConfig *config.Jwt) (jwk.Set, error) {
+	keySet, err := jwtConfig.JwkCache.Get(jwtConfig.Context, jwtConfig.JwksUrl)
 	if err != nil {
-		return keySet, logJWTErrorAndAbort(w, err)
+		return keySet, logJWTErrorAndAbort(w, err, jwtConfig)
 	}
 
 	return keySet, nil
@@ -63,21 +63,19 @@ func JWTHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rc := handler.NewRequestCall(w, r)
 		domainConfig, isDomainFound := config.DomainConf(r.Host, rc.GetScheme())
-		if !isDomainFound {
-			next.ServeHTTP(w, r)
-			return
-		}
-		if !IsExcluded(domainConfig.Jwt.ExcludedPaths, r.URL.Path) {
-			co = &domainConfig.Jwt
-			keySet, err := getKeySet(w)
+
+		if isDomainFound && !IsExcluded(domainConfig.Jwt.ExcludedPaths, r.URL.Path) {
+			keySet, err := getKeySet(w, &domainConfig.Jwt)
 			if err != nil {
 				return
 			}
-			err = ValidateJWT(w, r, keySet)
+
+			err = ValidateJWT(w, r, keySet, &domainConfig.Jwt)
 			if err != nil {
 				return
 			}
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }
@@ -99,8 +97,10 @@ func getScopes(token jwt.Token) []string {
 	_, isScp := token.Get("scp")
 	if isScp {
 		scpInterface := token.PrivateClaims()["scp"]
+
 		return extractScopes(scpInterface)
 	}
+
 	scopeInterface := token.PrivateClaims()["scope"]
 
 	return extractScopes(scopeInterface)
