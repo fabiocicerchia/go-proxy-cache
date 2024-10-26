@@ -19,7 +19,7 @@ func errorJson(resp http.ResponseWriter, statuscode int, error *config.JwtError)
 }
 
 func logJWTErrorAndAbort(w http.ResponseWriter, err error, jwtConfig *config.Jwt) error {
-	jwtConfig.Logger.Info("Error jwt:", err)
+	jwtConfig.Logger.Errorf("JWT Error: %s", err)
 	errorJson(w, http.StatusUnauthorized, &config.JwtError{ErrorCode: "JsonWebTokenError", ErrorDescription: err.Error()})
 
 	return http.ErrAbortHandler

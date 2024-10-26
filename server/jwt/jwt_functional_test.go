@@ -1,3 +1,6 @@
+//go:build all || functional
+// +build all functional
+
 package jwt
 
 //                                                                         __
@@ -37,6 +40,10 @@ func getCommonConfig() config.Configuration {
 				Scheme:    "http",
 				Endpoints: []string{utils.GetEnv("NGINX_HOST_80", "localhost:40080")},
 			},
+		},
+		Cache: config.Cache{
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
 		},
 		CircuitBreaker: circuit_breaker.CircuitBreaker{
 			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
