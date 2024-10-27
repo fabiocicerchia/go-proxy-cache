@@ -91,7 +91,7 @@ RUN git clone https://github.com/open-telemetry/opentelemetry-cpp-contrib.git /o
   && make -j2 \
   && make install
 
-FROM fabiocicerchia/nginx-lua:1.25.04-ubuntu
+FROM fabiocicerchia/nginx-lua:1.27.2-ubuntu
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ="Europe/London"

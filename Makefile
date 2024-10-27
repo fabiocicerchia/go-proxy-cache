@@ -116,7 +116,7 @@ cover:  ## coverage
 	python3 -m http.server &> /dev/null &
 	TESTING=1 go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
 	go tool cover -func=c.out
-	go tool cover -html=c.out
+	go tool cover -html=c.out -o cover.html
 	pgrep python3 | xargs kill || true
 
 codeclimate:  ## codeclimate

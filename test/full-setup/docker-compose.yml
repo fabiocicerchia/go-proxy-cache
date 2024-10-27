@@ -7,8 +7,6 @@
 # Copyright (c) 2023 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-version: '3.8'
-
 services:
   # CORE - GOPROXYCACHE
   ##############################################################################
@@ -16,7 +14,6 @@ services:
     build:
       context: ../..
       dockerfile: ./docker/Dockerfile
-      network: host
       args:
         BUILD_CMD: build-race
     command: ["go-proxy-cache", "-debug"]
@@ -112,7 +109,6 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.nginx
-      network: host
     restart: always
     depends_on:
       jaeger:
