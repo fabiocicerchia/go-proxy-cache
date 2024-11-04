@@ -57,3 +57,5 @@ test/full-setup/certs/*/*.key
 dist/
 
 go-proxy-cache
+
+cover.html

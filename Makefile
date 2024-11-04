@@ -94,15 +94,15 @@ tlsfuzzer: ## tlsfuzzer
 test: test-unit test-functional test-endtoend test-ws test-http2 ## test
 
 test-unit: ## test unit
-	TESTING=1 go test -v -race -count=1 --tags=unit ./...
+	TESTING=1 grc go test -v -race -count=1 --tags=unit ./...
 
 test-functional: ## test functional
 	python3 -m http.server &> /dev/null &
-	TESTING=1 go test -v -race -count=1 --tags=functional ./...
+	TESTING=1 grc go test -v -race -count=1 --tags=functional ./...
 	pgrep python3 | xargs kill || true
 
 test-endtoend: ## test endtoend
-	go test -v -race -count=1 --tags=endtoend ./...
+	grc go test -v -race -count=1 --tags=endtoend ./...
 
 test-ws: ## test websocket
 	cd test/full-setup/ws && npm install
@@ -114,7 +114,7 @@ test-http2: ## test HTTP2
 
 cover:  ## coverage
 	python3 -m http.server &> /dev/null &
-	TESTING=1 go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
+	TESTING=1 grc go test -race -count=1 --tags=unit,functional -coverprofile c.out ./...
 	go tool cover -func=c.out
 	go tool cover -html=c.out -o cover.html
 	pgrep python3 | xargs kill || true

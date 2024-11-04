@@ -5,6 +5,7 @@
 - Go v1.15
 - make
 - [wrk](https://github.com/wg/wrk)
+- [grc](https://github.com/garabik/grc)
 
 ## Setup
 
