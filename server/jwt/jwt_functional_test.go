@@ -140,7 +140,10 @@ func TestJWTValidationWithExcludedPathInDomainConfig(t *testing.T) {
 
 	h.ServeHTTP(rr, req)
 
+	// the www HTTP requests redirects to non-www HTTPS
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
+	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
+	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 	tearDownHTTPFunctional()
 }
 
@@ -164,6 +167,8 @@ func TestJWTValidationWithExcludedPathInCommonConfigWithDomain(t *testing.T) {
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
+	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
+	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 	tearDownHTTPFunctional()
 }
 
@@ -183,6 +188,8 @@ func TestJWTValidationWithExcludedPathInCommonConfigWithoutDomain(t *testing.T) 
 	h.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
+	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
+	assert.Contains(t, rr.Body.String(), `Moved Permanently`)
 	tearDownHTTPFunctional()
 }
 
@@ -237,6 +244,7 @@ func TestJWTConfigInCommonConfigWithDomain(t *testing.T) {
 
 	h.ServeHTTP(rr, req)
 
+	// the www HTTP requests redirects to non-www HTTPS
 	assert.Equal(t, http.StatusMovedPermanently, rr.Code)
 	assert.Equal(t, "https://testing.local/", rr.HeaderMap["Location"][0])
 	assert.Contains(t, rr.Body.String(), `Moved Permanently`)

@@ -360,12 +360,13 @@ tracing:
 
 # --- JWT
 # jwt:
-#   # A list of space-separated paths.
+#   # A list of paths.
 #   excluded_paths:
 #     - /
-#   # A list of space-separated scopes to be allowed.
+#   # A list of scopes to be allowed.
 #   allowed_scopes:
-#     - scope1, scope2
+#     - scope1
+#     - scope2
 #   # The JSON Web Key Set (JWKS) URL where it is stored the the public keys used to verify the JSON Web Token (JWT).
 #   jwks_url: ~
 #   # Time in minutes that takes for JWKS to refresh automatically

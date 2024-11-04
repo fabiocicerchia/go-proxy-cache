@@ -51,7 +51,7 @@ func TestGetScopesWithScopeClaim(t *testing.T) {
 
 	res := getScopes(token)
 
-	assert.ElementsMatch(t, res, []string{"scope1", "scope2", "scope3"}, "Scopes provided doesn't match")
+	assert.ElementsMatch(t, res, []string{"scope1", "scope2", "scope3"}, "The provided scopes don't match")
 }
 
 func TestGetScopesWithScpClaim(t *testing.T) {
@@ -62,7 +62,7 @@ func TestGetScopesWithScpClaim(t *testing.T) {
 
 	res := getScopes(token)
 
-	assert.ElementsMatch(t, res, []string{"scope1", "scope2", "scope3"}, "Scopes provided doesn't match")
+	assert.ElementsMatch(t, res, []string{"scope1", "scope2", "scope3"}, "The provided scopes don't match")
 }
 
 var jwtConfig = config.Jwt{
