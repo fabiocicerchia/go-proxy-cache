@@ -93,6 +93,9 @@ jobs:
         run: |
           apk update
           apk add bash curl gcc git libc-dev make nghttp2 nodejs npm redis openssh musl-dev net-snmp-dev openssl python3
+          wget https://raw.githubusercontent.com/garabik/grc/refs/heads/master/grc
+          chmod +x grc
+          mv grc /usr/local/bin
 
       - name: Build (race)
         run: make build-race
