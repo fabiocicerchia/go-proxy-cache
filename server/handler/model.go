@@ -14,7 +14,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -24,6 +23,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // SchemeHTTPS - HTTPS scheme.
@@ -116,7 +116,9 @@ func (rc RequestCall) GetRequestLength() int64 {
 
 // GetHostname - Returns only the hostname (without port if present).
 func (rc RequestCall) GetHostname() string {
-	return strings.Split(rc.Request.Host, ":")[0]
+	// utils.StripPort handles IPv6 hosts ("[::1]:8080") which a naive
+	// strings.Split(host, ":")[0] mangles into "[".
+	return utils.StripPort(rc.Request.Host)
 }
 
 // GetScheme - Returns current request scheme.
