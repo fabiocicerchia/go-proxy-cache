@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
+	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 )
 
@@ -41,7 +42,11 @@ func PushProxiedResources(lwr *response.LoggedResponseWriter, uriobj *cache.URIO
 		}
 
 		if err := pusher.Push(link.URL, nil); err != nil {
-			panic(err)
+			// Push failures are recoverable and client-driven (e.g. the push limit
+			// is reached or the client disabled push), so log and stop pushing
+			// instead of panicking on the request path.
+			logger.GetGlobal().Warnf("HTTP/2 push failed for %s: %s", link.URL, err)
+			break
 		}
 	}
 
