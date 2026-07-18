@@ -172,8 +172,19 @@ func (rdb *RedisClient) Get(key string) (string, error) {
 
 		return value, err
 	})
+	// When the circuit breaker is open (e.g. Redis is down) Execute returns a nil
+	// value without running the callback, so the type assertion below must be
+	// guarded to avoid a panic on the request path.
+	if err != nil {
+		return "", err
+	}
 
-	return value.(string), err
+	strValue, ok := value.(string)
+	if !ok {
+		return "", nil
+	}
+
+	return strValue, nil
 }
 
 // Del - Removes a key.
