@@ -74,12 +74,19 @@ func closeLogFile() {
 	}
 }
 
+// escapeLogValue - Strips CR/LF so attacker-controlled request data cannot
+// forge additional log lines (log injection, CWE-117).
+func escapeLogValue(value string) string {
+	value = strings.Replace(value, "\n", "", -1)
+	value = strings.Replace(value, "\r", "", -1)
+
+	return value
+}
+
 // Log - Logs against a requested URL.
 func Log(req http.Request, reqID string, message string) {
-	escapedMessage := strings.Replace(message, "\n", "", -1)
-	escapedMessage = strings.Replace(escapedMessage, "\r", "", -1)
-	escapedURL := strings.Replace(req.URL.String(), "\n", "", -1)
-	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+	escapedMessage := escapeLogValue(message)
+	escapedURL := escapeLogValue(req.URL.String())
 
 	log := GetGlobal()
 	log.WithFields(logrus.Fields{"ReqID": reqID}).Infof("%s %s %s - %s", req.Proto, req.Method, escapedURL, escapedMessage)
@@ -104,18 +111,20 @@ func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, 
 		method = "?"
 	}
 
+	// Attacker-controlled fields are CR/LF-escaped to prevent forging extra
+	// log lines (log injection, CWE-117).
 	r := strings.NewReplacer(
-		`$host`, req.Host,
-		`$remote_addr`, req.RemoteAddr,
+		`$host`, escapeLogValue(req.Host),
+		`$remote_addr`, escapeLogValue(req.RemoteAddr),
 		`$remote_user`, "-",
 		`$time_local`, time.Now().Local().Format(config.Config.Log.TimeFormat),
-		`$protocol`, protocol,
-		`$request_method`, method,
-		`$request`, req.URL.String(),
+		`$protocol`, escapeLogValue(protocol),
+		`$request_method`, escapeLogValue(method),
+		`$request`, escapeLogValue(req.URL.String()),
 		`$status`, strconv.Itoa(statusCode),
 		`$body_bytes_sent`, strconv.Itoa(lenContent),
-		`$http_referer`, req.Referer(),
-		`$http_user_agent`, req.UserAgent(),
+		`$http_referer`, escapeLogValue(req.Referer()),
+		`$http_user_agent`, escapeLogValue(req.UserAgent()),
 		`$cached_status_label`, cachedLabel,
 		`$cached_status`, fmt.Sprintf("%v", cached),
 	)
