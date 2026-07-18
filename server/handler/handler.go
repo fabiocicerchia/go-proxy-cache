@@ -40,7 +40,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		tracing.AddErrorToSpan(tracingSpan, err)
 		tracing.Fail(tracingSpan, "internal error")
 
-		rc.GetLogger().Errorf(err.Error())
+		rc.GetLogger().Error(err.Error())
 		return
 	}
 

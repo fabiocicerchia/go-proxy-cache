@@ -106,7 +106,7 @@ func CreateTestServer(t *testing.T, jsonJWKKeySetSingle []byte, jsonJWKKeySetMul
 		case "/.bad-known/jwks.json":
 			break
 		default:
-			t.Fatalf("Unknown request:" + r.URL.String())
+			t.Fatalf("Unknown request: %s", r.URL.String())
 		}
 	}))
 	listener, err := net.Listen("tcp", "127.0.0.1:"+strconv.Itoa(port))
