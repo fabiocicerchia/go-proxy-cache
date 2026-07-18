@@ -332,6 +332,13 @@ func GetVary(headers http.Header) ([]string, error) {
 		return []string{}, errVaryWildcard
 	}
 
+	// An absent Vary header must yield an empty slice; strings.Split("", ",")
+	// returns [""], which forced a needless header-checksum computation on every
+	// cacheable response without a Vary header.
+	if vary == "" {
+		return []string{}, nil
+	}
+
 	varyList := strings.Split(vary, ",")
 	for k, v := range varyList {
 		varyList[k] = strings.Trim(v, " ")
