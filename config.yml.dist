@@ -16,6 +16,21 @@ server:
     # Internal listening port for metrics and healthchecks.
     # Default: 52021
     listening_port: 52021
+  # --- PURGE
+  # Access control for PURGE requests. When both `allowed_ips` and `secret` are
+  # empty, PURGE is unrestricted. When either is set, a PURGE request must
+  # satisfy every configured check to be authorized (otherwise it gets 403).
+  purge:
+    # Allowlist of client IPs / CIDRs permitted to issue PURGE. The direct
+    # connection IP is checked (not the spoofable X-Forwarded-For header).
+    # Default: [] (no IP restriction)
+    allowed_ips: []
+    # Shared secret that must be presented in `secret_header`.
+    # Default: "" (no secret required)
+    secret: ""
+    # HTTP header carrying the shared secret.
+    # Default: X-Go-Proxy-Cache-Purge-Key
+    secret_header: "X-Go-Proxy-Cache-Purge-Key"
   # --- TLS
   tls:
     # Automatic Certificate Management Environment

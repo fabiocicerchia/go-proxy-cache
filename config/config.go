@@ -167,6 +167,9 @@ func (c *Configuration) copyOverWithServer(overrides Server) {
 	c.Server.GZip = utils.Coalesce(overrides.GZip, c.Server.GZip).(bool)
 	c.Server.Internals.ListeningAddress = utils.Coalesce(overrides.Internals.ListeningAddress, c.Server.Internals.ListeningAddress).(string)
 	c.Server.Internals.ListeningPort = utils.Coalesce(overrides.Internals.ListeningPort, c.Server.Internals.ListeningPort).(string)
+	c.Server.Purge.AllowedIPs = utils.Coalesce(overrides.Purge.AllowedIPs, c.Server.Purge.AllowedIPs).([]string)
+	c.Server.Purge.Secret = utils.Coalesce(overrides.Purge.Secret, c.Server.Purge.Secret).(string)
+	c.Server.Purge.SecretHeader = utils.Coalesce(overrides.Purge.SecretHeader, c.Server.Purge.SecretHeader).(string)
 }
 
 // --- TLS.
@@ -259,9 +262,15 @@ func Print() {
 	}
 
 	obfuscatedConfig.Cache.Password = PasswordOmittedValue
+	if obfuscatedConfig.Server.Purge.Secret != "" {
+		obfuscatedConfig.Server.Purge.Secret = PasswordOmittedValue
+	}
 
 	for k, v := range obfuscatedConfig.Domains {
 		v.Cache.Password = PasswordOmittedValue
+		if v.Server.Purge.Secret != "" {
+			v.Server.Purge.Secret = PasswordOmittedValue
+		}
 		obfuscatedConfig.Domains[k] = v
 	}
 
