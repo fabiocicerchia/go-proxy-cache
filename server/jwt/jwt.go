@@ -12,8 +12,10 @@ import (
 )
 
 func errorJson(resp http.ResponseWriter, statuscode int, error *config.JwtError) {
+	// Headers must be set before WriteHeader is called, otherwise they are
+	// ignored and the client never receives the correct Content-Type.
+	resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 	resp.WriteHeader(statuscode)
-	resp.Header().Add("Content-Type", "application/json; charset=utf-8")
 	json_error, _ := json.Marshal(error)
 	resp.Write(json_error)
 }
