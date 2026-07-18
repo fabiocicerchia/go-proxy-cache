@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -297,29 +298,48 @@ func getSliceFromMap(domains map[string]DomainSet) []DomainSet {
 	return domainsUnique
 }
 
+// domainsCacheMu - Guards access to Configuration.domainsCache.
+var domainsCacheMu sync.RWMutex
+
 // DomainConf - Returns the configuration for the requested domain (Global Access).
 func DomainConf(domain string, scheme string) (Configuration, bool) {
 	return Config.DomainConf(domain, scheme)
 }
 
 // DomainConf - Returns the configuration for the requested domain.
-func (c Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
-	var found bool
-
-	// Memoization
-	if c.domainsCache == nil {
-		c.domainsCache = make(map[string]Configuration)
-	}
-
+//
+// The result is memoized on the receiver. A pointer receiver is required so the
+// cache persists across calls (a value receiver mutated a throwaway copy, so the
+// memoization never actually took effect and every request re-scanned all
+// domains). Access is guarded by domainsCacheMu since DomainConf runs on the
+// request path and is invoked concurrently.
+func (c *Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
 	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
-	if val, ok := c.domainsCache[keyCache]; ok {
-		log.Debugf("Cached configuration for %s", keyCache)
-		return val, true
+
+	domainsCacheMu.RLock()
+	if c.domainsCache != nil {
+		if val, ok := c.domainsCache[keyCache]; ok {
+			domainsCacheMu.RUnlock()
+			log.Debugf("Cached configuration for %s", keyCache)
+			return val, true
+		}
+	}
+	domainsCacheMu.RUnlock()
+
+	conf, found := c.domainConfLookup(utils.StripPort(domain), scheme)
+
+	// Only cache positive lookups. Caching a miss would store a zero-value
+	// Configuration that a later call would return as a hit (found == true).
+	if found {
+		domainsCacheMu.Lock()
+		if c.domainsCache == nil {
+			c.domainsCache = make(map[string]Configuration)
+		}
+		c.domainsCache[keyCache] = conf
+		domainsCacheMu.Unlock()
 	}
 
-	c.domainsCache[keyCache], found = c.domainConfLookup(utils.StripPort(domain), scheme)
-
-	return c.domainsCache[keyCache], found
+	return conf, found
 }
 
 func (c Configuration) domainConfLookup(domain string, scheme string) (Configuration, bool) {
