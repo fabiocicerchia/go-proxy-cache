@@ -52,7 +52,11 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 			}
 		}
 
-		lwr.WriteHeader(statusCode)
+		// ForceWriteHeader (not WriteHeader) so the status code is actually flushed
+		// to the client. LoggedResponseWriter.WriteHeader only buffers the status
+		// for ETag/GZip handling; without forcing it, the first WriteBody triggers
+		// an implicit 200 and a Redis outage is reported as healthy.
+		lwr.ForceWriteHeader(statusCode)
 		_ = lwr.WriteBody("HTTP OK\n")
 
 		telemetry.From(ctx).RegisterStatusCode(statusCode)
