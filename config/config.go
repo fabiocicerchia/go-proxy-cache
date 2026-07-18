@@ -76,6 +76,13 @@ func InitConfigFromFileOrEnv(file string) {
 	// allow only the config file to specify overrides per domain
 	Config.Domains = YamlConfig.Domains
 
+	// JWT for the global configuration. Without this the global JwkCache was
+	// never initialised (only per-domain configs got InitJWT), so a JWKS URL
+	// configured globally could never be used for validation.
+	if Config.Jwt.JwksUrl != "" {
+		InitJWT(&Config.Jwt)
+	}
+
 	// DOMAINS
 	copyGlobalOverDomainConfig(file)
 }
@@ -96,12 +103,22 @@ func loadYAMLFilefile(file string) (YamlConfig Configuration) {
 
 // InitJWT - Configure the jwk auto-refresh and save it into the JWT config
 func InitJWT(jwtConfig *Jwt) {
+	if jwtConfig.Context == nil {
+		jwtConfig.Context = context.Background()
+	}
+
 	refreshIntervalDuration := time.Duration(jwtConfig.JwksRefreshInterval) * time.Minute
 	jwtKeyFetcher := jwk.NewCache(jwtConfig.Context, jwk.WithRefreshWindow(refreshIntervalDuration))
-	jwtKeyFetcher.Register(
-		jwtConfig.JwksUrl,
-		jwk.WithMinRefreshInterval(refreshIntervalDuration),
-	)
+
+	// Registering an empty URL is pointless and would only produce errors at
+	// fetch time; validation is skipped anyway when no JWKS URL is configured.
+	if jwtConfig.JwksUrl != "" {
+		jwtKeyFetcher.Register(
+			jwtConfig.JwksUrl,
+			jwk.WithMinRefreshInterval(refreshIntervalDuration),
+		)
+	}
+
 	jwtConfig.JwkCache = jwtKeyFetcher
 }
 
@@ -117,7 +134,9 @@ func copyGlobalOverDomainConfig(file string) {
 			if isJWKSUrl {
 				domain.Jwt.JwksUrl = os.Getenv("JWT_JWKS_URL_" + domainName)
 			}
-			InitJWT(&domain.Jwt)
+			if domain.Jwt.JwksUrl != "" {
+				InitJWT(&domain.Jwt)
+			}
 			domains[k] = domain
 		}
 
