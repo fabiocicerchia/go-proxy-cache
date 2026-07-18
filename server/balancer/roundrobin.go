@@ -38,9 +38,8 @@ func NewRoundRobinBalancer(name string, items []Item) *RoundRobinBalancer {
 
 // Pick - Chooses next available item.
 func (b *RoundRobinBalancer) Pick(requestURL string) (string, error) {
-	b.NodeBalancer.M.RLock()
+	// GetHealthyNodes locks internally.
 	healthyNodes := b.NodeBalancer.GetHealthyNodes()
-	b.NodeBalancer.M.RUnlock()
 
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem

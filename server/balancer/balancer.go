@@ -142,21 +142,33 @@ func CheckHealth(b *NodeBalancer, host string, config config.HealthCheck) {
 		for {
 			<-t.C
 
+			// Work on a snapshot: iterating b.Items unlocked while Pick()
+			// goroutines read it (and this loop writes it) is a data race.
+			b.M.RLock()
+			items := make([]Item, len(b.Items))
+			copy(items, b.Items)
+			b.M.RUnlock()
+
 			healthyCounter := 0
 			unhealthyCounter := 0
-			for k, v := range b.Items {
-				DoHealthCheck(&v, host, config)
 
-				if v.Healthy {
+			for k := range items {
+				DoHealthCheck(&items[k], host, config)
+
+				if items[k].Healthy {
 					healthyCounter++
 				} else {
 					unhealthyCounter++
 				}
-
-				b.M.Lock()
-				b.Items[k] = v
-				b.M.Unlock()
 			}
+
+			b.M.Lock()
+			for k := range items {
+				if k < len(b.Items) {
+					b.Items[k] = items[k]
+				}
+			}
+			b.M.Unlock()
 
 			telemetry.RegisterHostHealth(healthyCounter, unhealthyCounter)
 		}
@@ -236,8 +248,13 @@ func DoHealthCheck(v *Item, host string, config config.HealthCheck) {
 }
 
 // GetHealthyNodes - Retrieves healthy nodes.
+// It locks internally: callers must NOT hold b.M when invoking it (nested
+// RLock acquisition can deadlock with a pending writer).
 func (b *NodeBalancer) GetHealthyNodes() []Item {
 	healthyNodes := []Item{}
+
+	b.M.RLock()
+	defer b.M.RUnlock()
 
 	for _, v := range b.Items {
 		if v.Healthy {
