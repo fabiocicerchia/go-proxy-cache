@@ -109,6 +109,10 @@ type TLS struct {
 	CertFile string      `yaml:"cert_file" envconfig:"TLS_CERT_FILE"`
 	KeyFile  string      `yaml:"key_file" envconfig:"TLS_KEY_FILE"`
 	Override *tls.Config `yaml:"override"`
+	// CertCacheDir - Directory where ACME (Let's Encrypt) certificates are
+	// cached. Must be persistent: an ephemeral directory forces re-issuance on
+	// every restart, burning through the CA's rate limits.
+	CertCacheDir string `yaml:"cert_cache_dir" envconfig:"TLS_CERT_CACHE_DIR"`
 }
 
 // Upstream - Defines the upstream settings.

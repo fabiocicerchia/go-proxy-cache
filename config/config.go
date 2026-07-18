@@ -198,6 +198,7 @@ func (c *Configuration) copyOverWithTLS(overrides Server, file *string) {
 	c.Server.TLS.CertFile = utils.Coalesce(overrides.TLS.CertFile, c.Server.TLS.CertFile).(string)
 	c.Server.TLS.KeyFile = utils.Coalesce(overrides.TLS.KeyFile, c.Server.TLS.KeyFile).(string)
 	c.Server.TLS.Override = utils.Coalesce(overrides.TLS.Override, c.Server.TLS.Override).(*tls.Config)
+	c.Server.TLS.CertCacheDir = utils.Coalesce(overrides.TLS.CertCacheDir, c.Server.TLS.CertCacheDir).(string)
 
 	c.Server.TLS.CertFile = patchAbsFilePath(c.Server.TLS.CertFile, file)
 	c.Server.TLS.KeyFile = patchAbsFilePath(c.Server.TLS.KeyFile, file)

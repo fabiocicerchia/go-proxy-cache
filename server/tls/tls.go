@@ -13,6 +13,7 @@ import (
 	crypto_tls "crypto/tls"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 
@@ -49,7 +50,7 @@ var errMissingCertificateOrKey = errors.New("missing certificate file and/or key
 // ServerOverrides - Overrides the http.Server configuration for TLS.
 func ServerOverrides(domain string, server *http.Server, domainConfig config.Server) (err error) {
 	if domainConfig.TLS.Auto {
-		certManager := InitCertManager(domainConfig.Upstream.Host, domainConfig.TLS.Email)
+		certManager := InitCertManager(domainConfig.Upstream.Host, domainConfig.TLS.Email, domainConfig.TLS.CertCacheDir)
 		server.TLSConfig = certManager.TLSConfig()
 
 		return nil
@@ -111,9 +112,16 @@ func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate,
 }
 
 // InitCertManager - Initialise the Certification Manager for auto generation.
-func InitCertManager(host string, email string) *autocert.Manager {
-	cacheDir, err := os.MkdirTemp("", "cache_dir")
-	if err != nil {
+func InitCertManager(host string, email string, cacheDir string) *autocert.Manager {
+	// The autocert cache must be stable across restarts: the previous
+	// os.MkdirTemp call created a fresh directory on every boot, forcing a new
+	// certificate issuance from the ACME CA on each restart and burning through
+	// Let's Encrypt rate limits (which can lock the domain out of issuance).
+	if cacheDir == "" {
+		cacheDir = filepath.Join(os.TempDir(), "go-proxy-cache-autocert")
+	}
+
+	if err := os.MkdirAll(cacheDir, 0700); err != nil {
 		logger.GetGlobal().Fatal(err)
 		return nil
 	}

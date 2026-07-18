@@ -49,6 +49,11 @@ server:
     # to form a certificate chain.
     cert_file: ~
     key_file: ~
+    # Directory where ACME (e.g. Let's Encrypt) certificates are cached when
+    # `auto` is enabled. Must be a persistent path: an ephemeral directory
+    # forces re-issuance on every restart and burns through CA rate limits.
+    # Default: <OS temp dir>/go-proxy-cache-autocert
+    cert_cache_dir: ~
     # WARNING: INTERNAL SERVER BEHAVIOUR
     override:
       # CipherSuites is a list of supported cipher suites for TLS versions up to
