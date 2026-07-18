@@ -236,6 +236,10 @@ func DoHealthCheck(v *Item, host string, config config.HealthCheck) {
 		logger.GetGlobal().Errorf("Healthcheck failed for %s: %s", endpointURL, err) // TODO: Add to trace span?
 		metrics.SetUpstreamServerHealthChecksFails(host, hostWithPort)
 	} else {
+		// The body must always be closed, even for HEAD responses, or the
+		// underlying connection is never released: one leaked connection per
+		// node per healthcheck interval, forever.
+		defer res.Body.Close()
 		v.Healthy = slice.ContainsString(config.StatusCodes, strconv.Itoa(res.StatusCode))
 
 		if !v.Healthy {
