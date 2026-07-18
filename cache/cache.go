@@ -85,7 +85,10 @@ func (c Object) IsMethodAllowed() bool {
 }
 
 func getRandomSoftExpirationTTL() time.Duration {
-	rnd := random.RandomInt64(int64(DefaultMaxSoftExpirationTTL) - int64(DefaultMinSoftExpirationTTL) + int64(DefaultMinSoftExpirationTTL))
+	// Pick a random value in the range [Min, Max) so the soft expiration jitter
+	// respects its lower bound. The previous formula (Max - Min + Min) collapsed
+	// to Max, producing a value in [0, Max) and defeating the min lower bound.
+	rnd := random.RandomInt64(int64(DefaultMaxSoftExpirationTTL)-int64(DefaultMinSoftExpirationTTL)) + int64(DefaultMinSoftExpirationTTL)
 
 	return time.Duration(rnd)
 }
