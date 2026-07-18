@@ -61,7 +61,11 @@ func (b *IpHashBalancer) Pick(requestURL string) (string, error) {
 	hash := fmt.Sprintf("%x", h.Sum(nil))
 
 	b.NodeBalancer.M.RLock()
-	if pos, ok := b.hashMap[hash]; ok {
+	// The set of healthy nodes can shrink between calls (e.g. a node becomes
+	// unhealthy), so a previously stored position may point past the current
+	// slice. Only reuse it when it is still in range, otherwise fall through and
+	// pick (and store) a fresh position.
+	if pos, ok := b.hashMap[hash]; ok && pos < int64(len(healthyNodes)) {
 		b.NodeBalancer.M.RUnlock()
 		return healthyNodes[pos].Endpoint, nil
 	}
