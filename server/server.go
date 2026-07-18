@@ -249,7 +249,11 @@ func (s Servers) startListeners() {
 		srvHTTP.HttpSrv.Addr = ":" + port
 
 		go func(srv *http.Server) {
-			logger.GetGlobal().Fatal(srv.ListenAndServe())
+			// ErrServerClosed is returned on graceful Shutdown and must not
+			// kill the process (Fatal calls os.Exit and skips the drain).
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.GetGlobal().Fatal(err)
+			}
 		}(srvHTTP.HttpSrv)
 	}
 
@@ -257,23 +261,27 @@ func (s Servers) startListeners() {
 		srvHTTPS.HttpSrv.Addr = ":" + port
 
 		go func(srv *http.Server) {
-			logger.GetGlobal().Fatal(srv.ListenAndServeTLS("", ""))
+			if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				logger.GetGlobal().Fatal(err)
+			}
 		}(srvHTTPS.HttpSrv)
 	}
 }
 
 func (s Servers) shutdownServers(ctx context.Context) {
+	// Log-and-continue: a Fatalf here would os.Exit on the first failing
+	// server and skip draining all the remaining listeners.
 	for k, v := range s.HTTP {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
-			logger.GetGlobal().Fatalf("Cannot shutdown server %s: %s", k, err)
+			logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
 
 	for k, v := range s.HTTPS {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
-			logger.GetGlobal().Fatalf("Cannot shutdown server %s: %s", k, err)
+			logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
 }
