@@ -25,18 +25,23 @@ var httpsDomains []string
 var certificates map[string]*crypto_tls.Certificate = make(map[string]*crypto_tls.Certificate)
 var tlsConfig *crypto_tls.Config
 
+// newDefaultTLSConfig - Builds the base TLS configuration.
+// It reads config.Config at call time (not package init) so TLS overrides
+// loaded from file/env are honored.
 // G402 (CWE-295): TLS MinVersion too low. (Confidence: HIGH, Severity: HIGH)
 // It can be ignored as it is customisable, but the default is TLSv1.2.
-var defaultTlsConfig = &crypto_tls.Config{
-	// Causes servers to use Go's default ciphersuite preferences,
-	// which are tuned to avoid attacks. Does nothing on clients.
-	PreferServerCipherSuites: true,
-	CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
-	MinVersion:               config.Config.Server.TLS.Override.MinVersion,
-	MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
-	CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
-	GetCertificate:           returnCert,
-} // #nosec
+func newDefaultTLSConfig() *crypto_tls.Config {
+	return &crypto_tls.Config{
+		// Causes servers to use Go's default ciphersuite preferences,
+		// which are tuned to avoid attacks. Does nothing on clients.
+		PreferServerCipherSuites: true,
+		CurvePreferences:         config.Config.Server.TLS.Override.CurvePreferences,
+		MinVersion:               config.Config.Server.TLS.Override.MinVersion,
+		MaxVersion:               config.Config.Server.TLS.Override.MaxVersion,
+		CipherSuites:             config.Config.Server.TLS.Override.CipherSuites,
+		GetCertificate:           returnCert,
+	} // #nosec
+}
 
 var errMissingCertificate = errors.New("missing certificate")
 var errMissingCertificateOrKey = errors.New("missing certificate file and/or key file")
@@ -76,12 +81,18 @@ func Config(domain string, domainConfigTLS config.TLS) (*crypto_tls.Config, erro
 	//       previously configured domains.
 	certificates[domain] = &cert
 
-	tlsConfig := defaultTlsConfig
+	// Build a fresh config per domain. The previous code copied a shared
+	// *tls.Config pointer and appended to its Certificates slice, so every
+	// additional domain re-appended ALL known certificates to the same shared
+	// slice (duplicates growing quadratically) and all servers ended up
+	// mutating one shared config.
+	tlsConfig := newDefaultTLSConfig()
 
 	// If GetCertificate is nil or returns nil, then the certificate is
 	// retrieved from NameToCertificate. If NameToCertificate is nil, the
 	// best element of Certificates will be used.
 	// Ref: https://golang.org/pkg/crypto/tls/#Config.GetCertificate
+	tlsConfig.Certificates = make([]crypto_tls.Certificate, 0, len(certificates))
 	for _, c := range certificates {
 		tlsConfig.Certificates = append(tlsConfig.Certificates, *c)
 	}
