@@ -38,15 +38,20 @@ func NewRoundRobinBalancer(name string, items []Item) *RoundRobinBalancer {
 
 // Pick - Chooses next available item.
 func (b *RoundRobinBalancer) Pick(requestURL string) (string, error) {
-	b.NodeBalancer.M.RLock()
+	// GetHealthyNodes locks internally.
 	healthyNodes := b.NodeBalancer.GetHealthyNodes()
-	b.NodeBalancer.M.RUnlock()
 
 	if len(healthyNodes) == 0 {
 		return "", ErrNoAvailableItem
 	}
 
 	b.NodeBalancer.M.Lock()
+	// The set of healthy nodes can shrink between calls (e.g. a node becomes
+	// unhealthy), so b.next may point past the current slice. Clamp it to avoid
+	// an index-out-of-range panic.
+	if b.next >= len(healthyNodes) {
+		b.next = 0
+	}
 	r := healthyNodes[b.next]
 	b.next = (b.next + 1) % len(healthyNodes)
 	b.NodeBalancer.M.Unlock()

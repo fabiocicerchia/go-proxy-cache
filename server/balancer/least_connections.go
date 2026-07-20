@@ -36,19 +36,6 @@ func NewLeastConnectionsBalancer(name string, items []Item) *LeastConnectionsBal
 	return b
 }
 
-// GetHealthyNodes - Retrieves healthy nodes.
-func (b *LeastConnectionsBalancer) GetHealthyNodes() []Item {
-	healthyNodes := []Item{}
-
-	for _, v := range b.NodeBalancer.Items {
-		if v.Healthy {
-			healthyNodes = append(healthyNodes, v)
-		}
-	}
-
-	return healthyNodes
-}
-
 // Pick - Chooses next available item.
 func (b *LeastConnectionsBalancer) Pick(requestURL string) (string, error) {
 	healthyNodes := b.NodeBalancer.GetHealthyNodes()
@@ -84,7 +71,10 @@ func (b *LeastConnectionsBalancer) ResetCounter(period time.Duration) {
 		for {
 			<-t.C
 
+			// Guard the swap: Pick() reads/writes this map under b.M.
+			b.NodeBalancer.M.Lock()
 			b.connections = make(map[string]int64)
+			b.NodeBalancer.M.Unlock()
 		}
 	}()
 }

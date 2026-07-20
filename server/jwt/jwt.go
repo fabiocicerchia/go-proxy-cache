@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -11,9 +12,13 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwt"
 )
 
+var errJwkCacheNotInitialized = errors.New("JWKS cache not initialized")
+
 func errorJson(resp http.ResponseWriter, statuscode int, error *config.JwtError) {
+	// Headers must be set before WriteHeader is called, otherwise they are
+	// ignored and the client never receives the correct Content-Type.
+	resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 	resp.WriteHeader(statuscode)
-	resp.Header().Add("Content-Type", "application/json; charset=utf-8")
 	json_error, _ := json.Marshal(error)
 	resp.Write(json_error)
 }
@@ -51,6 +56,12 @@ func ValidateJWT(w http.ResponseWriter, r *http.Request, keySet jwk.Set, jwtConf
 }
 
 func getKeySet(w http.ResponseWriter, jwtConfig *config.Jwt) (jwk.Set, error) {
+	// Fail closed: a configured JWKS URL with an uninitialised cache is a
+	// misconfiguration, not a reason to bypass validation.
+	if jwtConfig.JwkCache == nil {
+		return nil, logJWTErrorAndAbort(w, errJwkCacheNotInitialized, jwtConfig)
+	}
+
 	keySet, err := jwtConfig.JwkCache.Get(jwtConfig.Context, jwtConfig.JwksUrl)
 	if err != nil {
 		return keySet, logJWTErrorAndAbort(w, err, jwtConfig)
@@ -64,7 +75,13 @@ func JWTHandler(next http.Handler) http.Handler {
 		rc := handler.NewRequestCall(w, r)
 		domainConfig, isDomainFound := config.DomainConf(r.Host, rc.GetScheme())
 
-		if isDomainFound && !IsExcluded(domainConfig.Jwt.ExcludedPaths, r.URL.Path) {
+		// JWT validation applies only when a JWKS URL is configured for the
+		// matched domain. Without this guard every request on a JWT-less setup
+		// hit getKeySet with a nil JwkCache (panic) or an empty JWKS URL
+		// (unconditional 401), taking the whole proxy down.
+		jwtEnabled := isDomainFound && domainConfig.Jwt.JwksUrl != ""
+
+		if jwtEnabled && !IsExcluded(domainConfig.Jwt.ExcludedPaths, r.URL.Path) {
 			keySet, err := getKeySet(w, &domainConfig.Jwt)
 			if err != nil {
 				return

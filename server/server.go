@@ -39,6 +39,23 @@ const enableTimeoutHandler = true
 // DefaultTimeoutShutdown - Default Timeout for shutting down a context.
 const DefaultTimeoutShutdown time.Duration = 5 * time.Second
 
+// normalizeTimeout - Returns a timeout ready to be used on an http.Server.
+// Timeout values are time.Durations (e.g. TIMEOUT_READ=5s, as documented in
+// .env.dist and config.yml.dist), so they must NOT be multiplied by
+// time.Second again: 5s * time.Second overflows into ~158 years, which
+// effectively disabled every server timeout (slowloris exposure).
+// Sub-millisecond values are interpreted as bare seconds for backward
+// compatibility with YAML configs that provided plain integers (e.g.
+// `read: 5` parses as 5ns but clearly means 5s).
+func normalizeTimeout(d time.Duration) time.Duration {
+	if d > 0 && d < time.Millisecond {
+		// d is a bare count (5ns == "5"), scale it to seconds.
+		return d * time.Second
+	}
+
+	return d
+}
+
 // Server - Contains the core info about an HTTP server.
 type Server struct {
 	Domain  string
@@ -135,7 +152,7 @@ func InitInternals() *http.Server {
 
 	return &http.Server{
 		Handler:           mux,
-		ReadHeaderTimeout: timeout.ReadHeader * time.Second,
+		ReadHeaderTimeout: normalizeTimeout(timeout.ReadHeader),
 	}
 }
 
@@ -157,10 +174,10 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 	}
 
 	server := &http.Server{
-		ReadTimeout:       timeout.Read * time.Second,
-		WriteTimeout:      timeout.Write * time.Second,
-		IdleTimeout:       timeout.Idle * time.Second,
-		ReadHeaderTimeout: timeout.ReadHeader * time.Second,
+		ReadTimeout:       normalizeTimeout(timeout.Read),
+		WriteTimeout:      normalizeTimeout(timeout.Write),
+		IdleTimeout:       normalizeTimeout(timeout.Idle),
+		ReadHeaderTimeout: normalizeTimeout(timeout.ReadHeader),
 		Handler:           jwt.JWTHandler(muxMiddleware),
 	}
 
@@ -232,7 +249,11 @@ func (s Servers) startListeners() {
 		srvHTTP.HttpSrv.Addr = ":" + port
 
 		go func(srv *http.Server) {
-			logger.GetGlobal().Fatal(srv.ListenAndServe())
+			// ErrServerClosed is returned on graceful Shutdown and must not
+			// kill the process (Fatal calls os.Exit and skips the drain).
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.GetGlobal().Fatal(err)
+			}
 		}(srvHTTP.HttpSrv)
 	}
 
@@ -240,23 +261,27 @@ func (s Servers) startListeners() {
 		srvHTTPS.HttpSrv.Addr = ":" + port
 
 		go func(srv *http.Server) {
-			logger.GetGlobal().Fatal(srv.ListenAndServeTLS("", ""))
+			if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+				logger.GetGlobal().Fatal(err)
+			}
 		}(srvHTTPS.HttpSrv)
 	}
 }
 
 func (s Servers) shutdownServers(ctx context.Context) {
+	// Log-and-continue: a Fatalf here would os.Exit on the first failing
+	// server and skip draining all the remaining listeners.
 	for k, v := range s.HTTP {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
-			logger.GetGlobal().Fatalf("Cannot shutdown server %s: %s", k, err)
+			logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
 
 	for k, v := range s.HTTPS {
 		err := v.HttpSrv.Shutdown(ctx)
 		if err != nil {
-			logger.GetGlobal().Fatalf("Cannot shutdown server %s: %s", k, err)
+			logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
 		}
 	}
 }

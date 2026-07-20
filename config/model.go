@@ -66,6 +66,9 @@ type Configuration struct {
 // Domains - Overrides per domain.
 type Domains map[string]Configuration
 
+// DefaultPurgeSecretHeader - Default HTTP header carrying the PURGE shared secret.
+const DefaultPurgeSecretHeader = "X-Go-Proxy-Cache-Purge-Key"
+
 // Server - Defines basic info for the server.
 type Server struct {
 	Port      Port      `yaml:"port"`
@@ -74,6 +77,23 @@ type Server struct {
 	Upstream  Upstream  `yaml:"upstream"`
 	GZip      bool      `yaml:"gzip" envconfig:"GZIP_ENABLED"`
 	Internals Internals `yaml:"internals"`
+	Purge     Purge     `yaml:"purge"`
+}
+
+// Purge - Defines access control for PURGE requests.
+// When both AllowedIPs and Secret are empty, PURGE is unrestricted (backward
+// compatible). When either is set, a PURGE request must satisfy every configured
+// check to be authorized.
+type Purge struct {
+	// AllowedIPs - Allowlist of client IPs/CIDRs permitted to issue PURGE. The
+	// direct connection IP (RemoteAddr) is checked, not the spoofable
+	// X-Forwarded-For header.
+	AllowedIPs []string `yaml:"allowed_ips" envconfig:"PURGE_ALLOWED_IPS" split_words:"true"`
+	// Secret - Shared secret that must be presented in SecretHeader.
+	Secret string `yaml:"secret" envconfig:"PURGE_SECRET"`
+	// SecretHeader - HTTP header carrying the shared secret. Defaults to
+	// DefaultPurgeSecretHeader when Secret is set but no header is specified.
+	SecretHeader string `yaml:"secret_header" envconfig:"PURGE_SECRET_HEADER"`
 }
 
 // Port - Defines the listening ports per protocol.
@@ -89,6 +109,10 @@ type TLS struct {
 	CertFile string      `yaml:"cert_file" envconfig:"TLS_CERT_FILE"`
 	KeyFile  string      `yaml:"key_file" envconfig:"TLS_KEY_FILE"`
 	Override *tls.Config `yaml:"override"`
+	// CertCacheDir - Directory where ACME (Let's Encrypt) certificates are
+	// cached. Must be persistent: an ephemeral directory forces re-issuance on
+	// every restart, burning through the CA's rate limits.
+	CertCacheDir string `yaml:"cert_cache_dir" envconfig:"TLS_CERT_CACHE_DIR"`
 }
 
 // Upstream - Defines the upstream settings.

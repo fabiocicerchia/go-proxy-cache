@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -75,6 +76,13 @@ func InitConfigFromFileOrEnv(file string) {
 	// allow only the config file to specify overrides per domain
 	Config.Domains = YamlConfig.Domains
 
+	// JWT for the global configuration. Without this the global JwkCache was
+	// never initialised (only per-domain configs got InitJWT), so a JWKS URL
+	// configured globally could never be used for validation.
+	if Config.Jwt.JwksUrl != "" {
+		InitJWT(&Config.Jwt)
+	}
+
 	// DOMAINS
 	copyGlobalOverDomainConfig(file)
 }
@@ -95,12 +103,22 @@ func loadYAMLFilefile(file string) (YamlConfig Configuration) {
 
 // InitJWT - Configure the jwk auto-refresh and save it into the JWT config
 func InitJWT(jwtConfig *Jwt) {
+	if jwtConfig.Context == nil {
+		jwtConfig.Context = context.Background()
+	}
+
 	refreshIntervalDuration := time.Duration(jwtConfig.JwksRefreshInterval) * time.Minute
 	jwtKeyFetcher := jwk.NewCache(jwtConfig.Context, jwk.WithRefreshWindow(refreshIntervalDuration))
-	jwtKeyFetcher.Register(
-		jwtConfig.JwksUrl,
-		jwk.WithMinRefreshInterval(refreshIntervalDuration),
-	)
+
+	// Registering an empty URL is pointless and would only produce errors at
+	// fetch time; validation is skipped anyway when no JWKS URL is configured.
+	if jwtConfig.JwksUrl != "" {
+		jwtKeyFetcher.Register(
+			jwtConfig.JwksUrl,
+			jwk.WithMinRefreshInterval(refreshIntervalDuration),
+		)
+	}
+
 	jwtConfig.JwkCache = jwtKeyFetcher
 }
 
@@ -116,7 +134,9 @@ func copyGlobalOverDomainConfig(file string) {
 			if isJWKSUrl {
 				domain.Jwt.JwksUrl = os.Getenv("JWT_JWKS_URL_" + domainName)
 			}
-			InitJWT(&domain.Jwt)
+			if domain.Jwt.JwksUrl != "" {
+				InitJWT(&domain.Jwt)
+			}
 			domains[k] = domain
 		}
 
@@ -166,6 +186,9 @@ func (c *Configuration) copyOverWithServer(overrides Server) {
 	c.Server.GZip = utils.Coalesce(overrides.GZip, c.Server.GZip).(bool)
 	c.Server.Internals.ListeningAddress = utils.Coalesce(overrides.Internals.ListeningAddress, c.Server.Internals.ListeningAddress).(string)
 	c.Server.Internals.ListeningPort = utils.Coalesce(overrides.Internals.ListeningPort, c.Server.Internals.ListeningPort).(string)
+	c.Server.Purge.AllowedIPs = utils.Coalesce(overrides.Purge.AllowedIPs, c.Server.Purge.AllowedIPs).([]string)
+	c.Server.Purge.Secret = utils.Coalesce(overrides.Purge.Secret, c.Server.Purge.Secret).(string)
+	c.Server.Purge.SecretHeader = utils.Coalesce(overrides.Purge.SecretHeader, c.Server.Purge.SecretHeader).(string)
 }
 
 // --- TLS.
@@ -175,6 +198,7 @@ func (c *Configuration) copyOverWithTLS(overrides Server, file *string) {
 	c.Server.TLS.CertFile = utils.Coalesce(overrides.TLS.CertFile, c.Server.TLS.CertFile).(string)
 	c.Server.TLS.KeyFile = utils.Coalesce(overrides.TLS.KeyFile, c.Server.TLS.KeyFile).(string)
 	c.Server.TLS.Override = utils.Coalesce(overrides.TLS.Override, c.Server.TLS.Override).(*tls.Config)
+	c.Server.TLS.CertCacheDir = utils.Coalesce(overrides.TLS.CertCacheDir, c.Server.TLS.CertCacheDir).(string)
 
 	c.Server.TLS.CertFile = patchAbsFilePath(c.Server.TLS.CertFile, file)
 	c.Server.TLS.KeyFile = patchAbsFilePath(c.Server.TLS.KeyFile, file)
@@ -258,9 +282,15 @@ func Print() {
 	}
 
 	obfuscatedConfig.Cache.Password = PasswordOmittedValue
+	if obfuscatedConfig.Server.Purge.Secret != "" {
+		obfuscatedConfig.Server.Purge.Secret = PasswordOmittedValue
+	}
 
 	for k, v := range obfuscatedConfig.Domains {
 		v.Cache.Password = PasswordOmittedValue
+		if v.Server.Purge.Secret != "" {
+			v.Server.Purge.Secret = PasswordOmittedValue
+		}
 		obfuscatedConfig.Domains[k] = v
 	}
 
@@ -297,29 +327,48 @@ func getSliceFromMap(domains map[string]DomainSet) []DomainSet {
 	return domainsUnique
 }
 
+// domainsCacheMu - Guards access to Configuration.domainsCache.
+var domainsCacheMu sync.RWMutex
+
 // DomainConf - Returns the configuration for the requested domain (Global Access).
 func DomainConf(domain string, scheme string) (Configuration, bool) {
 	return Config.DomainConf(domain, scheme)
 }
 
 // DomainConf - Returns the configuration for the requested domain.
-func (c Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
-	var found bool
-
-	// Memoization
-	if c.domainsCache == nil {
-		c.domainsCache = make(map[string]Configuration)
-	}
-
+//
+// The result is memoized on the receiver. A pointer receiver is required so the
+// cache persists across calls (a value receiver mutated a throwaway copy, so the
+// memoization never actually took effect and every request re-scanned all
+// domains). Access is guarded by domainsCacheMu since DomainConf runs on the
+// request path and is invoked concurrently.
+func (c *Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
 	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
-	if val, ok := c.domainsCache[keyCache]; ok {
-		log.Debugf("Cached configuration for %s", keyCache)
-		return val, true
+
+	domainsCacheMu.RLock()
+	if c.domainsCache != nil {
+		if val, ok := c.domainsCache[keyCache]; ok {
+			domainsCacheMu.RUnlock()
+			log.Debugf("Cached configuration for %s", keyCache)
+			return val, true
+		}
+	}
+	domainsCacheMu.RUnlock()
+
+	conf, found := c.domainConfLookup(utils.StripPort(domain), scheme)
+
+	// Only cache positive lookups. Caching a miss would store a zero-value
+	// Configuration that a later call would return as a hit (found == true).
+	if found {
+		domainsCacheMu.Lock()
+		if c.domainsCache == nil {
+			c.domainsCache = make(map[string]Configuration)
+		}
+		c.domainsCache[keyCache] = conf
+		domainsCacheMu.Unlock()
 	}
 
-	c.domainsCache[keyCache], found = c.domainConfLookup(utils.StripPort(domain), scheme)
-
-	return c.domainsCache[keyCache], found
+	return conf, found
 }
 
 func (c Configuration) domainConfLookup(domain string, scheme string) (Configuration, bool) {

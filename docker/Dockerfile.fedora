@@ -7,7 +7,7 @@
 # Copyright (c) 2022 Fabio Cicerchia. https://fabiocicerchia.it. MIT License
 # Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
-FROM fedora:35 AS builder
+FROM fedora:42 AS builder
 
 ARG BUILD_CMD=build
 
@@ -15,6 +15,9 @@ WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
 ENV CGO_CFLAGS -march=native -O3
 ENV PATH=/usr/local/go/bin:$PATH
+# The distro Go may lag behind the version required by go.mod; auto lets it
+# fetch the matching toolchain instead of failing the build.
+ENV GOTOOLCHAIN=auto
 
 RUN yum install -y \
       gcc \
@@ -25,7 +28,7 @@ COPY . ./
 
 RUN make $BUILD_CMD
 
-FROM fedora:35
+FROM fedora:42
 
 WORKDIR /app
 

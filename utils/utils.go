@@ -10,6 +10,7 @@ package utils
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -70,12 +71,21 @@ func IsEmpty(value interface{}) bool {
 
 // StripPort - Removes the port from a string like hostname:port.
 func StripPort(val string) string {
-	valParts := strings.Split(val, ":")
-
-	max := len(valParts) - 1
-	if max <= 0 {
-		max = 1
+	if val == "" {
+		return ""
 	}
 
-	return strings.Join(valParts[:max], ":")
+	// net.SplitHostPort correctly handles IPv6 literals wrapped in brackets,
+	// e.g. "[::1]:8080". The naive strings.Split(val, ":") approach mangled
+	// those addresses (and bare IPv6 literals), producing invalid hosts.
+	if host, _, err := net.SplitHostPort(val); err == nil {
+		return host
+	}
+
+	// No port present. Strip surrounding brackets from a bracketed IPv6 literal.
+	if strings.HasPrefix(val, "[") && strings.HasSuffix(val, "]") {
+		return val[1 : len(val)-1]
+	}
+
+	return val
 }

@@ -140,6 +140,30 @@ func TestStripPortHostnameAndPort(t *testing.T) {
 	tearDown()
 }
 
+func TestStripPortIPv6WithPort(t *testing.T) {
+	value := utils.StripPort("[::1]:1234")
+
+	assert.Equal(t, "::1", value)
+
+	tearDown()
+}
+
+func TestStripPortIPv6WithBrackets(t *testing.T) {
+	value := utils.StripPort("[::1]")
+
+	assert.Equal(t, "::1", value)
+
+	tearDown()
+}
+
+func TestStripPortIPv6WithoutPort(t *testing.T) {
+	value := utils.StripPort("::1")
+
+	assert.Equal(t, "::1", value)
+
+	tearDown()
+}
+
 func tearDown() {
 	config.Config = config.Configuration{}
 	os.Unsetenv("testing")

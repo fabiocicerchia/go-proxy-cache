@@ -36,19 +36,6 @@ func NewIpHashBalancer(name string, items []Item) *IpHashBalancer {
 	}
 }
 
-// GetHealthyNodes - Retrieves healthy nodes.
-func (b *IpHashBalancer) GetHealthyNodes() []Item {
-	healthyNodes := []Item{}
-
-	for _, v := range b.NodeBalancer.Items {
-		if v.Healthy {
-			healthyNodes = append(healthyNodes, v)
-		}
-	}
-
-	return healthyNodes
-}
-
 // Pick - Chooses next available item.
 func (b *IpHashBalancer) Pick(requestURL string) (string, error) {
 	healthyNodes := b.NodeBalancer.GetHealthyNodes()
@@ -61,7 +48,11 @@ func (b *IpHashBalancer) Pick(requestURL string) (string, error) {
 	hash := fmt.Sprintf("%x", h.Sum(nil))
 
 	b.NodeBalancer.M.RLock()
-	if pos, ok := b.hashMap[hash]; ok {
+	// The set of healthy nodes can shrink between calls (e.g. a node becomes
+	// unhealthy), so a previously stored position may point past the current
+	// slice. Only reuse it when it is still in range, otherwise fall through and
+	// pick (and store) a fresh position.
+	if pos, ok := b.hashMap[hash]; ok && pos < int64(len(healthyNodes)) {
 		b.NodeBalancer.M.RUnlock()
 		return healthyNodes[pos].Endpoint, nil
 	}
