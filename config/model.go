@@ -12,6 +12,7 @@ package config
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -113,6 +114,35 @@ type TLS struct {
 	// cached. Must be persistent: an ephemeral directory forces re-issuance on
 	// every restart, burning through the CA's rate limits.
 	CertCacheDir string `yaml:"cert_cache_dir" envconfig:"TLS_CERT_CACHE_DIR"`
+	HSTS         HSTS   `yaml:"hsts"`
+}
+
+// HSTS - Defines the configuration for the Strict-Transport-Security header.
+// Mitigates MITM/SSL-stripping attacks by telling browsers to never
+// downgrade this host to plain HTTP again, once seen over HTTPS.
+type HSTS struct {
+	Enabled           bool `yaml:"enabled" envconfig:"TLS_HSTS_ENABLED"`
+	MaxAge            int  `yaml:"max_age" envconfig:"TLS_HSTS_MAX_AGE" default:"31536000"`
+	IncludeSubdomains bool `yaml:"include_subdomains" envconfig:"TLS_HSTS_INCLUDE_SUBDOMAINS"`
+	Preload           bool `yaml:"preload" envconfig:"TLS_HSTS_PRELOAD"`
+}
+
+// Header - Builds the Strict-Transport-Security header value.
+func (h HSTS) Header() string {
+	maxAge := h.MaxAge
+	if maxAge == 0 {
+		maxAge = 31536000 // 1 year, matches the envconfig default.
+	}
+
+	value := fmt.Sprintf("max-age=%d", maxAge)
+	if h.IncludeSubdomains {
+		value += "; includeSubDomains"
+	}
+	if h.Preload {
+		value += "; preload"
+	}
+
+	return value
 }
 
 // Upstream - Defines the upstream settings.
