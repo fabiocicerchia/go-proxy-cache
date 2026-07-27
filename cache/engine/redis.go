@@ -30,10 +30,18 @@ func GetConn(connName string) client.CacheClient {
 	return nil
 }
 
-// InitConn - Initialises the cache backend connection.
+// InitConn - Initialises the cache backend connection. config.Cache.Engine
+// selects the backend ("redis", the default, or "freecache" for an
+// in-process, single-instance cache with no external infra).
 func InitConn(connName string, config config.Cache, logger *log.Logger) {
 	if rdb == nil {
 		rdb = make(map[string]client.CacheClient)
+	}
+
+	if config.Engine == "freecache" {
+		logger.Debugf("New freecache connection for %s", connName)
+		rdb[connName] = client.NewFreecacheClient(config)
+		return
 	}
 
 	logger.Debugf("New redis connection for %s", connName)

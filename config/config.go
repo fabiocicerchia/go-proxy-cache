@@ -241,6 +241,8 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 	c.Cache.TTL = utils.Coalesce(overrides.TTL, c.Cache.TTL).(int)
 	c.Cache.AllowedStatuses = utils.Coalesce(overrides.AllowedStatuses, c.Cache.AllowedStatuses).([]int)
 	c.Cache.AllowedMethods = utils.Coalesce(overrides.AllowedMethods, c.Cache.AllowedMethods).([]string)
+	c.Cache.Engine = utils.Coalesce(overrides.Engine, c.Cache.Engine).(string)
+	c.Cache.FreecacheSizeMB = utils.Coalesce(overrides.FreecacheSizeMB, c.Cache.FreecacheSizeMB).(int)
 
 	c.Cache.AllowedMethods = append(c.Cache.AllowedMethods, "HEAD", "GET")
 	c.Cache.AllowedMethods = slice.Unique(c.Cache.AllowedMethods)
