@@ -16,17 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
 
       - run: git fetch --prune --unshallow --tags
 
       - name: Create changelogs
         id: changelogs
-        uses: heineiuo/create-changelogs@master
+        uses: heineiuo/create-changelogs@5bf91a49ec2062a47e1593edb72c702e7a1224c2  # master
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844  # v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.changelogs.outputs.changelogs }}
@@ -35,7 +35,7 @@ jobs:
           files: |
             dist/*
 
-      - uses: ethomson/send-tweet-action@v1
+      - uses: ethomson/send-tweet-action@288f9339e0412e3038dce350e0da5ecdf12133a6  # v1
         with:
           status: "The version ${{ github.ref }} of go-proxy-cache has been released. https://github.com/fabiocicerchia/go-proxy-cache"
           consumer-key: ${{ secrets.TWITTER_CONSUMER_API_KEY }}
