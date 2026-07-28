@@ -21,7 +21,7 @@ spec:
         - name: go-proxy-cache
           image: fabiocicerchia/go-proxy-cache:latest
           args:
-          - go-proxy-cache
+            - go-proxy-cache
           ports:
             - name: http
               containerPort: 50080
@@ -34,12 +34,12 @@ spec:
               name: go-proxy-cache-config-yml
               subPath: config.yml
               readOnly: true
-        restartPolicy: Always
-        serviceAccountName: ""
-        volumes:
-          - name: go-proxy-cache-config-yml
-            configMap:
-              name: prod-gpc-config
-              items:
-                - key: config.yml
-                  path: config.yml
+      restartPolicy: Always
+      serviceAccountName: ""
+      volumes:
+        - name: go-proxy-cache-config-yml
+          configMap:
+            name: prod-gpc-config
+            items:
+              - key: config.yml
+                path: config.yml

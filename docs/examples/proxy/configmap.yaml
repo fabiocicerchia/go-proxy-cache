@@ -22,7 +22,7 @@ data:
           scheme: http
 
     cache:
-      hosts: 
+      hosts:
         - cache-redis.default.svc.cluster.local
 
     domains:
