@@ -64,52 +64,38 @@ func Init(name string, config config.Upstream) {
 	}
 }
 
-// InitRoundRobin - Initialise the LB algorithm for round robin selection.
-func InitRoundRobin(name string, config config.Upstream, enableHealthchecks bool) {
+// initBalancer - Shared init for every LB algorithm: build the items, store
+// the balancer, and health-check it. Only the constructor differs per algorithm.
+func initBalancer(name string, config config.Upstream, enableHealthchecks bool, newBalancer func(string, []Item) Balancer) {
 	initLB()
 	items := convertEndpoints(config.Endpoints)
 
-	lb[name] = NewRoundRobinBalancer(name, items)
+	b := newBalancer(name, items)
+	lb[name] = b
 
 	if enableHealthchecks {
-		CheckHealth(&lb[name].(*RoundRobinBalancer).NodeBalancer, config.Host, config.HealthCheck)
+		CheckHealth(b.GetNodeBalancer(), config.Host, config.HealthCheck)
 	}
+}
+
+// InitRoundRobin - Initialise the LB algorithm for round robin selection.
+func InitRoundRobin(name string, config config.Upstream, enableHealthchecks bool) {
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewRoundRobinBalancer(n, items) })
 }
 
 // InitRandom - Initialise the LB algorithm for random selection.
 func InitRandom(name string, config config.Upstream, enableHealthchecks bool) {
-	initLB()
-	items := convertEndpoints(config.Endpoints)
-
-	lb[name] = NewRandomBalancer(name, items)
-
-	if enableHealthchecks {
-		CheckHealth(&lb[name].(*RandomBalancer).NodeBalancer, config.Host, config.HealthCheck)
-	}
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewRandomBalancer(n, items) })
 }
 
 // InitLeastConnection - Initialise the LB algorithm for least-connection selection.
 func InitLeastConnection(name string, config config.Upstream, enableHealthchecks bool) {
-	initLB()
-	items := convertEndpoints(config.Endpoints)
-
-	lb[name] = NewLeastConnectionsBalancer(name, items)
-
-	if enableHealthchecks {
-		CheckHealth(&lb[name].(*LeastConnectionsBalancer).NodeBalancer, config.Host, config.HealthCheck)
-	}
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewLeastConnectionsBalancer(n, items) })
 }
 
 // InitIpHash - Initialise the LB algorithm for ip-hash selection.
 func InitIpHash(name string, config config.Upstream, enableHealthchecks bool) {
-	initLB()
-	items := convertEndpoints(config.Endpoints)
-
-	lb[name] = NewIpHashBalancer(name, items)
-
-	if enableHealthchecks {
-		CheckHealth(&lb[name].(*IpHashBalancer).NodeBalancer, config.Host, config.HealthCheck)
-	}
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewIpHashBalancer(n, items) })
 }
 
 // GetUpstreamNode - Returns backend server using current algorithm.
