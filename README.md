@@ -22,7 +22,6 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache "Docker stars")
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4469/badge)](https://bestpractices.coreinfrastructure.org/projects/4469)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_shield)  
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
 
 </center>
@@ -274,5 +273,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_large)
