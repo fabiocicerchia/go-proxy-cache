@@ -5,7 +5,7 @@ on:
     branches:
       - main
   pull_request:
-    type:
+    types:
       - opened
       - synchronize
   workflow_dispatch: ~
@@ -17,7 +17,7 @@ concurrency:
 jobs:
 
   build-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: golang:alpine
     services:
       redis:
@@ -144,7 +144,7 @@ jobs:
         run: make codeclimate
 
   sca:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
 
