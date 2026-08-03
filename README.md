@@ -7,9 +7,8 @@
 Simple Reverse Proxy with Caching, written in Go, using Redis.  
     >>> **(semi) production-ready** <<<
 
-[![MIT License](https://img.shields.io/badge/License-MIT-brightgreen.svg?longCache=true)](LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-brightgreen.svg?longCache=true)](LICENSE.md)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
-![Maintenance](https://img.shields.io/maintenance/yes/2023)
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
   
 ![Last Commit](https://img.shields.io/github/last-commit/fabiocicerchia/go-proxy-cache)
@@ -22,16 +21,8 @@ Simple Reverse Proxy with Caching, written in Go, using Redis.
 ![Docker pulls](https://img.shields.io/docker/pulls/fabiocicerchia/go-proxy-cache "Docker pulls")
 ![Docker stars](https://img.shields.io/docker/stars/fabiocicerchia/go-proxy-cache "Docker stars")
 
-![GitHub Workflow Status](https://img.shields.io/github/workflow/status/fabiocicerchia/go-proxy-cache/Builds)
-
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4469/badge)](https://bestpractices.coreinfrastructure.org/projects/4469)
-[![BCH compliance](https://bettercodehub.com/edge/badge/fabiocicerchia/go-proxy-cache?branch=main)](https://bettercodehub.com/results/fabiocicerchia/go-proxy-cache)
-[![Go Report Card](https://goreportcard.com/badge/github.com/fabiocicerchia/go-proxy-cache)](https://goreportcard.com/report/github.com/fabiocicerchia/go-proxy-cache)
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_shield)  
 [![codecov](https://codecov.io/gh/fabiocicerchia/go-proxy-cache/branch/main/graph/badge.svg)](https://codecov.io/gh/fabiocicerchia/go-proxy-cache)
-[![Maintainability](https://img.shields.io/codeclimate/maintainability/fabiocicerchia/go-proxy-cache)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
-[![Technical Debt](https://img.shields.io/codeclimate/tech-debt/fabiocicerchia/go-proxy-cache)](https://codeclimate.com/github/fabiocicerchia/go-proxy-cache/maintainability)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/fabiocicerchia/go-proxy-cache.svg)](https://lgtm.com/projects/g/fabiocicerchia/go-proxy-cache/alerts/)
 
 </center>
 
@@ -49,6 +40,8 @@ Two commercial versions have been planned: [PRO and PREMIUM](https://kodebeat.co
 The development of the COMMUNITY version will continue, but priority will be given to the [COMMERCIAL versions](https://kodebeat.com/goproxycache.html).  
 - If you'd like to support this open-source project I'll appreciate any kind of [contribution](https://github.com/sponsors/fabiocicerchia).
 - If you'd like to sponsor the commercial version, please [get in touch with me](mail:info@fabiocicerchia.it).
+
+Need help implementing this? [Get in touch](https://fabiocicerchia.it/contact).
 
 ---
 
@@ -280,5 +273,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffabiocicerchia%2Fgo-proxy-cache?ref=badge_large)

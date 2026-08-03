@@ -5,15 +5,19 @@ on:
     branches:
       - main
   pull_request:
-    type:
+    types:
       - opened
       - synchronize
   workflow_dispatch: ~
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
 
   build-test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: golang:alpine
     services:
       redis:
@@ -52,7 +56,7 @@ jobs:
         #  -v ${{ github.workspace }}/test/full-setup/nginx:/etc/nginx/conf.d
         #  -v ${{ github.workspace }}/test/full-setup/certs:/certs
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
 
       - name: Service Logs - jaeger
         uses: docker://docker
@@ -140,9 +144,9 @@ jobs:
         run: make codeclimate
 
   sca:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
 
       - name: SCA
         continue-on-error: true
