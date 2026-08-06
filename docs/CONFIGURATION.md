@@ -23,6 +23,7 @@
 - `LB_ENDPOINT_LIST`
 - `REDIRECT_STATUS_CODE` = `301`
 - `REDIS_DB`
+- `REDIS_EVICTION_POLICY` - Redis `maxmemory-policy` to apply on connect (e.g. `allkeys-lru`, `allkeys-lfu`). Empty leaves Redis's own default.
 - `REDIS_HOSTS`
 - `REDIS_PASSWORD`
 - `SENTRY_DSN`
