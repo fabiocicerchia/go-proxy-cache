@@ -128,7 +128,7 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, cache.StatusLabel[cache.StatusMiss])
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
-	proxy.Transport = rc.patchProxyTransport()
+	proxy.Transport = coalescingRoundTripper{rc.patchProxyTransport()}
 
 	originalDirector := proxy.Director
 	gpcDirector := rc.ProxyDirector(ctx)
