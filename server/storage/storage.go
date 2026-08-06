@@ -13,6 +13,7 @@ import (
 	"context"
 	"net/http"
 	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -59,10 +60,24 @@ func RetrieveCachedContent(ctx context.Context, rc RequestCallDTO, logger *log.E
 	return rc.CacheObject.CurrentURIObject, nil
 }
 
+// ApplyNegativeTTL - Overrides the TTL for a configured status (e.g. 404/502)
+// with its own short TTL instead of inheriting origin cache headers, which
+// error pages rarely set sanely. This shields the origin from repeated hits
+// on a broken URL.
+func ApplyNegativeTTL(status int, negativeTTL map[int]int, defaultTTL time.Duration) time.Duration {
+	if secs, ok := negativeTTL[status]; ok {
+		return time.Duration(secs) * time.Second
+	}
+
+	return defaultTTL
+}
+
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(ctx context.Context, rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
 	// Use the static rc.CacheObject.CurrentURIObject.ResponseHeaders to avoid data race
 	currentTTL := ttl.GetTTL(rc.CacheObject.CurrentURIObject.ResponseHeaders, domainConfigCache.TTL)
+	currentTTL = ApplyNegativeTTL(rc.CacheObject.CurrentURIObject.StatusCode, domainConfigCache.NegativeTTL, currentTTL)
+
 	done, err := rc.CacheObject.StoreFullPage(ctx, currentTTL)
 
 	return done, err

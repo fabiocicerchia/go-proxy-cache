@@ -285,6 +285,15 @@ cache:
   allowed_methods:
     - HEAD
     - GET
+  # --- NEGATIVE CACHING
+  # Per-status TTL override (seconds) so error responses (404, 502, ...) get
+  # cached briefly and shield the origin, instead of inheriting origin cache
+  # headers (which error pages rarely set sanely). The status is implicitly
+  # added to allowed_statuses, no need to list it there too.
+  # Default: none
+  negative_ttl:
+    404: 30
+    502: 10
 
 # --- CIRCUIT BREAKER
 # WARNING: INTERNAL SERVER BEHAVIOUR

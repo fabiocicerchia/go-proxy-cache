@@ -160,6 +160,32 @@ type Cache struct {
 	TTL             int      `yaml:"ttl" envconfig:"DEFAULT_TTL"`
 	AllowedStatuses []int    `yaml:"allowed_statuses" envconfig:"CACHE_ALLOWED_STATUSES" split_words:"true"`
 	AllowedMethods  []string `yaml:"allowed_methods" envconfig:"CACHE_ALLOWED_METHODS" split_words:"true"`
+	// NegativeTTL - Per-status TTL override (in seconds), e.g. {404: 30, 502: 10},
+	// to cache error responses briefly and shield the origin without waiting on
+	// its (often absent/wrong) Cache-Control headers. YAML-only: envconfig has no
+	// clean map[int]int support, unlike the slice fields above.
+	NegativeTTL map[int]int `yaml:"negative_ttl"`
+}
+
+// EffectiveAllowedStatuses - AllowedStatuses plus any status codes that have a
+// NegativeTTL override, so operators don't have to list the same status twice.
+func (c Cache) EffectiveAllowedStatuses() []int {
+	statuses := append([]int{}, c.AllowedStatuses...)
+
+	for status := range c.NegativeTTL {
+		found := false
+		for _, s := range statuses {
+			if s == status {
+				found = true
+				break
+			}
+		}
+		if !found {
+			statuses = append(statuses, status)
+		}
+	}
+
+	return statuses
 }
 
 // Log - Defines the config for the logs.
