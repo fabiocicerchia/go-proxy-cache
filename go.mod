@@ -3,6 +3,7 @@ module github.com/fabiocicerchia/go-proxy-cache
 go 1.25.0
 
 require (
+	github.com/coocood/freecache v1.2.7
 	github.com/evalphobia/logrus_sentry v0.8.2
 	github.com/go-http-utils/fresh v0.0.0-20161124030543-7231e26a4b27
 	github.com/go-http-utils/headers v0.0.0-20181008091004-fed159eddc2a

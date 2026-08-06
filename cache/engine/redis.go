@@ -17,23 +17,31 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 )
 
-var rdb map[string]*client.RedisClient
+var rdb map[string]client.CacheClient
 
-// GetConn - Retrieves the Redis connection.
-func GetConn(connName string) *client.RedisClient {
+// GetConn - Retrieves the cache backend connection.
+func GetConn(connName string) client.CacheClient {
 	if conn, ok := rdb[connName]; ok {
 		return conn
 	}
 
-	logger.GetGlobal().Errorf("Missing redis connection for %s", connName)
+	logger.GetGlobal().Errorf("Missing cache connection for %s", connName)
 
 	return nil
 }
 
-// InitConn - Initialises the Redis connection.
+// InitConn - Initialises the cache backend connection. config.Cache.Engine
+// selects the backend ("redis", the default, or "freecache" for an
+// in-process, single-instance cache with no external infra).
 func InitConn(connName string, config config.Cache, logger *log.Logger) {
 	if rdb == nil {
-		rdb = make(map[string]*client.RedisClient)
+		rdb = make(map[string]client.CacheClient)
+	}
+
+	if config.Engine == "freecache" {
+		logger.Debugf("New freecache connection for %s", connName)
+		rdb[connName] = client.NewFreecacheClient(config)
+		return
 	}
 
 	logger.Debugf("New redis connection for %s", connName)
