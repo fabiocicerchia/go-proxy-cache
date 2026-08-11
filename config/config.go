@@ -229,6 +229,7 @@ func (c *Configuration) copyOverWithUpstream(overrides Server) {
 	c.Server.Upstream.HealthCheck.Port = utils.Coalesce(overrides.Upstream.HealthCheck.Port, c.Server.Upstream.HealthCheck.Port).(string)
 	c.Server.Upstream.HealthCheck.Scheme = utils.Coalesce(overrides.Upstream.HealthCheck.Scheme, c.Server.Upstream.HealthCheck.Scheme).(string)
 	c.Server.Upstream.HealthCheck.AllowInsecure = utils.Coalesce(overrides.Upstream.HealthCheck.AllowInsecure, c.Server.Upstream.HealthCheck.AllowInsecure).(bool)
+	c.Server.Upstream.CollapsedForwarding = utils.Coalesce(overrides.Upstream.CollapsedForwarding, c.Server.Upstream.CollapsedForwarding).(bool)
 
 	c.Server.Upstream.Scheme = utils.IfEmpty(c.Server.Upstream.Scheme, SchemeWildcard)
 }

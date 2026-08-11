@@ -200,6 +200,10 @@ server:
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirect_status_code: 301
+    # Collapse concurrent identical GET/HEAD cache misses into a single
+    # upstream request.
+    # Default: false
+    collapsed_forwarding: false
     health_check:
       # Status codes for healthy node.
       # A list of space-separated status codes.

@@ -42,6 +42,17 @@ type coalescingRoundTripper struct {
 	http.RoundTripper
 }
 
+// proxyTransport - Returns the transport for the reverse proxy, wrapped in the
+// coalescing decorator only when collapsed forwarding is enabled for the domain
+// (feature flag, off by default).
+func (rc RequestCall) proxyTransport() http.RoundTripper {
+	if rc.DomainConfig.Server.Upstream.CollapsedForwarding {
+		return coalescingRoundTripper{rc.patchProxyTransport()}
+	}
+
+	return rc.patchProxyTransport()
+}
+
 func (c coalescingRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
 		return c.RoundTripper.RoundTrip(req)

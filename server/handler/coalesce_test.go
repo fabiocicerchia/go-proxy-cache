@@ -23,6 +23,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestCollapsedForwardingFeatureFlag(t *testing.T) {
+	rc := RequestCall{}
+
+	assert.IsType(t, &http.Transport{}, rc.proxyTransport())
+
+	rc.DomainConfig.Server.Upstream.CollapsedForwarding = true
+
+	assert.IsType(t, coalescingRoundTripper{}, rc.proxyTransport())
+}
+
 func TestCoalescingRoundTripperCollapsesConcurrentGETs(t *testing.T) {
 	var hits int32
 

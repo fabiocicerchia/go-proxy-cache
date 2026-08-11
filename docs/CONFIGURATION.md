@@ -9,6 +9,7 @@
 - `BALANCING_ALGORITHM` = `round-robin`
 - `CACHE_ALLOWED_METHODS`
 - `CACHE_ALLOWED_STATUSES`
+- `COLLAPSED_FORWARDING`
 - `DEFAULT_TTL`
 - `FORWARD_HOST`
 - `FORWARD_PORT`
@@ -232,6 +233,10 @@ server:
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirect_status_code: 301
+    # Collapse concurrent identical GET/HEAD cache misses into a single
+    # upstream request.
+    # Default: false
+    collapsed_forwarding: false
     health_check:
       # Status codes for healthy node.
       # A list of space-separated status codes.
