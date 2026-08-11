@@ -156,6 +156,10 @@ type Upstream struct {
 	HTTP2HTTPS         bool        `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`
 	RedirectStatusCode int         `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE" default:"301"`
 	HealthCheck        HealthCheck `yaml:"health_check"`
+	// CollapsedForwarding - Feature flag for collapsed forwarding, off by
+	// default. When true, concurrent identical GET/HEAD cache misses are
+	// coalesced into a single upstream round-trip.
+	CollapsedForwarding bool `yaml:"collapsed_forwarding" envconfig:"COLLAPSED_FORWARDING"`
 }
 
 // GetDomainID - Returns the unique ID for the upstream.
