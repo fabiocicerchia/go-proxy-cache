@@ -160,6 +160,11 @@ type Cache struct {
 	TTL             int      `yaml:"ttl" envconfig:"DEFAULT_TTL"`
 	AllowedStatuses []int    `yaml:"allowed_statuses" envconfig:"CACHE_ALLOWED_STATUSES" split_words:"true"`
 	AllowedMethods  []string `yaml:"allowed_methods" envconfig:"CACHE_ALLOWED_METHODS" split_words:"true"`
+	// EvictionPolicy - Redis maxmemory-policy applied on connect. One of:
+	// noeviction, allkeys-lru, allkeys-lfu, volatile-lru, volatile-lfu,
+	// allkeys-random, volatile-random, volatile-ttl. Empty leaves Redis's own
+	// default (noeviction) untouched.
+	EvictionPolicy string `yaml:"eviction_policy" envconfig:"REDIS_EVICTION_POLICY"`
 }
 
 // Log - Defines the config for the logs.
