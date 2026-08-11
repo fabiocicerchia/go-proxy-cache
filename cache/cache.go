@@ -84,6 +84,22 @@ func (c Object) IsMethodAllowed() bool {
 	return slice.ContainsString(c.AllowedMethods, c.CurrentURIObject.Method)
 }
 
+// HasRangeRequest - Checks if the incoming request asked for a byte range.
+// Range requests must always bypass the cache: this cache stores/serves whole
+// bodies, so returning a full cached body for a ranged request would be a
+// wrong response (wrong status code and bytes) to the client.
+func (u URIObj) HasRangeRequest() bool {
+	return u.RequestHeaders.Get("Range") != ""
+}
+
+// IsPartialContent - Checks if the response is a partial content response
+// (206, or carrying Content-Range). Such responses must never be stored as if
+// they were the full resource, or later non-range requests would be served
+// truncated bytes.
+func (u URIObj) IsPartialContent() bool {
+	return u.StatusCode == http.StatusPartialContent || u.ResponseHeaders.Get("Content-Range") != ""
+}
+
 func getRandomSoftExpirationTTL() time.Duration {
 	// Pick a random value in the range [Min, Max) so the soft expiration jitter
 	// respects its lower bound. The previous formula (Max - Min + Min) collapsed
@@ -148,14 +164,17 @@ func (c Object) handleMetadata(ctx context.Context, domainID string, targetURL u
 
 // StoreFullPage - Stores the whole page response in cache.
 func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bool, error) {
-	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
+	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 ||
+		c.CurrentURIObject.HasRangeRequest() || c.CurrentURIObject.IsPartialContent() {
 		logger.GetGlobal().WithFields(log.Fields{
 			"ReqID": c.ReqID,
 		}).Debugf(
-			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v",
+			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v - Range: %v - Partial: %v",
 			c.IsStatusAllowed(),
 			c.IsMethodAllowed(),
 			expiration,
+			c.CurrentURIObject.HasRangeRequest(),
+			c.CurrentURIObject.IsPartialContent(),
 		)
 
 		return false, nil
@@ -195,6 +214,10 @@ func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bo
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
 func (c *Object) RetrieveFullPage() error {
+	if c.CurrentURIObject.HasRangeRequest() {
+		return ErrEmptyValue
+	}
+
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(c.DomainID, c.CurrentURIObject.Method, c.CurrentURIObject.URL)
