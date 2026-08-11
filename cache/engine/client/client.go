@@ -30,6 +30,20 @@ import (
 
 var ctx = context.Background()
 
+// validEvictionPolicies - Allowed values for Redis' maxmemory-policy. Kept as
+// an allowlist since the value may come from an env var (trust boundary)
+// before being sent verbatim to Redis via CONFIG SET.
+var validEvictionPolicies = map[string]bool{
+	"noeviction":      true,
+	"allkeys-lru":     true,
+	"allkeys-lfu":     true,
+	"volatile-lru":    true,
+	"volatile-lfu":    true,
+	"allkeys-random":  true,
+	"volatile-random": true,
+	"volatile-ttl":    true,
+}
+
 // RedisClient - Redis Client structure.
 type RedisClient struct {
 	Client  goredislib.UniversalClient
@@ -58,7 +72,27 @@ func Connect(connName string, config config.Cache, logger *log.Logger) *RedisCli
 		logger:  logger,
 	}
 
+	applyEvictionPolicy(rdb, config.EvictionPolicy)
+
 	return rdb
+}
+
+// applyEvictionPolicy - Sets Redis' own maxmemory-policy (LRU/LFU/etc) on
+// connect. Redis already implements eviction natively, so there is no
+// reimplementation here, just exposing the existing knob via config.
+func applyEvictionPolicy(rdb *RedisClient, policy string) {
+	if policy == "" {
+		return
+	}
+
+	if !validEvictionPolicies[policy] {
+		rdb.logger.Errorf("Invalid REDIS_EVICTION_POLICY %q, skipping", policy)
+		return
+	}
+
+	if err := rdb.Client.ConfigSet(ctx, "maxmemory-policy", policy).Err(); err != nil {
+		rdb.logger.Errorf("Failed to set maxmemory-policy=%s: %s", policy, err)
+	}
 }
 
 // Close - Closes the connection.

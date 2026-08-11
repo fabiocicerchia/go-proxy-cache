@@ -2,6 +2,10 @@ name: Lint Code Base
 
 on: push
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Lint Code Base
@@ -9,7 +13,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
 
       - name: Lint Code Base
         # TODO: https://github.com/github/super-linter/issues/2255

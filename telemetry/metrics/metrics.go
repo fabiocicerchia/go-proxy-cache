@@ -270,57 +270,40 @@ func Register() {
 	)
 }
 
-// IncRequestHost - Increments metrics for gpc_request_host_total.
-func IncRequestHost(host string) {
+// baseLabels - Common "hostname"/"env" pair every metric is tagged with,
+// merged with any metric-specific labels.
+func baseLabels(extra prometheus.Labels) prometheus.Labels {
 	hostname, _ := os.Hostname()
 	labels := prometheus.Labels{
 		"hostname": hostname,
 		"env":      os.Getenv("TRACING_ENV"),
-		"host":     host,
 	}
+	for k, v := range extra {
+		labels[k] = v
+	}
+	return labels
+}
 
-	requestHost.With(labels).Inc()
+// IncRequestHost - Increments metrics for gpc_request_host_total.
+func IncRequestHost(host string) {
+	requestHost.With(baseLabels(prometheus.Labels{"host": host})).Inc()
 }
 
 // IncHttpMethod - Increments metrics for gpc_http_methods_total.
 func IncHttpMethod(method string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"method":   method,
-	}
-
-	httpMethods.With(labels).Inc()
+	httpMethods.With(baseLabels(prometheus.Labels{"method": method})).Inc()
 }
 
 // IncUrlScheme - Increments metrics for gpc_url_scheme_total.
 func IncUrlScheme(scheme string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"scheme":   scheme,
-	}
-
-	urlScheme.With(labels).Inc()
+	urlScheme.With(baseLabels(prometheus.Labels{"scheme": scheme})).Inc()
 }
 
 // IncStatusCode - Increments metrics for gpc_status_codes_total, gpc_request_1xx_total, gpc_request_2xx_total, gpc_request_3xx_total, gpc_request_4xx_total, gpc_request_5xx_total, gpc_request_sum_total.
 func IncStatusCode(code int) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"code":     strconv.Itoa(code),
-	}
+	statusCodes.With(baseLabels(prometheus.Labels{"code": strconv.Itoa(code)})).Inc()
 
-	statusCodes.With(labels).Inc()
-
-	labels = prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-	}
+	labels := baseLabels(nil)
 	if code < 200 {
 		request1xx.With(labels).Inc()
 	} else if code < 300 {
@@ -338,70 +321,34 @@ func IncStatusCode(code int) {
 
 // IncCacheMiss - Increments metrics for gpc_cache_miss_total.
 func IncCacheMiss(server string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-	}
-
-	cacheMiss.With(labels).Inc()
+	cacheMiss.With(baseLabels(prometheus.Labels{"server": server})).Inc()
 }
 
 // IncCacheStale - Increments metrics for gpc_cache_stale_total.
 func IncCacheStale(server string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-	}
-
-	cacheStale.With(labels).Inc()
+	cacheStale.With(baseLabels(prometheus.Labels{"server": server})).Inc()
 }
 
 // IncCacheHit - Increments metrics for gpc_cache_hits_total.
 func IncCacheHit(server string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-	}
-
-	cacheHit.With(labels).Inc()
+	cacheHit.With(baseLabels(prometheus.Labels{"server": server})).Inc()
 }
 
 // SetHostHealthy - Increments metrics for gpc_host_healthy.
 func SetHostHealthy(val float64) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-	}
-
-	hostHealthy.With(labels).Set(val)
+	hostHealthy.With(baseLabels(nil)).Set(val)
 }
 
 // SetHostUnhealthy - Increments metrics for gpc_host_unhealthy.
 func SetHostUnhealthy(val float64) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-	}
-
-	hostUnhealthy.With(labels).Set(val)
+	hostUnhealthy.With(baseLabels(nil)).Set(val)
 }
 
 // EE Metrics ------------------------------------------------------------------
 
 // IncWholeRequest - Increments metrics for gpcee_http_request_total.
 func IncWholeRequest(reqID string, req http.Request, scheme string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname":       hostname,
-		"env":            os.Getenv("TRACING_ENV"),
+	wholeRequest.With(baseLabels(prometheus.Labels{
 		"req_id":         reqID,
 		"url":            req.URL.String(),
 		"host":           req.Host,
@@ -409,9 +356,7 @@ func IncWholeRequest(reqID string, req http.Request, scheme string) {
 		"method":         req.Method,
 		"protocol":       req.Proto,
 		"content_length": fmt.Sprintf("%d", req.ContentLength),
-	}
-
-	wholeRequest.With(labels).Inc()
+	})).Inc()
 
 	IncRequestHost(req.Host)
 	IncHttpMethod(req.Method)
@@ -421,10 +366,7 @@ func IncWholeRequest(reqID string, req http.Request, scheme string) {
 
 // IncWholeResponse - Increments metrics for gpcee_http_response_total.
 func IncWholeResponse(reqID string, req http.Request, statusCode int, size int, duration int64, scheme string, cached bool, stale bool) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
+	wholeResponse.With(baseLabels(prometheus.Labels{
 		"host":     req.Host,
 		"req_id":   reqID,
 		"url":      req.URL.String(),
@@ -436,190 +378,85 @@ func IncWholeResponse(reqID string, req http.Request, statusCode int, size int, 
 		"stale":    fmt.Sprintf("%v", stale),
 		"size":     fmt.Sprintf("%d", size),
 		"duration": fmt.Sprintf("%d", duration),
-	}
-
-	wholeResponse.With(labels).Inc()
+	})).Inc()
 }
 
 // SetBuildInfo - Set metrics for gpcee_build_info.
 func SetBuildInfo(gitCommit string, version string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname":   hostname,
-		"env":        os.Getenv("TRACING_ENV"),
+	gpceeBuildInfo.With(baseLabels(prometheus.Labels{
 		"git_commit": gitCommit,
 		"version":    version,
-	}
-
-	gpceeBuildInfo.With(labels).Set(1)
+	})).Set(1)
 }
 
 // SetUp - Set metrics for gpcee_up.
 func SetUp(val float64) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-	}
-	gpceeUp.With(labels).Set(val)
+	gpceeUp.With(baseLabels(nil)).Set(val)
 }
 
 // IncHttpRequestsTotal - Set metrics for gpcee_http_requests_total.
 func IncHttpRequestsTotal() {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-	}
-
-	gpceeHttpRequestsTotal.With(labels).Inc()
+	gpceeHttpRequestsTotal.With(baseLabels(nil)).Inc()
 }
 
 // IncUpstreamServerRequests - Set metrics for gpcee_upstream_server_requests.
 func IncUpstreamServerRequests(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerRequests.With(labels).Inc()
+	gpceeUpstreamServerRequests.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Inc()
 }
 
 // IncUpstreamServerResponses - Set metrics for gpcee_upstream_server_responses.
 func IncUpstreamServerResponses(code int, server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
+	gpceeUpstreamServerResponses.With(baseLabels(prometheus.Labels{
 		"code":     fmt.Sprintf("%dxx", code/100),
 		"server":   server,
 		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerResponses.With(labels).Inc()
+	})).Inc()
 }
 
 // IncUpstreamServerSent - Increments metrics for gpcee_upstream_server_sent.
 func IncUpstreamServerSent(server string, upstream string, val float64) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerSent.With(labels).Add(val)
+	gpceeUpstreamServerSent.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Add(val)
 }
 
 // IncUpstreamServerReceived - Increments metrics for gpcee_upstream_server_received.
 func IncUpstreamServerReceived(server string, upstream string, val float64) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerReceived.With(labels).Add(val)
+	gpceeUpstreamServerReceived.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Add(val)
 }
 
 // IncUpstreamServerResponseTime - Increment metrics for gpcee_upstream_server_response_time.
 func IncUpstreamServerResponseTime(server string, upstream string, val float64) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-	gpceeUpstreamServerResponseTime.With(labels).Add(val)
+	gpceeUpstreamServerResponseTime.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Add(val)
 }
 
 // IncUpstreamServerHealthChecksChecks - Increments metrics for gpcee_upstream_server_health_checks_checks.
 func IncUpstreamServerHealthChecksChecks(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerHealthChecksChecks.With(labels).Inc()
+	gpceeUpstreamServerHealthChecksChecks.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Inc()
 }
 
 // IncUpstreamServerHealthChecksFails - Increments metrics for gpcee_upstream_server_health_checks_fails.
 func IncUpstreamServerHealthChecksFails(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerHealthChecksFails.With(labels).Inc()
+	gpceeUpstreamServerHealthChecksFails.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Inc()
 }
 
 // IncUpstreamServerHealthChecksUnhealthy - Increments metrics for gpcee_upstream_server_health_checks_unhealthy.
 func IncUpstreamServerHealthChecksUnhealthy(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerHealthChecksUnhealthy.With(labels).Inc()
+	gpceeUpstreamServerHealthChecksUnhealthy.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Inc()
 }
 
 // SetUpstreamServerHealthChecksHealthy - Set metrics for gpcee_upstream_server_health_checks_status.
 func SetUpstreamServerHealthChecksHealthy(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerHealthChecksStatus.With(labels).Set(1)
-
+	gpceeUpstreamServerHealthChecksStatus.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Set(1)
 	IncUpstreamServerHealthChecksChecks(server, upstream)
 }
 
 // SetUpstreamServerHealthChecksFails - Set metrics for gpcee_upstream_server_health_checks_status.
 func SetUpstreamServerHealthChecksFails(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerHealthChecksStatus.With(labels).Set(-1)
-
+	gpceeUpstreamServerHealthChecksStatus.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Set(-1)
 	IncUpstreamServerHealthChecksFails(server, upstream)
 }
 
 // SetUpstreamServerHealthChecksUnhealthy - Set metrics for gpcee_upstream_server_health_checks_status.
 func SetUpstreamServerHealthChecksUnhealthy(server string, upstream string) {
-	hostname, _ := os.Hostname()
-	labels := prometheus.Labels{
-		"hostname": hostname,
-		"env":      os.Getenv("TRACING_ENV"),
-		"server":   server,
-		"upstream": upstream,
-	}
-
-	gpceeUpstreamServerHealthChecksStatus.With(labels).Set(0)
-
+	gpceeUpstreamServerHealthChecksStatus.With(baseLabels(prometheus.Labels{"server": server, "upstream": upstream})).Set(0)
 	IncUpstreamServerHealthChecksUnhealthy(server, upstream)
 }
