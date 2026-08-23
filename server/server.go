@@ -24,6 +24,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/k8s"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
@@ -70,8 +71,21 @@ type Servers struct {
 
 var servers *Servers
 
+// K8s - Kubernetes ingress controller settings, nil when the proxy runs from a
+// static configuration.
+type K8s struct {
+	Enabled bool
+	Options k8s.Options
+}
+
 // Run - Starts the GoProxyCache servers' listeners.
 func Run(appVersion string, configFile string) {
+	RunWithK8s(appVersion, configFile, K8s{})
+}
+
+// RunWithK8s - Starts the servers, optionally driving them from the cluster's
+// Ingress and Gateway API objects instead of the configuration file.
+func RunWithK8s(appVersion string, configFile string, k8sOpts K8s) {
 	log.Infof("Starting...\n")
 
 	ctx := context.Background()
@@ -107,9 +121,21 @@ func Run(appVersion string, configFile string) {
 		HTTPS: make(map[string]*Server),
 	}
 
-	for _, domain := range config.GetDomains() {
-		servers.StartDomainServer(domain.Host, domain.Scheme)
+	var controller *k8s.Controller
+
+	if k8sOpts.Enabled {
+		var err error
+
+		controller, err = servers.startIngressController(k8sOpts.Options)
+		if err != nil {
+			log.Fatalf("Cannot start the Kubernetes ingress controller: %s", err)
+		}
+	} else {
+		for _, domain := range config.GetDomains() {
+			servers.StartDomainServer(domain.Host, domain.Scheme)
+		}
 	}
+
 	servers.AttachPlain(
 		config.Config.Server.Internals.ListeningAddress,
 		config.Config.Server.Internals.ListeningPort,
@@ -118,6 +144,17 @@ func Run(appVersion string, configFile string) {
 
 	// start server http & https
 	servers.startListeners()
+
+	if controller != nil {
+		controllerCtx, stopController := context.WithCancel(ctx)
+		defer stopController()
+
+		go func() {
+			if err := controller.Run(controllerCtx); err != nil {
+				logger.GetGlobal().Fatalf("Kubernetes ingress controller stopped: %s", err)
+			}
+		}()
+	}
 
 	log.Infof("Waiting for incoming connections...\n")
 

@@ -342,4 +342,3 @@ func DomainConf(domain string, scheme string) (Configuration, bool) {
 func (c *Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
 	return NewSnapshot(*c, c.Domains).DomainConf(domain, scheme)
 }
-
