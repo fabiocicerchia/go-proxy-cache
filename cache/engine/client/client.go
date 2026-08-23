@@ -266,7 +266,14 @@ func (rdb *RedisClient) doPushKey(ctx context.Context, key string, values []stri
 			return nil, errLock
 		}
 
-		err := rdb.Client.RPush(ctx, key, values).Err()
+		// RPUSH requires at least one value: calling it with none is a Redis
+		// syntax error, not a no-op. An empty list is a legitimate thing to
+		// store here (a response with no Vary header has no metadata), and
+		// failing the push aborted the whole cache write.
+		var err error
+		if len(values) > 0 {
+			err = rdb.Client.RPush(ctx, key, values).Err()
+		}
 
 		if errUnlock := rdb.unlock(ctx, key); errUnlock != nil {
 			return nil, errUnlock
