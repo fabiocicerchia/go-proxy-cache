@@ -178,6 +178,16 @@ docker-push-arch: docker-push ## build and push multiple docker images for one p
 ##@ HELM
 ################################################################################
 
+helm-template: ## render the chart, with and without the ingress controller
+	helm template gpc kubernetes/helm > /dev/null
+	helm template gpc kubernetes/helm \
+		--set controller.enabled=true \
+		--set controller.gatewayAPI.enabled=true > /dev/null
+
+kustomize-build: ## build every kustomize overlay
+	kubectl kustomize kubernetes/kustomize > /dev/null
+	kubectl kustomize kubernetes/kustomize/ingress-controller > /dev/null
+
 helm-create-package: ## create an helm package from current chart
 	helm package -d kubernetes/helm/charts kubernetes/helm/
 
