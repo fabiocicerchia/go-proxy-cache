@@ -74,6 +74,57 @@ redis:
   config: |
       bind 0.0.0.0
 
+# INGRESS CONTROLLER
+# ------------------------------------------------------------------------------
+
+controller:
+  # Run go-proxy-cache as a Kubernetes ingress controller, deriving its routes
+  # from Ingress (and optionally Gateway API) objects instead of the config
+  # file's `domains` block.
+  enabled: false
+
+  # Name of the IngressClass this controller serves.
+  ingressClass: go-proxy-cache
+
+  # Identity matched against IngressClass.spec.controller and
+  # GatewayClass.spec.controllerName.
+  controllerName: fabiocicerchia.it/go-proxy-cache
+
+  ingressClassResource:
+    # Create the IngressClass object itself.
+    create: true
+    # Claim Ingresses that name no class at all.
+    default: false
+
+  # Restrict the controller to one namespace. Empty watches the whole cluster.
+  watchNamespace: ""
+
+  # namespace/name of the Service whose address is written into the status of
+  # the objects served, i.e. what `kubectl get ingress` shows under ADDRESS.
+  # Defaults to this release's own Service.
+  publishService: ""
+
+  # Publish these addresses instead of looking them up from publishService.
+  publishStatusAddress: []
+
+  # Never write status back, and never run for leader election. Set this when
+  # the controller is deliberately given read-only RBAC.
+  disableStatusUpdates: false
+
+  # Name of the Lease electing the replica that writes status.
+  electionID: go-proxy-cache-ingress-controller
+
+  rbac:
+    # Create the ClusterRole/Binding and the namespaced election Role.
+    create: true
+
+  gatewayAPI:
+    # Also watch GatewayClass, Gateway and HTTPRoute. Requires the Gateway API
+    # CRDs to be installed in the cluster.
+    enabled: false
+    createGatewayClass: true
+    gatewayClassName: go-proxy-cache
+
 # GOPROXYCACHE
 # ------------------------------------------------------------------------------
 
@@ -101,9 +152,18 @@ goproxycache:
     # runAsNonRoot: true
     # runAsUser: 1000
 
+  # Port of the internal server exposing /healthcheck and /metrics.
+  internalsPort: 52021
+
   service:
+    type: ClusterIP
     httpPort: 50080
     httpsPort: 50443
+    annotations: {}
+    # Local preserves the client source IP. Worth setting on a LoadBalancer
+    # service, since the proxy derives X-Forwarded-For and the PURGE IP
+    # allowlist from the connection address.
+    externalTrafficPolicy: ""
 
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious

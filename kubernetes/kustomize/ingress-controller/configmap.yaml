@@ -1,0 +1,37 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-proxy-cache-config
+data:
+  # In ingress controller mode the `domains` block is unused: routing comes
+  # from the cluster. What stays here is everything that is global to the
+  # controller -- ports, timeouts, the cache backend, logging and tracing.
+  config.yml: |
+    server:
+      port:
+        http: "80"
+        https: "443"
+      internals:
+        listening_port: 52021
+      timeout:
+        read: 5s
+        read_header: 2s
+        write: 5s
+        idle: 20s
+        handler: 5s
+    cache:
+      hosts:
+        - redis.go-proxy-cache.svc.cluster.local:6379
+      db: 0
+      ttl: 0
+      allowed_statuses:
+        - 200
+        - 301
+        - 302
+      allowed_methods:
+        - HEAD
+        - GET
+    log:
+      time_format: "2006/01/02 15:04:05"
+      format: $host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status_label

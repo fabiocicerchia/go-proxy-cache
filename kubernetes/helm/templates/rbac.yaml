@@ -1,0 +1,88 @@
+{{- if .Values.controller.enabled -}}
+{{- if .Values.controller.rbac.create -}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.prefix }}-go-proxy-cache
+  labels:
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+rules:
+  # The objects the routing table is built from.
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "ingressclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services", "secrets", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+{{- if .Values.controller.gatewayAPI.enabled }}
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses", "gateways", "httproutes", "referencegrants"]
+    verbs: ["get", "list", "watch"]
+{{- end }}
+{{- if not .Values.controller.disableStatusUpdates }}
+  # Status write-back, done only by the replica holding the lease.
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses/status"]
+    verbs: ["update", "patch"]
+{{- if .Values.controller.gatewayAPI.enabled }}
+  - apiGroups: ["gateway.networking.k8s.io"]
+    resources: ["gatewayclasses/status", "gateways/status", "httproutes/status"]
+    verbs: ["update", "patch"]
+{{- end }}
+{{- end }}
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.prefix }}-go-proxy-cache
+  labels:
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.prefix }}-go-proxy-cache
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "go-proxy-cache.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- if not .Values.controller.disableStatusUpdates }}
+---
+# Leader election is namespaced: the Lease lives beside the controller pods, so
+# this stays a Role rather than widening the ClusterRole above.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ .Values.prefix }}-go-proxy-cache-election
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.prefix }}-go-proxy-cache-election
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.prefix }}-go-proxy-cache-election
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "go-proxy-cache.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}
+{{- end }}
+{{- end }}

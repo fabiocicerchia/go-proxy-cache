@@ -11,5 +11,5 @@ spec:
     - name: wget
       image: busybox
       command: ['wget']
-      args: ['{{ include "go-proxy-cache.fullname" . }}:{{ .Values.goproxycache.service.httpPort }}']
+      args: ['-q', '-O-', '{{ .Values.prefix }}-go-proxy-cache:{{ .Values.goproxycache.service.httpPort }}']
   restartPolicy: Never

@@ -1,0 +1,10 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: go-proxy-cache
+  # Uncomment to claim every Ingress that names no class at all.
+  # annotations:
+  #   ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: fabiocicerchia.it/go-proxy-cache

@@ -62,10 +62,10 @@ spec:
               containerPort: {{ .Values.redis.service.port }}
               protocol: TCP
           volumeMounts:
-            - mountPath: /app/config.yml
+            - mountPath: /usr/local/etc/redis/redis.conf
               name: gpc-redis-config
               readOnly: true
-              subPath: config.yml
+              subPath: redis.conf
       {{- with .Values.redis.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -126,6 +126,36 @@ spec:
           image: fabiocicerchia/go-proxy-cache:{{ .Values.goproxycache.image.tag }}
           args:
             - go-proxy-cache
+{{- if .Values.controller.enabled }}
+            - -k8s
+            - -ingress-class={{ .Values.controller.ingressClass }}
+            - -controller-name={{ .Values.controller.controllerName }}
+            - -election-id={{ .Values.controller.electionID }}
+{{- if .Values.controller.gatewayAPI.enabled }}
+            - -gateway-api
+{{- end }}
+{{- with .Values.controller.watchNamespace }}
+            - -watch-namespace={{ . }}
+{{- end }}
+            - -publish-service={{ .Values.controller.publishService | default (printf "%s/%s-go-proxy-cache" .Release.Namespace .Values.prefix) }}
+{{- with .Values.controller.publishStatusAddress }}
+            - -publish-status-address={{ join "," . }}
+{{- end }}
+{{- if .Values.controller.disableStatusUpdates }}
+            - -disable-status-updates
+{{- end }}
+          env:
+            # Both are needed for leader election: the Lease lives in this
+            # namespace and is held by this pod's identity.
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+{{- end }}
           securityContext:
             {{- toYaml .Values.goproxycache.securityContext | nindent 12 }}
           imagePullPolicy: {{ .Values.goproxycache.image.pullPolicy }}
@@ -140,7 +170,7 @@ spec:
           readinessProbe:
             httpGet:
               path: /healthcheck
-              port: http
+              port: internals
             initialDelaySeconds: 20
             timeoutSeconds: 5
             periodSeconds: 3
@@ -152,6 +182,9 @@ spec:
               protocol: TCP
             - name: https
               containerPort: {{ .Values.goproxycache.service.httpsPort }}
+              protocol: TCP
+            - name: internals
+              containerPort: {{ .Values.goproxycache.internalsPort }}
               protocol: TCP
           volumeMounts:
             - mountPath: /app/config.yml

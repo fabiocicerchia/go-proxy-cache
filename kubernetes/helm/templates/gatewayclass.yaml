@@ -1,0 +1,17 @@
+{{- if .Values.controller.enabled -}}
+{{- if .Values.controller.gatewayAPI.enabled -}}
+{{- if .Values.controller.gatewayAPI.createGatewayClass -}}
+---
+# Requires the Gateway API CRDs to be installed in the cluster:
+#   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Values.controller.gatewayAPI.gatewayClassName }}
+  labels:
+    {{- include "go-proxy-cache.labels" . | nindent 4 }}
+spec:
+  controllerName: {{ .Values.controller.controllerName }}
+{{- end }}
+{{- end }}
+{{- end }}

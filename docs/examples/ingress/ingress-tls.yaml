@@ -1,0 +1,31 @@
+---
+# The same Ingress terminated with a certificate from a Secret. The controller
+# indexes the certificate by every host listed here (falling back to the SANs
+# in the certificate itself) and serves it via SNI, wildcards included.
+#
+#   kubectl create secret tls demo-tls --cert=tls.crt --key=tls.key
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-tls
+  annotations:
+    go-proxy-cache.fabiocicerchia.it/http-to-https: "true"
+    go-proxy-cache.fabiocicerchia.it/hsts-enabled: "true"
+    go-proxy-cache.fabiocicerchia.it/hsts-max-age: "31536000"
+spec:
+  ingressClassName: go-proxy-cache
+  tls:
+    - hosts:
+        - demo.local
+      secretName: demo-tls
+  rules:
+    - host: demo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo
+                port:
+                  number: 80
