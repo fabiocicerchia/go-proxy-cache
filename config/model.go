@@ -60,7 +60,6 @@ type Configuration struct {
 	Domains        Domains                       `yaml:"domains"`
 	Log            Log                           `yaml:"log"`
 	Tracing        Tracing                       `yaml:"tracing"`
-	domainsCache   map[string]Configuration
 	Jwt		   	   Jwt					 		 `yaml:"jwt"`
 }
 
