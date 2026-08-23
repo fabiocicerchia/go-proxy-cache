@@ -12,6 +12,7 @@ package handler
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -145,8 +146,43 @@ func getOverridePort(host string, port string, scheme string) string {
 	return portOverride
 }
 
+// errNoBackend - Returned when a matched route has no endpoint left to serve.
+var errNoBackend = errors.New("no healthy backend available for route")
+
+// getRoutedUpstreamURL - Resolves the upstream for a request matched by the
+// routing table (Kubernetes ingress controller mode).
+//
+// Unlike the static path, the endpoints come from the route's backend (pod IPs
+// resolved from EndpointSlices) rather than from the domain configuration, and
+// the balancer is keyed per backend so each Service gets its own rotation.
+func (rc RequestCall) getRoutedUpstreamURL() (url.URL, error) {
+	idx, ok := rc.Route.SelectBackend()
+	if !ok {
+		return url.URL{}, errNoBackend
+	}
+
+	backend := rc.Route.Backends[idx]
+
+	scheme := backend.Scheme
+	if scheme == "" || scheme == config.SchemeWildcard {
+		scheme = rc.GetScheme()
+	}
+
+	endpoint := balancer.GetUpstreamNode(rc.Route.BalancerID(idx), rc.GetRequestURL(), backend.Endpoints[0])
+
+	// Endpoints are always "host:port" or "host", never a full URL, so the
+	// scheme comes from the backend rather than from parsing.
+	host := endpoint + getOverridePort(endpoint, "", scheme)
+
+	return url.URL{Scheme: scheme, Host: host}, nil
+}
+
 // GetUpstreamURL - Get the URL based on the upstream.
 func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
+	if rc.Route != nil {
+		return rc.getRoutedUpstreamURL()
+	}
+
 	upstream := rc.DomainConfig.Server.Upstream
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 
@@ -202,6 +238,20 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 
 // GetUpstreamHost - Retrieve the real upstream host
 func (rc RequestCall) GetUpstreamHost() string {
+	if rc.Route != nil {
+		// Ingress preserves the client's Host header by default, unlike the
+		// static configuration which always rewrites it to the upstream host.
+		if rc.Route.PreserveHost {
+			return rc.Request.Host
+		}
+
+		if rc.Route.UpstreamHost != "" {
+			return rc.Route.UpstreamHost
+		}
+
+		return rc.Request.Host
+	}
+
 	upstream := rc.DomainConfig.Server.Upstream
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 	host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
@@ -238,6 +288,10 @@ func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request)
 		req.Header.Set("X-Forwarded-For", xForwardedFor)
 
 		req.Host = upstreamHost
+
+		if rc.Route != nil {
+			applyRequestFilters(rc.Route, req)
+		}
 
 		tracing.Inject(ctx, req)
 	}

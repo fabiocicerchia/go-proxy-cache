@@ -10,6 +10,8 @@ package engine
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"sync"
+
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine/client"
@@ -19,9 +21,20 @@ import (
 
 var rdb map[string]*client.RedisClient
 
+// rdbMu - Guards the connection map.
+//
+// Connections used to be created once at boot and read lock-free thereafter.
+// The Kubernetes ingress controller can create one while requests are already
+// being served, so both sides now synchronise.
+var rdbMu sync.RWMutex
+
 // GetConn - Retrieves the Redis connection.
 func GetConn(connName string) *client.RedisClient {
-	if conn, ok := rdb[connName]; ok {
+	rdbMu.RLock()
+	conn, ok := rdb[connName]
+	rdbMu.RUnlock()
+
+	if ok {
 		return conn
 	}
 
@@ -32,10 +45,25 @@ func GetConn(connName string) *client.RedisClient {
 
 // InitConn - Initialises the Redis connection.
 func InitConn(connName string, config config.Cache, logger *log.Logger) {
+	logger.Debugf("New redis connection for %s", connName)
+	conn := client.Connect(connName, config, logger)
+
+	rdbMu.Lock()
+	defer rdbMu.Unlock()
+
 	if rdb == nil {
 		rdb = make(map[string]*client.RedisClient)
 	}
 
-	logger.Debugf("New redis connection for %s", connName)
-	rdb[connName] = client.Connect(connName, config, logger)
+	rdb[connName] = conn
+}
+
+// HasConn - Whether a connection is already registered under a name.
+func HasConn(connName string) bool {
+	rdbMu.RLock()
+	defer rdbMu.RUnlock()
+
+	_, ok := rdb[connName]
+
+	return ok
 }
