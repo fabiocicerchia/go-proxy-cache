@@ -20,9 +20,24 @@ server:
   # Access control for PURGE requests. When both `allowed_ips` and `secret` are
   # empty, PURGE is unrestricted. When either is set, a PURGE request must
   # satisfy every configured check to be authorized (otherwise it gets 403).
+  # --- TRUSTED PROXIES
+  # IPs / CIDRs of proxies allowed to speak for the client.
+  #
+  # When a request arrives from one of these, X-Forwarded-Proto is believed (so
+  # a request whose TLS a load balancer terminated is not mistaken for plain
+  # HTTP, which would suppress HSTS and loop the http_to_https redirect) and
+  # the client IP is taken from X-Forwarded-For rather than the connection.
+  #
+  # Both headers are forgeable by anything that can reach the listener, so an
+  # empty list -- trust nothing -- is the right default for a proxy exposed
+  # directly to the internet. Set this when running behind a cloud load
+  # balancer or another ingress.
+  # Default: [] (trust nothing)
+  trusted_proxies: []
   purge:
     # Allowlist of client IPs / CIDRs permitted to issue PURGE. The direct
-    # connection IP is checked (not the spoofable X-Forwarded-For header).
+    # connection IP is checked, unless a configured trusted proxy vouched for a
+    # client address via X-Forwarded-For.
     # Default: [] (no IP restriction)
     allowed_ips: []
     # Shared secret that must be presented in `secret_header`.

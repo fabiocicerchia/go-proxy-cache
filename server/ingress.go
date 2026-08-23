@@ -10,12 +10,15 @@ package server
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"os"
+
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/k8s"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
+	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
 
@@ -40,6 +43,14 @@ func (s *Servers) startIngressController(opts k8s.Options) (*k8s.Controller, err
 	logger.LogSetup(globalConfig.Server)
 	circuitbreaker.InitCircuitBreaker(domainID, globalConfig.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, globalConfig.Cache, logger.GetGlobal())
+
+	// gpcee_http_request/response carry req_id, url, size and duration as
+	// labels, i.e. one time series per request. Across a whole cluster's
+	// traffic that is an unbounded leak, so it is off here unless asked for.
+	if os.Getenv("METRICS_PER_REQUEST_SERIES") != "true" {
+		metrics.SetDetailedRequestSeries(false)
+		logger.GetGlobal().Info("Per-request Prometheus series disabled (set METRICS_PER_REQUEST_SERIES=true to record them)")
+	}
 
 	certs := srvtls.NewStore()
 	srvtls.UseStore(certs)

@@ -78,6 +78,14 @@ type Server struct {
 	GZip      bool      `yaml:"gzip" envconfig:"GZIP_ENABLED"`
 	Internals Internals `yaml:"internals"`
 	Purge     Purge     `yaml:"purge"`
+	// TrustedProxies - IPs/CIDRs of proxies allowed to speak for the client.
+	//
+	// When a request arrives from one of these, X-Forwarded-Proto is believed
+	// (so a request the load balancer terminated TLS for is not mistaken for
+	// plain HTTP) and the client IP is taken from X-Forwarded-For rather than
+	// from the connection. Empty means trust nothing, which is the safe
+	// default for a proxy exposed directly to the internet.
+	TrustedProxies []string `yaml:"trusted_proxies" envconfig:"TRUSTED_PROXIES" split_words:"true"`
 }
 
 // Purge - Defines access control for PURGE requests.

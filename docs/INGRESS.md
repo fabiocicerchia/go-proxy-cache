@@ -189,6 +189,43 @@ chart and the kustomize overlay ship this; run with
 `-disable-status-updates` if you would rather grant read-only access, at the
 cost of an empty `ADDRESS` column.
 
+## Running behind a cloud load balancer
+
+When another proxy sits in front — a cloud L7 load balancer, or a second
+ingress — the connection go-proxy-cache sees is from that proxy, not the
+client. List it under `server.trusted_proxies` (or `TRUSTED_PROXIES`):
+
+```yaml
+server:
+  trusted_proxies:
+    - 10.0.0.0/8
+```
+
+Only then are `X-Forwarded-Proto` and `X-Forwarded-For` believed. Without it a
+TLS-terminating load balancer makes every request look like plain HTTP, which
+suppresses HSTS and, with `http-to-https` on, loops the redirect; and the
+`PURGE` IP allowlist would be matching the load balancer's address rather than
+the client's.
+
+Both headers are forgeable by anything that can reach the listener, so the
+default is to trust nothing. The client address is taken as the right-most
+`X-Forwarded-For` entry that is not itself a trusted proxy.
+
+An alternative on a `LoadBalancer` Service is
+`externalTrafficPolicy: Local`, which preserves the client source IP at the
+connection level. The shipped kustomize overlay sets it.
+
+## Metrics
+
+`gpcee_http_request` and `gpcee_http_response` carry `req_id`, `url`, `size`
+and `duration` as *labels*, so each request creates a new Prometheus time
+series that is then held forever. Across a whole cluster's traffic that is an
+unbounded memory leak, so ingress mode does not record them. Set
+`METRICS_PER_REQUEST_SERIES=true` to opt back in.
+
+Every aggregate metric — by host, method, scheme, status code, cache
+hit/miss/stale, upstream health — is bounded and always recorded.
+
 ## What stays in config.yml
 
 Ingress mode still reads `config.yml` for everything that is global to the

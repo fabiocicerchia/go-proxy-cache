@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -346,8 +347,44 @@ func SetHostUnhealthy(val float64) {
 
 // EE Metrics ------------------------------------------------------------------
 
+// detailedRequestSeries - Whether the per-request series are recorded.
+//
+// gpcee_http_request and gpcee_http_response carry req_id, url, size and
+// duration as *labels*, so every single request creates a new time series that
+// the collector then holds forever. For a proxy serving a handful of known
+// domains that is merely wasteful; for an ingress controller fronting a whole
+// cluster it is an unbounded memory leak in both this process and Prometheus.
+//
+// It stays on by default so existing dashboards keep working, and the ingress
+// controller turns it off unless explicitly asked for. The aggregate counters
+// (by host, method, scheme, status code) are bounded and always recorded.
+var detailedRequestSeries atomic.Bool
+
+func init() {
+	detailedRequestSeries.Store(true)
+}
+
+// SetDetailedRequestSeries - Enables or disables the per-request series.
+func SetDetailedRequestSeries(enabled bool) {
+	detailedRequestSeries.Store(enabled)
+}
+
+// DetailedRequestSeriesEnabled - Whether the per-request series are recorded.
+func DetailedRequestSeriesEnabled() bool {
+	return detailedRequestSeries.Load()
+}
+
 // IncWholeRequest - Increments metrics for gpcee_http_request_total.
 func IncWholeRequest(reqID string, req http.Request, scheme string) {
+	if !detailedRequestSeries.Load() {
+		IncRequestHost(req.Host)
+		IncHttpMethod(req.Method)
+		IncUrlScheme(scheme)
+		IncHttpRequestsTotal()
+
+		return
+	}
+
 	wholeRequest.With(baseLabels(prometheus.Labels{
 		"req_id":         reqID,
 		"url":            req.URL.String(),
@@ -366,6 +403,10 @@ func IncWholeRequest(reqID string, req http.Request, scheme string) {
 
 // IncWholeResponse - Increments metrics for gpcee_http_response_total.
 func IncWholeResponse(reqID string, req http.Request, statusCode int, size int, duration int64, scheme string, cached bool, stale bool) {
+	if !detailedRequestSeries.Load() {
+		return
+	}
+
 	wholeResponse.With(baseLabels(prometheus.Labels{
 		"host":     req.Host,
 		"req_id":   reqID,

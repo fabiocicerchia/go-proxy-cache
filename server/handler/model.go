@@ -142,15 +142,24 @@ func (rc RequestCall) GetHostname() string {
 // Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
-	if rc.IsWebSocket() && rc.Request.TLS != nil {
-		return SchemeWSS
+	secure := rc.Request.TLS != nil
+
+	// Behind a trusted proxy that terminated TLS the connection here is plain
+	// HTTP, but the client's scheme was HTTPS. Believing the connection would
+	// suppress HSTS and, with http_to_https on, produce a redirect loop.
+	if proto, ok := rc.forwardedProto(); ok {
+		secure = proto == SchemeHTTPS || proto == SchemeWSS
 	}
 
 	if rc.IsWebSocket() {
+		if secure {
+			return SchemeWSS
+		}
+
 		return SchemeWS
 	}
 
-	if rc.Request.TLS != nil {
+	if secure {
 		return SchemeHTTPS
 	}
 

@@ -190,6 +190,7 @@ func (c *Configuration) copyOverWithServer(overrides Server) {
 	c.Server.Purge.AllowedIPs = utils.Coalesce(overrides.Purge.AllowedIPs, c.Server.Purge.AllowedIPs).([]string)
 	c.Server.Purge.Secret = utils.Coalesce(overrides.Purge.Secret, c.Server.Purge.Secret).(string)
 	c.Server.Purge.SecretHeader = utils.Coalesce(overrides.Purge.SecretHeader, c.Server.Purge.SecretHeader).(string)
+	c.Server.TrustedProxies = utils.Coalesce(overrides.TrustedProxies, c.Server.TrustedProxies).([]string)
 }
 
 // --- TLS.
