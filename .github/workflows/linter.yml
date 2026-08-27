@@ -22,7 +22,7 @@ jobs:
 
       - name: Lint Code Base
         # TODO: https://github.com/github/super-linter/issues/2255
-        uses: docker://github/super-linter:v3.17.0
+        uses: docker://github/super-linter@sha256:26a0676949a598274336833d3a51395d3a6d2c215ab7928b2d176afd2534b16f  # v3.17.0
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           VALIDATE_ALL_CODEBASE: true

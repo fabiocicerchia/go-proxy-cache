@@ -63,37 +63,37 @@ jobs:
       - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
 
       - name: Service Logs - jaeger
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker logs "${{ job.services.jaeger.id }}"
 
       # Ref: https://github.community/t/services-and-volumes/16313
       - name: Restart node
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker restart "${{ job.services.nginx.id }}"
       - name: Service Logs - node
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker logs "${{ job.services.node.id }}"
 
       # Ref: https://github.community/t/services-and-volumes/16313
       - name: Restart collector
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker restart "${{ job.services.collector.id }}"
       - name: Service Logs - collector
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker logs "${{ job.services.collector.id }}"
 
       # Ref: https://github.community/t/services-and-volumes/16313
       - name: Restart nginx
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker restart "${{ job.services.nginx.id }}"
       - name: Service Logs - nginx
-        uses: docker://docker
+        uses: docker://docker@sha256:12e683a161823b2a839aeea999b9d960e6e1f9a97b1679ad6b441982e2d9cf07  # 29.7.2
         with:
           args: docker logs "${{ job.services.nginx.id }}"
 
