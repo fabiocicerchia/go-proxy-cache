@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Creating the release and uploading its assets is the one write this
+# repository's workflows need.
+permissions:
+  contents: write
+
 jobs:
   build:
     name: Create Release

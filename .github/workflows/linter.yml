@@ -6,6 +6,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# super-linter reports results as commit statuses, and reads nothing else.
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   build:
     name: Lint Code Base

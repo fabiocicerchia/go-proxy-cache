@@ -24,6 +24,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The default token is read-only; the analysis job widens it to exactly what
+# CodeQL needs (see its own permissions block below).
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze
