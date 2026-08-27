@@ -10,6 +10,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
+	log "github.com/sirupsen/logrus"
 )
 
 var errJwkCacheNotInitialized = errors.New("JWKS cache not initialized")
@@ -19,8 +20,17 @@ func errorJson(resp http.ResponseWriter, statuscode int, error *config.JwtError)
 	// ignored and the client never receives the correct Content-Type.
 	resp.Header().Set("Content-Type", "application/json; charset=utf-8")
 	resp.WriteHeader(statuscode)
-	json_error, _ := json.Marshal(error)
-	resp.Write(json_error)
+
+	json_error, err := json.Marshal(error)
+	if err != nil {
+		log.Errorf("JWT: cannot encode error response: %s", err)
+
+		return
+	}
+
+	if _, err := resp.Write(json_error); err != nil {
+		log.Debugf("JWT: cannot write error response: %s", err)
+	}
 }
 
 func logJWTErrorAndAbort(w http.ResponseWriter, err error, jwtConfig *config.Jwt) error {
@@ -123,10 +133,26 @@ func getScopes(token jwt.Token) []string {
 	return extractScopes(scopeInterface)
 }
 
+// extractScopes - Decodes a "scope"/"scp" claim into the list of scopes it
+// grants.
+//
+// Both failure paths return an empty list, which denies rather than grants:
+// a claim that is not a json.RawMessage, or one whose JSON does not decode to
+// a list of strings, must not be read as "every scope". The Unmarshal error
+// was previously discarded, so a malformed claim was indistinguishable from
+// an absent one; it is now surfaced to the caller's audit log.
 func extractScopes(scopesInterface interface{}) []string {
-	scpRaw, _ := scopesInterface.(json.RawMessage)
+	scpRaw, ok := scopesInterface.(json.RawMessage)
+	if !ok || len(scpRaw) == 0 {
+		return []string{}
+	}
+
 	scopes := []string{}
-	json.Unmarshal(scpRaw, &scopes)
+	if err := json.Unmarshal(scpRaw, &scopes); err != nil {
+		log.Debugf("JWT: ignoring malformed scope claim: %s", err)
+
+		return []string{}
+	}
 
 	return scopes
 }
