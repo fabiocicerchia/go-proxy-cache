@@ -46,7 +46,12 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/go-proxy-cache:latest
 
       - name: Image digest (latest)
-        run: echo ${{ steps.docker_build_latest.outputs.digest }}
+        # Through the environment, not interpolated into the shell: an expansion
+        # inside `run:` is substituted before bash ever sees it, so anything
+        # quote-like in the value becomes script rather than data.
+        env:
+          DIGEST: ${{ steps.docker_build_latest.outputs.digest }}
+        run: echo "$DIGEST"
 
       - name: Build and push (tag)
         id: docker_build_tag
@@ -58,4 +63,9 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/go-proxy-cache:${{ github.event.release.tag_name }}
 
       - name: Image digest (tag)
-        run: echo ${{ steps.docker_build_tag.outputs.digest }}
+        # Through the environment, not interpolated into the shell: an expansion
+        # inside `run:` is substituted before bash ever sees it, so anything
+        # quote-like in the value becomes script rather than data.
+        env:
+          DIGEST: ${{ steps.docker_build_tag.outputs.digest }}
+        run: echo "$DIGEST"
