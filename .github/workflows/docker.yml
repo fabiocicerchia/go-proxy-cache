@@ -9,6 +9,11 @@ on:
   release:
     types: [published]
 
+# Publishing goes to Docker Hub with its own credentials; the GITHUB_TOKEN
+# only ever needs to read the tree.
+permissions:
+  contents: read
+
 jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
@@ -16,6 +21,10 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+        with:
+          # The job never pushes: don't leave the token in .git/config,
+          # where anything that archives the workspace picks it up.
+          persist-credentials: false
 
       - name: Log in to Docker Hub
         uses: docker/login-action@dd4fa0671be5250ee6f50aedf4cb05514abda2c7  # v1
@@ -37,7 +46,12 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/go-proxy-cache:latest
 
       - name: Image digest (latest)
-        run: echo ${{ steps.docker_build_latest.outputs.digest }}
+        # Through the environment, not interpolated into the shell: an expansion
+        # inside `run:` is substituted before bash ever sees it, so anything
+        # quote-like in the value becomes script rather than data.
+        env:
+          DIGEST: ${{ steps.docker_build_latest.outputs.digest }}
+        run: echo "$DIGEST"
 
       - name: Build and push (tag)
         id: docker_build_tag
@@ -49,4 +63,9 @@ jobs:
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/go-proxy-cache:${{ github.event.release.tag_name }}
 
       - name: Image digest (tag)
-        run: echo ${{ steps.docker_build_tag.outputs.digest }}
+        # Through the environment, not interpolated into the shell: an expansion
+        # inside `run:` is substituted before bash ever sees it, so anything
+        # quote-like in the value becomes script rather than data.
+        env:
+          DIGEST: ${{ steps.docker_build_tag.outputs.digest }}
+        run: echo "$DIGEST"

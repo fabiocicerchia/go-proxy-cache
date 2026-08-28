@@ -6,6 +6,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# super-linter reports results as commit statuses, and reads nothing else.
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   build:
     name: Lint Code Base
@@ -13,12 +18,58 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # The job never pushes: don't leave the token in .git/config,
+          # where anything that archives the workspace picks it up.
+          persist-credentials: false
+          # super-linter diffs against DEFAULT_BRANCH to find what changed, which
+          # needs history. The default depth of 1 leaves it nothing to diff.
+          fetch-depth: 0
 
       - name: Lint Code Base
-        # TODO: https://github.com/github/super-linter/issues/2255
-        uses: docker://github/super-linter:v3.17.0
+        uses: docker://ghcr.io/super-linter/super-linter@sha256:c39e6bf032eb532aea6d54b2ae64e44a1df95345337f03e96fce9944f3c9ef9c  # v8.2.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          VALIDATE_ALL_CODEBASE: true
-          DOCKERFILE_HADOLINT_FILE_NAME: .hadolint.yml
+          # The built-in token, not a PAT. super-linter is third-party code
+          # running on every push; all it needs is statuses:write, which the
+          # permissions block above grants.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
+
+          # Changed files only. VALIDATE_ALL_CODEBASE=true reported 159 findings
+          # across the whole tree on every run, so this job has been red for
+          # ~90 consecutive runs and nobody could act on it. Scoped to the diff
+          # it gates new code, which is the part anyone can actually fix.
+          VALIDATE_ALL_CODEBASE: false
+
+          # Helm templates are Go templates that happen to end in .yaml.
+          # `{{- if .Values.x }}` is not YAML and yamllint cannot parse it, so
+          # those files failed structurally rather than for anything wrong with
+          # them. `make helm-template` renders and validates them properly.
+          FILTER_REGEX_EXCLUDE: kubernetes/helm/templates/.*
+
+          # Renamed from DOCKERFILE_HADOLINT_FILE_NAME in v6; resolved relative
+          # to LINTER_RULES_PATH, which still defaults to .github/linters.
+          DOCKERFILE_HADOLINT_CONFIG_FILE: .hadolint.yml
+
+          # Turned off explicitly, each for its own reason. super-linter's
+          # rule is that setting VALIDATE_* to false disables exactly those and
+          # leaves everything else on, so new linters in a future release do
+          # arrive enabled — the trade for using the mechanism that actually
+          # works. (ENABLE_LINTERS, the allow-list form, is silently ignored by
+          # v8: it appears nowhere in the run log and every linter still ran.)
+          #
+          # 101 pre-existing findings; wants a .golangci.yml pass of its own
+          # before it can gate anything.
+          VALIDATE_GO: false
+          # IaC findings against test/full-setup/kubernetes, which is a local
+          # test rig rather than a deployment. 73 and 5 findings respectively.
+          VALIDATE_TRIVY: false
+          VALIDATE_CHECKOV: false
+          # Wants one space before a trailing `#`; the SHA-pinning convention
+          # across these repos uses two, in ~500 places.
+          VALIDATE_YAML_PRETTIER: false
+          # Duplication and JS style opinions over legacy code.
+          VALIDATE_JSCPD: false
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
