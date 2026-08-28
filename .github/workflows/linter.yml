@@ -61,7 +61,16 @@ jobs:
           #
           # 101 pre-existing findings; wants a .golangci.yml pass of its own
           # before it can gate anything.
+          #
+          # GO_MODULES is the same golangci-lint reading the same config, so it
+          # goes with it. It cannot pass as things stand either way:
+          # .github/linters/.golangci.yml is a v1 config — no `version:` key,
+          # and it still disables interfacer/maligned/scopelint, removed from
+          # golangci-lint years ago — while super-linter v8 ships golangci-lint
+          # 2.5.0, which rejects it with "unsupported version of the
+          # configuration" before looking at any Go at all.
           VALIDATE_GO: false
+          VALIDATE_GO_MODULES: false
           # IaC findings against test/full-setup/kubernetes, which is a local
           # test rig rather than a deployment. 73 and 5 findings respectively.
           VALIDATE_TRIVY: false
