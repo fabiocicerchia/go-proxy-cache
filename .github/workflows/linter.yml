@@ -51,3 +51,25 @@ jobs:
           # Renamed from DOCKERFILE_HADOLINT_FILE_NAME in v6; resolved relative
           # to LINTER_RULES_PATH, which still defaults to .github/linters.
           DOCKERFILE_HADOLINT_CONFIG_FILE: .hadolint.yml
+
+          # Turned off explicitly, each for its own reason. super-linter's
+          # rule is that setting VALIDATE_* to false disables exactly those and
+          # leaves everything else on, so new linters in a future release do
+          # arrive enabled — the trade for using the mechanism that actually
+          # works. (ENABLE_LINTERS, the allow-list form, is silently ignored by
+          # v8: it appears nowhere in the run log and every linter still ran.)
+          #
+          # 101 pre-existing findings; wants a .golangci.yml pass of its own
+          # before it can gate anything.
+          VALIDATE_GO: false
+          # IaC findings against test/full-setup/kubernetes, which is a local
+          # test rig rather than a deployment. 73 and 5 findings respectively.
+          VALIDATE_TRIVY: false
+          VALIDATE_CHECKOV: false
+          # Wants one space before a trailing `#`; the SHA-pinning convention
+          # across these repos uses two, in ~500 places.
+          VALIDATE_YAML_PRETTIER: false
+          # Duplication and JS style opinions over legacy code.
+          VALIDATE_JSCPD: false
+          VALIDATE_BIOME_FORMAT: false
+          VALIDATE_BIOME_LINT: false
