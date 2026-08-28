@@ -18,12 +18,33 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # super-linter diffs against DEFAULT_BRANCH to find what changed, which
+          # needs history. The default depth of 1 leaves it nothing to diff.
+          fetch-depth: 0
 
       - name: Lint Code Base
-        # TODO: https://github.com/github/super-linter/issues/2255
-        uses: docker://github/super-linter@sha256:26a0676949a598274336833d3a51395d3a6d2c215ab7928b2d176afd2534b16f  # v3.17.0
+        uses: docker://ghcr.io/super-linter/super-linter@sha256:c39e6bf032eb532aea6d54b2ae64e44a1df95345337f03e96fce9944f3c9ef9c  # v8.2.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          VALIDATE_ALL_CODEBASE: true
-          DOCKERFILE_HADOLINT_FILE_NAME: .hadolint.yml
+          # The built-in token, not a PAT. super-linter is third-party code
+          # running on every push; all it needs is statuses:write, which the
+          # permissions block above grants.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEFAULT_BRANCH: main
+
+          # Changed files only. VALIDATE_ALL_CODEBASE=true reported 159 findings
+          # across the whole tree on every run, so this job has been red for
+          # ~90 consecutive runs and nobody could act on it. Scoped to the diff
+          # it gates new code, which is the part anyone can actually fix.
+          VALIDATE_ALL_CODEBASE: false
+
+          # Helm templates are Go templates that happen to end in .yaml.
+          # `{{- if .Values.x }}` is not YAML and yamllint cannot parse it, so
+          # those files failed structurally rather than for anything wrong with
+          # them. `make helm-template` renders and validates them properly.
+          FILTER_REGEX_EXCLUDE: kubernetes/helm/templates/.*
+
+          # Renamed from DOCKERFILE_HADOLINT_FILE_NAME in v6; resolved relative
+          # to LINTER_RULES_PATH, which still defaults to .github/linters.
+          DOCKERFILE_HADOLINT_CONFIG_FILE: .hadolint.yml
