@@ -21,6 +21,10 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+        with:
+          # The job never pushes: don't leave the token in .git/config,
+          # where anything that archives the workspace picks it up.
+          persist-credentials: false
 
       - name: Log in to Docker Hub
         uses: docker/login-action@dd4fa0671be5250ee6f50aedf4cb05514abda2c7  # v1

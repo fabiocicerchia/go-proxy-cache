@@ -20,6 +20,9 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
+          # The job never pushes: don't leave the token in .git/config,
+          # where anything that archives the workspace picks it up.
+          persist-credentials: false
           # super-linter diffs against DEFAULT_BRANCH to find what changed, which
           # needs history. The default depth of 1 leaves it nothing to diff.
           fetch-depth: 0
