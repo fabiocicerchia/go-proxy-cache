@@ -33,7 +33,7 @@ const enableHealthchecks = true
 const defaultClientTimeout = 5 * time.Second
 
 func initLB() {
-	if len(lb) == 0 {
+	if lb == nil {
 		lb = make(LoadBalancing)
 	}
 }
@@ -67,15 +67,44 @@ func Init(name string, config config.Upstream) {
 // initBalancer - Shared init for every LB algorithm: build the items, store
 // the balancer, and health-check it. Only the constructor differs per algorithm.
 func initBalancer(name string, config config.Upstream, enableHealthchecks bool, newBalancer func(string, []Item) Balancer) {
-	initLB()
 	items := convertEndpoints(config.Endpoints)
-
 	b := newBalancer(name, items)
+
+	lbMu.Lock()
+	initLB()
+
+	// Replacing a balancer must stop the health-check goroutine of the one it
+	// replaces, otherwise every reconfiguration leaks a ticker.
+	if stop, ok := stopHealthChecks[name]; ok {
+		close(stop)
+		delete(stopHealthChecks, name)
+	}
+
 	lb[name] = b
 
+	var stop chan struct{}
 	if enableHealthchecks {
-		CheckHealth(b.GetNodeBalancer(), config.Host, config.HealthCheck)
+		stop = make(chan struct{})
+		stopHealthChecks[name] = stop
 	}
+	lbMu.Unlock()
+
+	if enableHealthchecks {
+		CheckHealth(b.GetNodeBalancer(), config.Host, config.HealthCheck, stop)
+	}
+}
+
+// Remove - Drops a balancer and stops its health-check goroutine.
+func Remove(name string) {
+	lbMu.Lock()
+	defer lbMu.Unlock()
+
+	if stop, ok := stopHealthChecks[name]; ok {
+		close(stop)
+		delete(stopHealthChecks, name)
+	}
+
+	delete(lb, name)
 }
 
 // InitRoundRobin - Initialise the LB algorithm for round robin selection.
@@ -104,7 +133,11 @@ func GetUpstreamNode(name string, requestURL url.URL, defaultHost string) string
 
 	endpoint := ""
 
-	if lbDomain, ok := lb[name]; ok {
+	lbMu.RLock()
+	lbDomain, ok := lb[name]
+	lbMu.RUnlock()
+
+	if ok {
 		endpoint, err = lbDomain.Pick(requestURL.String())
 	}
 
@@ -116,7 +149,10 @@ func GetUpstreamNode(name string, requestURL url.URL, defaultHost string) string
 }
 
 // CheckHealth - Periodic check on nodes status.
-func CheckHealth(b *NodeBalancer, host string, config config.HealthCheck) {
+//
+// The stop channel terminates the goroutine when the balancer is replaced or
+// removed. Pass nil for a balancer that lives for the whole process lifetime.
+func CheckHealth(b *NodeBalancer, host string, config config.HealthCheck, stop <-chan struct{}) {
 	period := config.Interval
 	if period == 0 {
 		period = HealthCheckInterval
@@ -124,9 +160,14 @@ func CheckHealth(b *NodeBalancer, host string, config config.HealthCheck) {
 
 	go func() {
 		t := time.NewTicker(period)
+		defer t.Stop()
 
 		for {
-			<-t.C
+			select {
+			case <-stop:
+				return
+			case <-t.C:
+			}
 
 			// Work on a snapshot: iterating b.Items unlocked while Pick()
 			// goroutines read it (and this loop writes it) is a data race.

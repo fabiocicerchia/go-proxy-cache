@@ -21,6 +21,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
@@ -63,6 +64,13 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if rc.Route != nil {
+		if redirect := redirectFilter(rc.Route); redirect != nil {
+			rc.HandleRouteRedirect(ctx, redirect)
+			return
+		}
+	}
+
 	if rc.Request.Method == HttpMethodPurge {
 		rc.HandlePurge(ctx)
 		return
@@ -93,8 +101,27 @@ func initRequestParams(ctx context.Context, res http.ResponseWriter, req *http.R
 
 	listeningPort := getListeningPort(req.Context())
 
-	rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
-	if !configFound || !rc.IsLegitRequest(ctx, listeningPort) {
+	// Routed (Kubernetes ingress controller) mode: the routing table resolves
+	// host AND path, which the static per-domain configuration cannot express.
+	// An unmatched request is a 404, the ingress convention, rather than the
+	// 501 the static path returns for an unknown virtual host.
+	if router.Enabled() {
+		route, found := router.Current().Match(req)
+		if !found {
+			rc.SendNotFound(ctx)
+
+			logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusMiss)
+
+			return RequestCall{}, fmt.Errorf("No route matches %s%s.", rc.Request.Host, rc.Request.URL.Path)
+		}
+
+		rc.Route = route
+		rc.DomainConfig = route.Config
+	} else {
+		rc.DomainConfig, configFound = config.DomainConf(req.Host, rc.GetScheme())
+	}
+
+	if (rc.Route == nil && !configFound) || !rc.IsLegitRequest(ctx, listeningPort) {
 		rc.SendNotImplemented(ctx)
 
 		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusMiss)

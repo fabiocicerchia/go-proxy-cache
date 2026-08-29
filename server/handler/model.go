@@ -22,6 +22,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
@@ -45,6 +46,11 @@ type RequestCall struct {
 	Response     *response.LoggedResponseWriter
 	Request      http.Request
 	DomainConfig config.Configuration
+
+	// Route - The routing table entry serving this request, set only when the
+	// proxy runs as a Kubernetes ingress controller. Nil for the static
+	// configuration path.
+	Route *router.Route
 }
 
 // GetLogger - Get logger instance with RequestID.
@@ -55,7 +61,16 @@ func (rc RequestCall) GetLogger() *log.Entry {
 }
 
 // IsLegitRequest - Check whether a request is bound on the right Host and Port.
+//
+// In routed mode the routing table has already decided the request belongs to
+// a known virtual host, and that host is deliberately NOT the upstream host
+// (an Ingress routes example.com to some-svc.default), so only the listening
+// port is checked.
 func (rc RequestCall) IsLegitRequest(ctx context.Context, listeningPort string) bool {
+	if rc.Route != nil {
+		return isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
+	}
+
 	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
 
@@ -127,15 +142,24 @@ func (rc RequestCall) GetHostname() string {
 // Path and RawQuery will be empty. (See RFC 7230, Section 5.3)
 // Ref: https://github.com/golang/go/issues/28940
 func (rc RequestCall) GetScheme() string {
-	if rc.IsWebSocket() && rc.Request.TLS != nil {
-		return SchemeWSS
+	secure := rc.Request.TLS != nil
+
+	// Behind a trusted proxy that terminated TLS the connection here is plain
+	// HTTP, but the client's scheme was HTTPS. Believing the connection would
+	// suppress HSTS and, with http_to_https on, produce a redirect loop.
+	if proto, ok := rc.forwardedProto(); ok {
+		secure = proto == SchemeHTTPS || proto == SchemeWSS
 	}
 
 	if rc.IsWebSocket() {
+		if secure {
+			return SchemeWSS
+		}
+
 		return SchemeWS
 	}
 
-	if rc.Request.TLS != nil {
+	if secure {
 		return SchemeHTTPS
 	}
 
@@ -145,6 +169,13 @@ func (rc RequestCall) GetScheme() string {
 // IsWebSocket - Checks whether a request is a websocket.
 func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
+}
+
+// SendNotFound - Sends a 404 response status code.
+func (rc RequestCall) SendNotFound(ctx context.Context) {
+	rc.Response.ForceWriteHeader(http.StatusNotFound)
+
+	telemetry.From(ctx).RegisterStatusCode(http.StatusNotFound)
 }
 
 // SendNotImplemented - Sends a 501 response status code.

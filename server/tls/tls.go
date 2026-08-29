@@ -108,6 +108,12 @@ func returnCert(helloInfo *crypto_tls.ClientHelloInfo) (*crypto_tls.Certificate,
 		return val, nil
 	}
 
+	// Certificates loaded from Kubernetes Secrets live in the dynamic store,
+	// which also handles wildcard names and a fallback certificate.
+	if cert, ok := dynamicStore.Get(helloInfo.ServerName); ok {
+		return cert, nil
+	}
+
 	return nil, errors.Wrapf(errMissingCertificate, "ServerName %s", helloInfo.ServerName)
 }
 

@@ -25,6 +25,17 @@ type LoadBalancing map[string]Balancer
 
 var lb LoadBalancing
 
+// lbMu - Guards the lb map.
+//
+// The map used to be written once at boot and read lock-free from the request
+// path. The Kubernetes ingress controller adds and removes balancers while
+// traffic is flowing, so every access is now synchronised.
+var lbMu sync.RWMutex
+
+// stopHealthChecks - Per-balancer stop channels for the health-check
+// goroutines, so a balancer that goes away does not leak its ticker.
+var stopHealthChecks = make(map[string]chan struct{})
+
 // Item - Represents a load balanced node.
 type Item struct {
 	Healthy  bool

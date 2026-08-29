@@ -12,11 +12,9 @@ package config
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -85,6 +83,9 @@ func InitConfigFromFileOrEnv(file string) {
 
 	// DOMAINS
 	copyGlobalOverDomainConfig(file)
+
+	// Publish the immutable snapshot the request path reads from.
+	PublishFromConfig()
 }
 
 func loadYAMLFilefile(file string) (YamlConfig Configuration) {
@@ -189,6 +190,7 @@ func (c *Configuration) copyOverWithServer(overrides Server) {
 	c.Server.Purge.AllowedIPs = utils.Coalesce(overrides.Purge.AllowedIPs, c.Server.Purge.AllowedIPs).([]string)
 	c.Server.Purge.Secret = utils.Coalesce(overrides.Purge.Secret, c.Server.Purge.Secret).(string)
 	c.Server.Purge.SecretHeader = utils.Coalesce(overrides.Purge.SecretHeader, c.Server.Purge.SecretHeader).(string)
+	c.Server.TrustedProxies = utils.Coalesce(overrides.TrustedProxies, c.Server.TrustedProxies).([]string)
 }
 
 // --- TLS.
@@ -328,69 +330,16 @@ func getSliceFromMap(domains map[string]DomainSet) []DomainSet {
 	return domainsUnique
 }
 
-// domainsCacheMu - Guards access to Configuration.domainsCache.
-var domainsCacheMu sync.RWMutex
-
 // DomainConf - Returns the configuration for the requested domain (Global Access).
 func DomainConf(domain string, scheme string) (Configuration, bool) {
-	return Config.DomainConf(domain, scheme)
+	return Current().DomainConf(domain, scheme)
 }
 
 // DomainConf - Returns the configuration for the requested domain.
 //
-// The result is memoized on the receiver. A pointer receiver is required so the
-// cache persists across calls (a value receiver mutated a throwaway copy, so the
-// memoization never actually took effect and every request re-scanned all
-// domains). Access is guarded by domainsCacheMu since DomainConf runs on the
-// request path and is invoked concurrently.
+// Kept as a method for backward compatibility: it builds a throwaway snapshot
+// so callers holding a Configuration value (rather than the published one)
+// still resolve domains with the same precedence rules.
 func (c *Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
-	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
-
-	domainsCacheMu.RLock()
-	if c.domainsCache != nil {
-		if val, ok := c.domainsCache[keyCache]; ok {
-			domainsCacheMu.RUnlock()
-			log.Debugf("Cached configuration for %s", keyCache)
-			return val, true
-		}
-	}
-	domainsCacheMu.RUnlock()
-
-	conf, found := c.domainConfLookup(utils.StripPort(domain), scheme)
-
-	// Only cache positive lookups. Caching a miss would store a zero-value
-	// Configuration that a later call would return as a hit (found == true).
-	if found {
-		domainsCacheMu.Lock()
-		if c.domainsCache == nil {
-			c.domainsCache = make(map[string]Configuration)
-		}
-		c.domainsCache[keyCache] = conf
-		domainsCacheMu.Unlock()
-	}
-
-	return conf, found
-}
-
-func (c Configuration) domainConfLookup(domain string, scheme string) (Configuration, bool) {
-	// First round: host & scheme
-	for _, v := range c.Domains {
-		if v.Server.Upstream.Host == domain && v.Server.Upstream.Scheme == scheme {
-			return v, true
-		}
-	}
-
-	// Second round: host
-	for _, v := range c.Domains {
-		if v.Server.Upstream.Host == domain {
-			return v, true
-		}
-	}
-
-	// Third round: global
-	if c.Server.Upstream.Host == domain {
-		return c, true
-	}
-
-	return Configuration{}, false
+	return NewSnapshot(*c, c.Domains).DomainConf(domain, scheme)
 }

@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: go-proxy-cache
+  labels:
+    meta.service: go-proxy-cache
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      meta.service: go-proxy-cache
+  template:
+    metadata:
+      labels:
+        meta.service: go-proxy-cache
+    spec:
+      serviceAccountName: go-proxy-cache
+      containers:
+        - name: go-proxy-cache
+          image: fabiocicerchia/go-proxy-cache:latest
+          args:
+            - go-proxy-cache
+            - -k8s
+            - -ingress-class=go-proxy-cache
+            - -controller-name=fabiocicerchia.it/go-proxy-cache
+            - -publish-service=go-proxy-cache/go-proxy-cache
+            # Uncomment once the Gateway API CRDs are installed.
+            # - -gateway-api
+          env:
+            # Both are needed for leader election: the Lease lives in this
+            # namespace and is held by this pod's identity.
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+            - name: https
+              containerPort: 443
+              protocol: TCP
+            - name: internals
+              containerPort: 52021
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            # /healthcheck and /metrics are served by the internal server, not
+            # on the proxy ports.
+            httpGet:
+              path: /healthcheck
+              port: internals
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: ["ALL"]
+              # The image drops privileges but still binds :80 and :443.
+              add: ["NET_BIND_SERVICE"]
+          volumeMounts:
+            - mountPath: /app/config.yml
+              name: config
+              subPath: config.yml
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: go-proxy-cache-config
+            items:
+              - key: config.yml
+                path: config.yml

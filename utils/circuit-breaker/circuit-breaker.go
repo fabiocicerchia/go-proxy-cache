@@ -10,6 +10,7 @@ package circuitbreaker
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -17,6 +18,24 @@ import (
 )
 
 var cb map[string]*gobreaker.CircuitBreaker = make(map[string]*gobreaker.CircuitBreaker)
+
+// cbMu - Guards the circuit breaker map.
+//
+// Breakers used to be registered once at boot and read lock-free thereafter.
+// The Kubernetes ingress controller derives its domain IDs from cluster
+// objects, so one can be registered while requests are already in flight.
+var cbMu sync.RWMutex
+
+// Fallback settings for a breaker requested before one was registered under
+// that name. They mirror the defaults in config.Config.CircuitBreaker, which
+// this package cannot import (config imports this one).
+const (
+	defaultThreshold   uint32        = 2
+	defaultFailureRate float64       = 0.5
+	defaultInterval    time.Duration = 0
+	defaultTimeout     time.Duration = 60 * time.Second
+	defaultMaxRequests uint32        = 1
+)
 
 // CircuitBreaker - Settings for redis circuit breaker.
 type CircuitBreaker struct {
@@ -38,7 +57,12 @@ func InitCircuitBreaker(name string, config CircuitBreaker, logger *logrus.Logge
 		OnStateChange: cbOnStateChange(logger),
 	}
 
-	cb[name] = gobreaker.NewCircuitBreaker(st)
+	breaker := gobreaker.NewCircuitBreaker(st)
+
+	cbMu.Lock()
+	defer cbMu.Unlock()
+
+	cb[name] = breaker
 }
 
 func cbReadyToTrip(config CircuitBreaker) func(counts gobreaker.Counts) bool {
@@ -56,12 +80,34 @@ func cbOnStateChange(log *logrus.Logger) func(name string, from gobreaker.State,
 }
 
 // CB - Returns instance of gobreaker.CircuitBreaker.
+//
+// A breaker is created on demand when none is registered under the name. It
+// used to return nil, and every caller dereferences the result, so a domain ID
+// that had not been registered panicked the whole process from the request
+// path rather than merely losing the cache. That was unreachable while every
+// breaker was registered at boot; it stops being so once domain IDs are
+// derived from cluster objects.
 func CB(name string, log *logrus.Logger) *gobreaker.CircuitBreaker {
-	if val, ok := cb[name]; ok {
+	cbMu.RLock()
+	val, ok := cb[name]
+	cbMu.RUnlock()
+
+	if ok {
 		return val
 	}
 
-	log.Warnf("Missing circuit breaker for %s", name)
+	log.Warnf("Missing circuit breaker for %s, creating one with default settings", name)
 
-	return nil
+	InitCircuitBreaker(name, CircuitBreaker{
+		Threshold:   defaultThreshold,
+		FailureRate: defaultFailureRate,
+		Interval:    defaultInterval,
+		Timeout:     defaultTimeout,
+		MaxRequests: defaultMaxRequests,
+	}, log)
+
+	cbMu.RLock()
+	defer cbMu.RUnlock()
+
+	return cb[name]
 }

@@ -461,3 +461,69 @@ func TestEncodeDecode(t *testing.T) {
 
 	assert.Equal(t, str, decoded)
 }
+
+func TestPushEmptyList(t *testing.T) {
+	initLogs()
+
+	cfg := config.Configuration{
+		Cache: config.Cache{
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,
+			FailureRate: 0.5,
+			Interval:    0,
+			Timeout:     time.Duration(1),
+		},
+	}
+
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+
+	_ = rdb.Del(context.Background(), clashingKey)
+
+	// RPUSH with no values is a Redis syntax error, not a no-op. Pushing an
+	// empty list has to succeed: a response with no Vary header has no
+	// metadata, and failing here aborted the whole cache write, so nothing at
+	// all was cached for the majority of responses.
+	err := rdb.Push(context.Background(), clashingKey, []string{})
+	assert.Nil(t, err)
+
+	value, err := rdb.List(clashingKey)
+	assert.Nil(t, err)
+	assert.Empty(t, value)
+}
+
+func TestPushAndList(t *testing.T) {
+	initLogs()
+
+	cfg := config.Configuration{
+		Cache: config.Cache{
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,
+			FailureRate: 0.5,
+			Interval:    0,
+			Timeout:     time.Duration(1),
+		},
+	}
+
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+
+	_ = rdb.Del(context.Background(), clashingKey)
+
+	err := rdb.Push(context.Background(), clashingKey, []string{"Accept-Encoding", "User-Agent"})
+	assert.Nil(t, err)
+
+	value, err := rdb.List(clashingKey)
+	assert.Nil(t, err)
+	assert.Equal(t, []string{"Accept-Encoding", "User-Agent"}, value)
+
+	_ = rdb.Del(context.Background(), clashingKey)
+}

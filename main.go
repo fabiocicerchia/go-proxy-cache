@@ -14,10 +14,12 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/k8s"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
@@ -27,6 +29,8 @@ var configFile string
 var logFile string
 var verboseFlag bool
 var testFlag bool
+var k8sOpts server.K8s
+var publishStatusAddress string
 
 // AppVersion - The go-proxy-cache's version.
 const AppVersion = "1.3.0"
@@ -44,7 +48,11 @@ func initFlags() {
 	flag.StringVar(&configFile, "config", "config.yml", "config file")
 	flag.StringVar(&logFile, "log", "", "log file (default stdout)")
 
+	initK8sFlags()
+
 	flag.Parse()
+
+	applyK8sFlags()
 
 	if version {
 		printVersion()
@@ -57,6 +65,43 @@ func initFlags() {
 	if debug {
 		logger.SetDebugLevel()
 	}
+}
+
+// initK8sFlags - Kubernetes ingress controller flags.
+//
+// Every flag defaults from the environment, because a Deployment configures a
+// controller through env vars far more naturally than through an args list.
+func initK8sFlags() {
+	defaults := k8s.NewOptions()
+
+	flag.BoolVar(&k8sOpts.Enabled, "k8s", os.Getenv("INGRESS_CONTROLLER_ENABLED") == "true",
+		"run as a Kubernetes ingress controller, deriving routes from Ingress and Gateway API objects")
+	flag.BoolVar(&k8sOpts.Options.EnableGatewayAPI, "gateway-api", os.Getenv("GATEWAY_API_ENABLED") == "true",
+		"also watch GatewayClass, Gateway and HTTPRoute objects")
+	flag.StringVar(&k8sOpts.Options.IngressClass, "ingress-class", defaults.IngressClass,
+		"name of the IngressClass to serve")
+	flag.StringVar(&k8sOpts.Options.ControllerName, "controller-name", defaults.ControllerName,
+		"identity matched against IngressClass.spec.controller and GatewayClass.spec.controllerName")
+	flag.StringVar(&k8sOpts.Options.WatchNamespace, "watch-namespace", defaults.WatchNamespace,
+		"restrict the controller to one namespace (default: whole cluster)")
+	flag.StringVar(&k8sOpts.Options.PublishService, "publish-service", defaults.PublishService,
+		"namespace/name of the Service whose address is written into the status of served objects")
+	flag.StringVar(&publishStatusAddress, "publish-status-address", os.Getenv("PUBLISH_STATUS_ADDRESS"),
+		"comma separated addresses to publish, instead of looking them up from -publish-service")
+	flag.StringVar(&k8sOpts.Options.ElectionID, "election-id", defaults.ElectionID,
+		"name of the Lease electing the replica that writes status")
+	flag.StringVar(&k8sOpts.Options.KubeConfig, "kubeconfig", os.Getenv("KUBECONFIG"),
+		"path to a kubeconfig file (default: in-cluster configuration)")
+	flag.BoolVar(&k8sOpts.Options.DisableStatusUpdates, "disable-status-updates", os.Getenv("DISABLE_STATUS_UPDATES") == "true",
+		"never write status back, and never run for leader election")
+}
+
+func applyK8sFlags() {
+	if publishStatusAddress != "" {
+		k8sOpts.Options.PublishStatusAddress = strings.Split(publishStatusAddress, ",")
+	}
+
+	k8sOpts.Options.Namespace = k8s.NewOptions().Namespace
 }
 
 func printVersion() {
@@ -120,5 +165,5 @@ func main() {
 
 	metrics.SetBuildInfo(GitCommit, AppVersion)
 
-	server.Run(AppVersion, configFile)
+	server.RunWithK8s(AppVersion, configFile, k8sOpts)
 }

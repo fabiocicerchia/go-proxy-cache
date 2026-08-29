@@ -120,6 +120,16 @@ you --->|---->----|--->---|---'     |       |     |   |
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
 - **Cache Circuit Breaker**, bypassing Redis when not available.
 
+### Kubernetes
+
+- **Ingress Controller**, derives its routing table from `Ingress` objects instead of the config file, so every route is a caching reverse proxy. See [docs/INGRESS.md](docs/INGRESS.md).
+- **Gateway API**, also serves `GatewayClass`, `Gateway` and `HTTPRoute`, including weighted backends, header/method/query matching and the request/response filters.
+- **Host + Path Routing**, routes on both, following the Gateway API precedence rules.
+- **Pod-level Load Balancing**, backends resolve from EndpointSlices to ready pod IPs, so the balancing algorithms apply per pod rather than through kube-proxy.
+- **TLS from Secrets**, certificates are read from `kubernetes.io/tls` Secrets and served via SNI, wildcards included, and swapped without a restart.
+- **Per-Ingress Cache Tuning**, TTLs, negative caching, gzip, collapsed forwarding and more via annotations.
+- **Status Write-back & Leader Election**, only the replica holding a Lease publishes status, so replicas never fight over it.
+
 ### Scaling
 
 - **Multiple domains**, override and fine-tune the global settings per domain.
@@ -192,8 +202,16 @@ Usage of go-proxy-cache:
         config file (default "config.yml")
   -debug
         enable debug
+  -gateway-api
+        also watch GatewayClass, Gateway and HTTPRoute objects
+  -ingress-class string
+        name of the IngressClass to serve (default "go-proxy-cache")
+  -k8s
+        run as a Kubernetes ingress controller, deriving routes from Ingress and Gateway API objects
   -log string
         log file (default stdout)
+  -publish-service string
+        namespace/name of the Service whose address is written into the status of served objects
   -test
         test configuration
   -verbose
