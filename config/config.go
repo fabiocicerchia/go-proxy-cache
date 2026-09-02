@@ -75,7 +75,7 @@ func getFromYaml(file string) (Configuration, error) {
 func InitConfigFromFileOrEnv(file string) {
 	Config.CopyOverWith(newFromEnv(), nil)
 
-	YamlConfig := loadYAMLFilefile(file)
+	YamlConfig := loadYAMLFile(file)
 
 	// allow only the config file to specify overrides per domain
 	Config.Domains = YamlConfig.Domains
@@ -91,7 +91,7 @@ func InitConfigFromFileOrEnv(file string) {
 	copyGlobalOverDomainConfig(file)
 }
 
-func loadYAMLFilefile(file string) (YamlConfig Configuration) {
+func loadYAMLFile(file string) (YamlConfig Configuration) {
 	_, err := os.Stat(file)
 	if !os.IsNotExist(err) {
 		YamlConfig, err = getFromYaml(file)
