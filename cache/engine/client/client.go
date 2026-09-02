@@ -147,7 +147,7 @@ func (rdb *RedisClient) PurgeAll() (bool, error) {
 		})
 		return err == nil, err
 	}
-	
+
 	// single redis instance
 	err := rdb.purgeAllKeys(rdb.Client)
 	return err == nil, err
