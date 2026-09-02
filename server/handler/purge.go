@@ -97,8 +97,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")
 
-		escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
-		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+		escapedURL := utils.EscapeLogValue(rc.Request.URL.String())
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", escapedURL, err)
 

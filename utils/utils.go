@@ -22,6 +22,15 @@ const StringSeparatorOne = "@@"
 // StringSeparatorTwo - Secondary text separator, used for joins.
 const StringSeparatorTwo = "--"
 
+// EscapeLogValue - Strips CR/LF so attacker-controlled request data cannot
+// forge additional log lines (log injection, CWE-117).
+func EscapeLogValue(value string) string {
+	value = strings.Replace(value, "\n", "", -1)
+	value = strings.Replace(value, "\r", "", -1)
+
+	return value
+}
+
 // GetEnv - Gets environment variable or default.
 func GetEnv(key string, fallback string) string {
 	if value, ok := os.LookupEnv(key); ok {

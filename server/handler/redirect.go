@@ -12,9 +12,9 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // RedirectToHTTPS - Redirects from HTTP to HTTPS.
@@ -32,8 +32,7 @@ func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	targetURL := rc.GetRequestURL()
 	targetURL.Scheme = SchemeHTTPS
 
-	escapedURL := strings.Replace(targetURL.String(), "\n", "", -1)
-	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+	escapedURL := utils.EscapeLogValue(targetURL.String())
 
 	rc.GetLogger().Infof("Redirect to: %s", escapedURL)
 

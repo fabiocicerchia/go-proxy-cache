@@ -12,13 +12,11 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
-	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
 )
 
@@ -41,14 +39,7 @@ func (rc RequestCall) serveReverseProxyWS(ctx context.Context) {
 		return
 	}
 
-	escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
-	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
-
-	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
-	rc.GetLogger().Debugf("Req URL: %s", escapedURL)
-	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
-
-	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, cache.StatusLabel[cache.StatusMiss])
+	rc.announceUpstreamRequest(ctx, proxyURL)
 
 	proxy := wsutil.NewSingleHostReverseProxy(&proxyURL)
 
