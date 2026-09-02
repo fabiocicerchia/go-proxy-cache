@@ -36,6 +36,10 @@ const PasswordOmittedValue = "*** OMITTED ***"
 // SchemeWildcard - Label to be shown when no schema (http/https) is selected.
 const SchemeWildcard = "*"
 
+// jwksURLEnvPrefix - Prefix of the per-domain JWKS URL environment variable,
+// completed with the domain name (JWT_JWKS_URL_example_com).
+const jwksURLEnvPrefix = "JWT_JWKS_URL_"
+
 func newFromEnv() Configuration {
 	envConfig := Configuration{}
 
@@ -130,9 +134,9 @@ func copyGlobalOverDomainConfig(file string) {
 			domain.CopyOverWith(v, &file)
 			domain.Domains = Domains{}
 			domainName := k
-			_, isJWKSUrl := os.LookupEnv("JWT_JWKS_URL_" + domainName)
+			_, isJWKSUrl := os.LookupEnv(jwksURLEnvPrefix + domainName)
 			if isJWKSUrl {
-				domain.Jwt.JwksUrl = os.Getenv("JWT_JWKS_URL_" + domainName)
+				domain.Jwt.JwksUrl = os.Getenv(jwksURLEnvPrefix + domainName)
 			}
 			if domain.Jwt.JwksUrl != "" {
 				InitJWT(&domain.Jwt)
