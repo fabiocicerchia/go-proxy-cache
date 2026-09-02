@@ -35,10 +35,18 @@ WORKDIR /app
 COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/go-proxy-cache /usr/local/bin/
 COPY --from=builder /go/src/github.com/fabiocicerchia/go-proxy-cache/config.yml.dist /app/config.yml
 
-RUN yum install -y glibc-devel \
-    && yum upgrade -y
+# libcap: grant the binary CAP_NET_BIND_SERVICE so it can still bind the
+# privileged 80/443 default ports as a non-root user below.
+# shadow-utils: amazonlinux:2023 ships without useradd.
+RUN yum install -y glibc-devel libcap shadow-utils \
+    && yum upgrade -y \
+    && setcap 'cap_net_bind_service=+ep' /usr/local/bin/go-proxy-cache \
+    && useradd -m -u 10001 gpc \
+    && chown gpc:gpc /app/config.yml
 
 RUN go-proxy-cache --version \
     && go-proxy-cache --test
+
+USER gpc
 
 CMD ["go-proxy-cache"]

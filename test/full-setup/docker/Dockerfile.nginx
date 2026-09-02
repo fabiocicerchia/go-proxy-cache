@@ -100,7 +100,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
       python3 python3-pip gcc libstdc++6
 
-RUN pip install grpcio --break-system-packages
+RUN pip install --no-cache-dir grpcio --break-system-packages
 
 # Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx#usage
 COPY --from=build /install /usr
