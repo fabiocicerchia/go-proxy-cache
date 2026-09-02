@@ -23,6 +23,18 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
+// --- EscapeLogValue
+
+func TestEscapeLogValueStripsCRLF(t *testing.T) {
+	escaped := utils.EscapeLogValue("/path\r\nINFO forged log line")
+
+	assert.Equal(t, "/pathINFO forged log line", escaped)
+}
+
+func TestEscapeLogValueLeavesCleanValueAlone(t *testing.T) {
+	assert.Equal(t, "/path?a=b", utils.EscapeLogValue("/path?a=b"))
+}
+
 // --- GetEnv
 
 func TestGetEnvEmptyFallback(t *testing.T) {
