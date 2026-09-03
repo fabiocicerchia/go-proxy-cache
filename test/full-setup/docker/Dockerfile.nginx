@@ -2,8 +2,8 @@ ARG image=ubuntu:22.04
 FROM $image AS build
 
 RUN apt-get update \
-   && DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
-   apt-get install --no-install-recommends --no-install-suggests -y \
+    && DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
+    apt-get install --no-install-recommends --no-install-suggests -y \
       apt-transport-https \
       autoconf \
       build-essential \
@@ -35,8 +35,8 @@ RUN curl -o /etc/apt/trusted.gpg.d/nginx_signing.asc https://nginx.org/keys/ngin
 
 RUN apt-get update \
 && DEBIAN_FRONTEND=noninteractive TZ="Europe/London" \
-   apt-get install --no-install-recommends --no-install-suggests -y \
-   nginx
+    apt-get install --no-install-recommends --no-install-suggests -y \
+    nginx
 
 RUN git clone --shallow-submodules --depth 1 --recurse-submodules -b v1.51.0 \
   https://github.com/grpc/grpc \
@@ -100,7 +100,7 @@ RUN apt-get update \
     && apt-get install --no-install-recommends --no-install-suggests -y \
       python3 python3-pip gcc libstdc++6
 
-RUN pip install grpcio --break-system-packages
+RUN pip install --no-cache-dir grpcio --break-system-packages
 
 # Ref: https://github.com/open-telemetry/opentelemetry-cpp-contrib/tree/main/instrumentation/nginx#usage
 COPY --from=build /install /usr

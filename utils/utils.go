@@ -12,6 +12,7 @@ package utils
 import (
 	"net"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -21,6 +22,15 @@ const StringSeparatorOne = "@@"
 
 // StringSeparatorTwo - Secondary text separator, used for joins.
 const StringSeparatorTwo = "--"
+
+// EscapeLogValue - Strips CR/LF so attacker-controlled request data cannot
+// forge additional log lines (log injection, CWE-117).
+func EscapeLogValue(value string) string {
+	value = strings.Replace(value, "\n", "", -1)
+	value = strings.Replace(value, "\r", "", -1)
+
+	return value
+}
 
 // GetEnv - Gets environment variable or default.
 func GetEnv(key string, fallback string) string {
@@ -65,6 +75,14 @@ func IsEmpty(value interface{}) bool {
 	case time.Duration:
 		return t == 0
 	default:
+		// A nil pointer boxed in an interface is NOT == nil: the interface
+		// still carries the pointer's type. Without this, Coalesce returned
+		// the nil override instead of the fallback and every consumer of
+		// config.Server.TLS.Override dereferenced nil.
+		if v := reflect.ValueOf(value); v.Kind() == reflect.Ptr {
+			return v.IsNil()
+		}
+
 		return value == nil
 	}
 }
