@@ -74,8 +74,52 @@ func initBalancer(name string, config config.Upstream, enableHealthchecks bool, 
 	lb[name] = b
 
 	if enableHealthchecks {
-		CheckHealth(b.GetNodeBalancer(), config.Host, config.HealthCheck)
+		CheckHealth(b.GetNodeBalancer(), config.Host, healthCheckFor(config))
 	}
+}
+
+// healthCheckFor - The upstream's health-check settings, with the scheme and
+// port inherited from the upstream when the check does not set its own.
+//
+// They used to default to https/443 independently of the upstream, so an
+// upstream declared `scheme: http` was probed over TLS and every check failed
+// with `server gave HTTP response to HTTPS client` — an error that reads like
+// the upstream misbehaving rather than the prober asking wrongly. A health
+// check is a request to the same place the traffic goes; anything else is a
+// check of something you are not serving.
+// The two schemes this proxy speaks. Local to the package: server/handler
+// exports the same pair and imports this one, so borrowing them would be a
+// cycle.
+const (
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+)
+
+func healthCheckFor(upstream config.Upstream) config.HealthCheck {
+	hc := upstream.HealthCheck
+
+	hc.Scheme = firstNonEmpty(hc.Scheme, upstream.Scheme, schemeHTTPS)
+	hc.Port = firstNonEmpty(hc.Port, upstream.Port, defaultHealthCheckPort(hc.Scheme))
+
+	return hc
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+
+	return ""
+}
+
+func defaultHealthCheckPort(scheme string) string {
+	if scheme == schemeHTTP {
+		return "80"
+	}
+
+	return "443"
 }
 
 // InitRoundRobin - Initialise the LB algorithm for round robin selection.
