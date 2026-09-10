@@ -99,8 +99,40 @@ func initRequestParams(ctx context.Context, res http.ResponseWriter, req *http.R
 
 		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusMiss)
 
-		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed (mostly likely it's a configuration mismatch).", rc.Request.Host, listeningPort)
+		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed: %s", rc.Request.Host, listeningPort, rejectionReason(rc, configFound, listeningPort))
 	}
 
 	return rc, nil
+}
+
+// rejectionReason - Says which of the three checks above turned the request
+// away, in the terms of the config file that decides it.
+//
+// "mostly likely it's a configuration mismatch" was true and unactionable: the
+// two comparisons that produce it were only visible at debug level, so a 501 on
+// every request looked like the proxy refusing to work rather than the proxy
+// saying the Host header and the config disagree.
+func rejectionReason(rc RequestCall, configFound bool, listeningPort string) string {
+	if !configFound {
+		return fmt.Sprintf("no domain in the config matches host %q with scheme %q", rc.GetHostname(), rc.GetScheme())
+	}
+
+	if rc.DomainConfig.Server.Upstream.Host != rc.GetHostname() {
+		return fmt.Sprintf(
+			"request Host %q does not match server.upstream.host %q for this domain -- the two have to be equal; to send that hostname to a different address, keep it as upstream.host and list the address in server.upstream.endpoints",
+			rc.GetHostname(),
+			rc.DomainConfig.Server.Upstream.Host,
+		)
+	}
+
+	if !isLegitPort(rc.DomainConfig.Server.Port, listeningPort) {
+		return fmt.Sprintf(
+			"the port this request arrived on (:%s) is neither server.port.http (%q) nor server.port.https (%q) for this domain",
+			listeningPort,
+			rc.DomainConfig.Server.Port.HTTP,
+			rc.DomainConfig.Server.Port.HTTPS,
+		)
+	}
+
+	return "no reason recorded, which is a bug in this function rather than in the request"
 }
