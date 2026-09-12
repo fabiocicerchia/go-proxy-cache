@@ -61,7 +61,7 @@ type Configuration struct {
 	Log            Log                           `yaml:"log"`
 	Tracing        Tracing                       `yaml:"tracing"`
 	domainsCache   map[string]Configuration
-	Jwt		   	   Jwt					 		 `yaml:"jwt"`
+	Jwt            Jwt `yaml:"jwt"`
 }
 
 // Domains - Overrides per domain.
@@ -169,12 +169,16 @@ func (u Upstream) GetDomainID() string {
 
 // HealthCheck - Defines the health check settings.
 type HealthCheck struct {
-	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
-	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
-	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
-	Port          string        `yaml:"port" envconfig:"HEALTHCHECK_PORT" default:"443"`
-	Scheme        string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
-	AllowInsecure bool          `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
+	StatusCodes []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
+	Timeout     time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
+	Interval    time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	// No defaults on these two: unset has to stay representable, so the
+	// balancer can inherit the upstream's scheme and port. Defaulting them to
+	// https/443 here probed a plain-HTTP upstream over TLS and failed every
+	// check with "server gave HTTP response to HTTPS client".
+	Port          string `yaml:"port" envconfig:"HEALTHCHECK_PORT"`
+	Scheme        string `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME"`
+	AllowInsecure bool   `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
 }
 
 // Timeout - Defines the server timeouts.
@@ -257,10 +261,10 @@ type DomainSet struct {
 
 // Jwt - Defines the config for the jwt validation.
 type Jwt struct {
-	ExcludedPaths       []string   `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
-	AllowedScopes       []string   `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
-	JwksUrl             string     `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
-	JwksRefreshInterval int        `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
+	ExcludedPaths       []string `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
+	AllowedScopes       []string `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
+	JwksUrl             string   `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
+	JwksRefreshInterval int      `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
 	JwkCache            *jwk.Cache
 	Context             context.Context
 	Logger              *logrus.Logger
