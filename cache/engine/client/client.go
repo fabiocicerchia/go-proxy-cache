@@ -252,7 +252,25 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 }
 
 // Push - Append values to a list.
+//
+// Pushing nothing is a no-op, not an error: `RPUSH key` with no members is
+// rejected by Redis with "wrong number of arguments", and go-redis flattens an
+// empty slice into exactly that call. The caller's intent — a list with no
+// entries — is a key that does not exist, which is what every reader here
+// already treats as empty.
+//
+// This is not hypothetical. StoreMetadata pushes the response's Vary header
+// list, and a response without a Vary header yields an empty one, so every
+// such response failed to store with
+//
+//	Not Stored: ERR wrong number of arguments for 'rpush' command
+//
+// i.e. the cache stored nothing at all for the ordinary case.
 func (rdb *RedisClient) Push(ctx context.Context, key string, values []string) error {
+	if len(values) == 0 {
+		return nil
+	}
+
 	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doPushKey(ctx, key, values))
 
 	return err
