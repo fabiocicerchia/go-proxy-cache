@@ -27,7 +27,10 @@ jobs:
           # where anything that archives the workspace picks it up.
           persist-credentials: false
 
-      - run: git fetch --prune --unshallow --tags
+      # --force: checkout leaves a lightweight tag at the ref it checked out,
+      # so fetching an annotated tag of the same name is "would clobber
+      # existing tag" and the step exits 1 before the changelog is built.
+      - run: git fetch --prune --unshallow --tags --force
 
       - name: Create changelogs
         id: changelogs
