@@ -101,10 +101,24 @@ jobs:
           DOCKERHUB: ${{ steps.dockerhub.outcome == 'success' }}
         run: |
           TAGS="$IMAGE:$VERSION,$IMAGE:latest"
+          HUB=0
           if [ "$DOCKERHUB" = "true" ]; then
-            TAGS="$TAGS,$DOCKERHUB_IMAGE:$VERSION,$DOCKERHUB_IMAGE:latest"
+            TAGS="$TAGS,$DOCKERHUB_IMAGE:latest"
+            HUB=1
+            # Docker Hub version tags are immutable here, so re-publishing one
+            # is a rejection rather than an overwrite. buildx pushes every tag
+            # as a single operation, which means that rejection also takes down
+            # `latest` and — because signing runs after the push — leaves both
+            # registries unsigned. A version already on Docker Hub is a tag to
+            # leave alone, not a reason to fail the publish.
+            if docker buildx imagetools inspect "$DOCKERHUB_IMAGE:$VERSION" >/dev/null 2>&1; then
+              echo "::notice::$DOCKERHUB_IMAGE:$VERSION is already published, leaving it as it is"
+            else
+              TAGS="$TAGS,$DOCKERHUB_IMAGE:$VERSION"
+            fi
           fi
           echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          echo "dockerhub=$HUB" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         id: build
@@ -124,10 +138,21 @@ jobs:
       - name: Sign the pushed digest
         env:
           DIGEST: ${{ steps.build.outputs.digest }}
-          DOCKERHUB: ${{ steps.dockerhub.outcome == 'success' }}
+          DOCKERHUB: ${{ steps.tags.outputs.dockerhub }}
         run: |
-          cosign sign --yes "${IMAGE}@${DIGEST}"
-          if [ "$DOCKERHUB" = "true" ]; then
-            cosign sign --yes "${DOCKERHUB_IMAGE}@${DIGEST}"
-          fi
-          echo "published ${IMAGE}@${DIGEST}" >> "$GITHUB_STEP_SUMMARY"
+          # Both are attempted before either can fail the step: signing is the
+          # last thing that happens, so bailing on the first error is how one
+          # registry having a bad day leaves the other silently unsigned.
+          rc=0
+          for ref in "${IMAGE}@${DIGEST}" "${DOCKERHUB_IMAGE}@${DIGEST}"; do
+            case "$ref" in
+              "${DOCKERHUB_IMAGE}@"*) [ "$DOCKERHUB" = "1" ] || continue ;;
+            esac
+            if cosign sign --yes "$ref"; then
+              echo "signed $ref" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::failed to sign $ref"
+              rc=1
+            fi
+          done
+          exit "$rc"
