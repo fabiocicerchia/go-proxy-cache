@@ -5,7 +5,7 @@ mkdir dist > /dev/null 2>&1 || true
 package_name=go-proxy-cache
 platforms=("freebsd/amd64" "linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64")
 
-export CGO_CFLAGS="-march=native -O3"
+export CGO_CFLAGS="-O3"
 
 for platform in "${platforms[@]}"; do
   declare -a "platform_split=(${platform//\// })"

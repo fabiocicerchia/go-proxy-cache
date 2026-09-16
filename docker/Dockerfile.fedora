@@ -13,7 +13,7 @@ ARG BUILD_CMD=build
 
 WORKDIR /go/src/github.com/fabiocicerchia/go-proxy-cache
 
-ENV CGO_CFLAGS -march=native -O3
+ENV CGO_CFLAGS -O3
 ENV PATH=/usr/local/go/bin:$PATH
 # The distro Go may lag behind the version required by go.mod; auto lets it
 # fetch the matching toolchain instead of failing the build.
