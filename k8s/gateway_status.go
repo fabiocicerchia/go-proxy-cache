@@ -106,7 +106,7 @@ func (c *Controller) recordGatewayStatus(
 	addresses := c.publishAddresses()
 
 	for _, gw := range gateways {
-		if err := c.updateGatewayStatus(ctx, gw, addresses, attached[gatewayKey(gw)], refused); err != nil {
+		if err := c.updateGatewayStatus(ctx, gw, addresses, attached, refused); err != nil {
 			logger.GetGlobal().Errorf("Cannot update status of Gateway %s: %s", gatewayKey(gw), err)
 		}
 	}
@@ -116,7 +116,7 @@ func (c *Controller) updateGatewayStatus(
 	ctx context.Context,
 	gw *gatewayv1.Gateway,
 	addresses []string,
-	attachedRoutes int32,
+	attached map[string]int32,
 	refused map[string]bool,
 ) error {
 	client := c.gateway.GatewayV1().Gateways(gw.Namespace)
@@ -127,7 +127,7 @@ func (c *Controller) updateGatewayStatus(
 			return err
 		}
 
-		desired := gatewayStatusFor(current, addresses, attachedRoutes, refused)
+		desired := gatewayStatusFor(current, addresses, attached, refused)
 		if sameGatewayStatus(current.Status, desired) {
 			return nil
 		}
@@ -143,7 +143,7 @@ func (c *Controller) updateGatewayStatus(
 func gatewayStatusFor(
 	gw *gatewayv1.Gateway,
 	addresses []string,
-	attachedRoutes int32,
+	attached map[string]int32,
 	refused map[string]bool,
 ) gatewayv1.GatewayStatus {
 	status := gatewayv1.GatewayStatus{
@@ -159,7 +159,7 @@ func gatewayStatusFor(
 		status.Listeners = append(status.Listeners, gatewayv1.ListenerStatus{
 			Name:           listener.Name,
 			SupportedKinds: []gatewayv1.RouteGroupKind{{Kind: "HTTPRoute"}},
-			AttachedRoutes: attachedRoutes,
+			AttachedRoutes: attached[listenerKey(gw, listener.Name)],
 			Conditions:     listenerConditions(gw.Generation, supported, refused[listenerKey(gw, listener.Name)]),
 		})
 	}

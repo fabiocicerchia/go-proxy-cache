@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -142,19 +143,36 @@ func (rc RequestCall) HandleRouteRedirect(ctx context.Context, redirect *router.
 	}
 
 	path := rc.Request.URL.Path
+
+	// The encoded form of the request path, kept only while the path is passed
+	// through untouched. A rewrite produces a new, decoded path that the old
+	// encoding no longer describes.
+	rawPath := rc.Request.URL.RawPath
+
 	if redirect.Path != nil {
 		switch {
 		case redirect.Path.ReplaceFullPath != nil:
 			path = *redirect.Path.ReplaceFullPath
+			rawPath = ""
 		case redirect.Path.ReplacePrefixMatch != nil:
 			path = replacePrefix(rc.Route.Path, *redirect.Path.ReplacePrefixMatch, path)
+			rawPath = ""
 		}
 	}
 
-	target := scheme + "://" + host + path
-	if rc.Request.URL.RawQuery != "" {
-		target += "?" + rc.Request.URL.RawQuery
+	// Built through url.URL rather than by concatenation: URL.Path is decoded,
+	// so pasting it into a header emits a raw space for %20 and turns an
+	// escaped separator into a real one. String() escapes it, and prefers
+	// RawPath while that still encodes Path.
+	location := url.URL{
+		Scheme:   scheme,
+		Host:     host,
+		Path:     path,
+		RawPath:  rawPath,
+		RawQuery: rc.Request.URL.RawQuery,
 	}
+
+	target := location.String()
 
 	statusCode := redirect.StatusCode
 	if statusCode == 0 {

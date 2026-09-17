@@ -107,16 +107,20 @@ func (c *Controller) syncGatewayAPI(ctx context.Context, base config.Configurati
 				continue
 			}
 
-			attached[gatewayKey(gw)] += int32(len(listeners))
+			outcome := c.translateHTTPRoute(hr, gw, listeners, base)
+			routes = append(routes, outcome.Routes...)
 
-			hrRoutes, refused := c.translateHTTPRoute(hr, gw, listeners, base)
-			routes = append(routes, hrRoutes...)
+			// One count per listener, not per Gateway: a listener with no
+			// routes of its own has to report zero.
+			for _, listener := range listeners {
+				attached[listenerKey(gw, listener.Name)] += int32(len(outcome.Routes))
+			}
 
-			// Every rule producing at least one route means every backend
-			// resolved; anything less is reported as ResolvedRefs=False so
-			// `kubectl describe httproute` says which side is broken.
-			resolved := len(hrRoutes) > 0 || len(hr.Spec.Rules) == 0
-			parents = append(parents, routeParentStatus(c.opts.ControllerName, gw, hr, resolved, refused))
+			// Per rule, not per route: an HTTPRoute with one working rule and
+			// two broken ones used to report ResolvedRefs=True, hiding the
+			// dropped traffic from `kubectl describe`.
+			resolved := outcome.ResolvedRules == len(hr.Spec.Rules)
+			parents = append(parents, routeParentStatus(c.opts.ControllerName, gw, hr, resolved, outcome.Refused))
 		}
 
 		if len(parents) > 0 {
@@ -248,6 +252,18 @@ func listenerAllowsNamespace(listener *gatewayv1.Listener, gatewayNamespace stri
 	}
 }
 
+// routeOutcome - What translating one HTTPRoute against one Gateway produced.
+//
+// Three things are reported rather than one, because the status conditions
+// distinguish them: routes to serve, how many rules actually yielded any (a
+// route is not resolved just because a sibling rule was), and whether a
+// reference was refused for want of a ReferenceGrant.
+type routeOutcome struct {
+	Routes        []*router.Route
+	ResolvedRules int
+	Refused       bool
+}
+
 // translateHTTPRoute - Turns an HTTPRoute into routes, one per (hostname,
 // match) pair.
 func (c *Controller) translateHTTPRoute(
@@ -255,24 +271,27 @@ func (c *Controller) translateHTTPRoute(
 	gw *gatewayv1.Gateway,
 	listeners []*gatewayv1.Listener,
 	base config.Configuration,
-) ([]*router.Route, bool) {
+) routeOutcome {
 	source := fmt.Sprintf("HTTPRoute %s/%s", hr.Namespace, hr.Name)
 	settings := parseAnnotations(base, hr.Annotations, source)
 
 	hostnames := effectiveHostnames(hr, listeners)
-	routes := make([]*router.Route, 0)
-	refused := false
+	out := routeOutcome{Routes: make([]*router.Route, 0)}
 
 	for ruleIdx := range hr.Spec.Rules {
 		rule := &hr.Spec.Rules[ruleIdx]
 
 		backends, ruleRefused := c.resolveHTTPRouteBackends(hr, rule, settings)
-		refused = refused || ruleRefused
+		out.Refused = out.Refused || ruleRefused
 
 		if len(backends) == 0 {
 			logger.GetGlobal().Warnf("%s: rule %d has no resolvable backend", source, ruleIdx)
 			continue
 		}
+
+		// A rule that resolved but matched no hostname still serves nothing,
+		// so it is only counted once a route comes out of it.
+		before := len(out.Routes)
 
 		filters := translateHTTPFilters(rule.Filters)
 		matches := rule.Matches
@@ -298,12 +317,16 @@ func (c *Controller) translateHTTPRoute(
 				}
 
 				applyHTTPMatch(route, &matches[matchIdx])
-				routes = append(routes, route)
+				out.Routes = append(out.Routes, route)
 			}
+		}
+
+		if len(out.Routes) > before {
+			out.ResolvedRules++
 		}
 	}
 
-	return routes, refused
+	return out
 }
 
 // effectiveHostnames - The intersection of the route's hostnames with the

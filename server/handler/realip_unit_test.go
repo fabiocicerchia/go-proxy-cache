@@ -123,3 +123,41 @@ func TestSchemeFallsBackToConnectionWhenHeaderAbsent(t *testing.T) {
 
 	assert.Equal(t, "http", rc.GetScheme())
 }
+
+// GetScheme() is called to resolve DomainConfig, so it cannot depend on it.
+// Reading the trusted-proxy list only from the (still empty) domain config made
+// every request behind a TLS-terminating proxy resolve as plain HTTP, and a
+// host with separate http and https entries was served the wrong one.
+func TestGetSchemeUsesTrustedProxiesBeforeDomainConfigIsResolved(t *testing.T) {
+	previous := config.Config
+	defer func() { config.Config = previous; config.PublishFromConfig() }()
+
+	config.Config.Server.TrustedProxies = []string{"10.0.0.0/8"}
+	config.PublishFromConfig()
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	req.RemoteAddr = "10.1.2.3:4567"
+	req.Header.Set("X-Forwarded-Proto", "https")
+
+	// Exactly the state at the call site: no DomainConfig yet.
+	rc := handler.NewRequestCall(httptest.NewRecorder(), req)
+
+	assert.Equal(t, "https", rc.GetScheme(),
+		"the scheme has to be resolvable before the domain is known")
+}
+
+func TestGetSchemeIgnoresForwardedProtoFromAnUntrustedPeer(t *testing.T) {
+	previous := config.Config
+	defer func() { config.Config = previous; config.PublishFromConfig() }()
+
+	config.Config.Server.TrustedProxies = []string{"10.0.0.0/8"}
+	config.PublishFromConfig()
+
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	req.RemoteAddr = "203.0.113.9:4567"
+	req.Header.Set("X-Forwarded-Proto", "https")
+
+	rc := handler.NewRequestCall(httptest.NewRecorder(), req)
+
+	assert.Equal(t, "http", rc.GetScheme())
+}

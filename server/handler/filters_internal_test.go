@@ -13,7 +13,9 @@ package handler
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
@@ -59,4 +61,50 @@ func TestRewriteHostnameOnly(t *testing.T) {
 
 	assert.Equal(t, "new.example.com", req.Host)
 	assert.Equal(t, "/api/items", req.URL.Path, "a hostname-only rewrite leaves the path alone")
+}
+
+// URL.Path is the decoded path, so pasting it into a header emits a raw space
+// for %20 and a real separator for %2F. Building the Location through url.URL
+// escapes it.
+func TestRouteRedirectEscapesTheLocation(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		target   string
+		expected string
+	}{
+		// Preserved only because the path is passed through; a rewrite
+		// decodes it, which is the documented limitation of rewriting Path.
+		{"encoded separator", "/a%2Fb", "http://example.com/a%2Fb"},
+		{"space", "/foo%20bar", "http://example.com/foo%20bar"},
+		{"plain", "/plain", "http://example.com/plain"},
+	} {
+		req := httptest.NewRequest(http.MethodGet, tc.target, nil)
+		req.Host = "example.com"
+
+		res := httptest.NewRecorder()
+		rc := NewRequestCall(res, req)
+		rc.Route = &router.Route{Path: "/"}
+
+		rc.HandleRouteRedirect(context.Background(), &router.Redirect{StatusCode: http.StatusFound})
+
+		assert.Equal(t, tc.expected, res.Header().Get("Location"), tc.name)
+		assert.NotContains(t, res.Header().Get("Location"), " ", tc.name)
+	}
+}
+
+func TestRouteRedirectKeepsTheQueryString(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "/search?q=a%20b&n=2", nil)
+	req.Host = "example.com"
+
+	res := httptest.NewRecorder()
+	rc := NewRequestCall(res, req)
+	rc.Route = &router.Route{Path: "/"}
+
+	rc.HandleRouteRedirect(context.Background(), &router.Redirect{
+		Scheme:     "https",
+		StatusCode: http.StatusMovedPermanently,
+	})
+
+	assert.Equal(t, "https://example.com/search?q=a%20b&n=2", res.Header().Get("Location"))
+	assert.Equal(t, http.StatusMovedPermanently, res.Code)
 }

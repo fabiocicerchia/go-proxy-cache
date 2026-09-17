@@ -13,6 +13,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
@@ -31,7 +32,7 @@ const ForwardedForHeader = "X-Forwarded-For"
 // configured nothing is believed, which is the right default for a proxy
 // facing the internet directly.
 func (rc RequestCall) isFromTrustedProxy() bool {
-	trusted := rc.DomainConfig.Server.TrustedProxies
+	trusted := trustedProxies(rc.DomainConfig)
 	if len(trusted) == 0 {
 		return false
 	}
@@ -42,6 +43,26 @@ func (rc RequestCall) isFromTrustedProxy() bool {
 	}
 
 	return isIPAllowed(peer, trusted)
+}
+
+// trustedProxies - The proxies allowed to speak for the client.
+//
+// Falls back to the global list because this is consulted *before* the domain
+// is known: GetScheme() needs it, and the domain lookup needs the scheme. With
+// only the per-domain value, a request arriving over a TLS-terminating proxy
+// resolved its configuration as plain HTTP and got the wrong block -- purge
+// allowlist and authentication settings included.
+//
+// The global list is also the more sensible source: which peers may speak for
+// a client is a property of how the proxy is deployed, not of the virtual host
+// being asked for. A per-domain override still applies everywhere the domain
+// is already resolved.
+func trustedProxies(domainConfig config.Configuration) []string {
+	if len(domainConfig.Server.TrustedProxies) > 0 {
+		return domainConfig.Server.TrustedProxies
+	}
+
+	return config.Current().Global.Server.TrustedProxies
 }
 
 // forwardedProto - The scheme the client originally used, when a trusted proxy
