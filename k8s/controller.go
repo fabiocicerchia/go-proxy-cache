@@ -17,13 +17,17 @@ import (
 	"sort"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	corelisters "k8s.io/client-go/listers/core/v1"
 	networkinglisters "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	inferenceclientset "sigs.k8s.io/gateway-api-inference-extension/client-go/clientset/versioned"
 	inferenceinformers "sigs.k8s.io/gateway-api-inference-extension/client-go/informers/externalversions"
@@ -93,6 +97,10 @@ type Controller struct {
 	// lastStatus - What was last written per object, so an unchanged status is
 	// not re-sent on every resync (which would hot-loop the API server).
 	lastStatus map[string]string
+
+	// events - Where operator-visible problems are reported. Nil when status
+	// updates are switched off, since that is also a read-only RBAC setup.
+	events record.EventRecorder
 }
 
 // New - Builds a controller. Does not talk to the API server yet.
@@ -156,6 +164,13 @@ func newWithClients(
 		factory.Core().V1().Services().Informer(),
 		factory.Discovery().V1().EndpointSlices().Informer(),
 	)
+
+	if !opts.DisableStatusUpdates {
+		broadcaster := record.NewBroadcaster()
+		broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: core.CoreV1().Events("")})
+
+		c.events = broadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: ControllerName})
+	}
 
 	if opts.EnableGatewayAPI {
 		c.setupGatewayInformers(gateway, opts)
@@ -266,6 +281,7 @@ func (c *Controller) sync(ctx context.Context) {
 
 	routes := make([]*router.Route, 0)
 	certs := make(map[string]*tls.Certificate)
+	certOwners := make(certificateOwner)
 
 	ingresses := c.claimedIngresses()
 
@@ -273,12 +289,23 @@ func (c *Controller) sync(ctx context.Context) {
 		ingRoutes, problems := c.translateIngress(ing, base)
 		routes = append(routes, ingRoutes...)
 
-		c.loadIngressCertificates(ing, certs)
+		c.loadIngressCertificates(ing, certs, certOwners)
 		c.recordIngressStatus(ctx, ing, problems)
 	}
 
 	if c.opts.EnableGatewayAPI {
-		routes = append(routes, c.syncGatewayAPI(ctx, base, certs)...)
+		routes = append(routes, c.syncGatewayAPI(ctx, base, certs, certOwners)...)
+	}
+
+	if c.opts.DisableCatchAll {
+		routes = dropCatchAllRoutes(routes)
+	}
+
+	// Reported rather than resolved: the API has no notion of hostname
+	// ownership, so this cannot be rejected, only made visible.
+	for _, conflict := range findRouteConflicts(routes) {
+		log.Warnf("Route conflict: %s", conflict)
+		c.recordConflict(conflict)
 	}
 
 	c.certs.Replace(certs)
@@ -338,7 +365,11 @@ func waitForCaches(synced map[reflect.Type]bool) error {
 
 // loadIngressCertificates - Reads the Secrets an Ingress references and indexes
 // them by every host they serve.
-func (c *Controller) loadIngressCertificates(ing *networkingv1.Ingress, into map[string]*tls.Certificate) {
+func (c *Controller) loadIngressCertificates(
+	ing *networkingv1.Ingress,
+	into map[string]*tls.Certificate,
+	owners certificateOwner,
+) {
 	for i := range ing.Spec.TLS {
 		entry := &ing.Spec.TLS[i]
 
@@ -366,6 +397,7 @@ func (c *Controller) loadIngressCertificates(ing *networkingv1.Ingress, into map
 		}
 
 		for _, host := range names {
+			owners.claim(host, fmt.Sprintf("Ingress %s/%s", ing.Namespace, ing.Name))
 			into[host] = cert
 		}
 	}

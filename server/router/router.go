@@ -265,6 +265,14 @@ func compileMatches(list []Match) bool {
 	return true
 }
 
+// SortRoutes - Orders routes by the matching precedence the table applies.
+//
+// Exported so a caller can ask which of two colliding routes will actually win
+// rather than guessing at it.
+func SortRoutes(routes []*Route) {
+	sortRoutes(routes)
+}
+
 // sortRoutes - Orders routes by the Gateway API matching precedence, which is
 // also a superset of the Ingress "longest path wins" rule:
 //

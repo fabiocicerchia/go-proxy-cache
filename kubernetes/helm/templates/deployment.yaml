@@ -144,6 +144,9 @@ spec:
 {{- if .Values.controller.disableStatusUpdates }}
             - -disable-status-updates
 {{- end }}
+{{- if .Values.controller.disableCatchAll }}
+            - -disable-catch-all
+{{- end }}
           env:
             # Both are needed for leader election: the Lease lives in this
             # namespace and is held by this pod's identity.

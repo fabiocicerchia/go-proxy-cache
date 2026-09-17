@@ -191,6 +191,26 @@ any other kind.
 
 See `docs/examples/ingress/httproute.yaml` for a weighted canary split.
 
+### Sharing a cluster
+
+Nothing in the Ingress API expresses hostname ownership, so any namespace that
+can create an Ingress can name any hostname. That is the same position every
+ingress controller is in, and admission control (Kyverno, OPA/Gatekeeper) or
+`-watch-namespace` is the real answer. Two things make the situation visible
+rather than silent:
+
+- **Collisions are reported.** When two objects claim the same host, path and
+  path type, the one that loses gets a `RouteConflict` warning Event naming the
+  winner, so `kubectl describe ingress` says why a route is not serving. The
+  winner is decided by the same precedence the router applies: path specificity
+  first, then the older object.
+- **Duplicate certificate claims are logged**, naming both objects, rather than
+  one silently replacing the other in the SNI store.
+
+`-disable-catch-all` (Helm: `controller.disableCatchAll`) ignores hostless
+Ingress rules and `defaultBackend`s. One of those otherwise serves every path
+no other route claims, on every hostname in the cluster.
+
 ### Cross-namespace references
 
 A `backendRef` or `certificateRef` that names another namespace is only

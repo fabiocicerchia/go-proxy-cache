@@ -149,6 +149,7 @@ func (c *Controller) newRoute(ing *networkingv1.Ingress, settings routeSettings,
 	return &router.Route{
 		ID:                id,
 		Source:            fmt.Sprintf("Ingress %s/%s", ing.Namespace, ing.Name),
+		ObjectRef:         ing,
 		Config:            settings.Config,
 		PreserveHost:      settings.PreserveHost,
 		UpstreamHost:      settings.UpstreamHost,

@@ -116,6 +116,12 @@ controller:
   # the controller is deliberately given read-only RBAC.
   disableStatusUpdates: false
 
+  # Ignore hostless Ingress rules and default backends. One of those otherwise
+  # serves every path no other route claims, on every hostname in the cluster,
+  # whoever owns them -- convenient on a single-tenant install, and worth
+  # turning off on a shared one.
+  disableCatchAll: false
+
   # Name of the Lease electing the replica that writes status.
   electionID: go-proxy-cache-ingress-controller
 

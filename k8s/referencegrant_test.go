@@ -92,7 +92,7 @@ func TestCrossNamespaceBackendRefIsRefusedWithoutAGrant(t *testing.T) {
 
 	gw.Spec.Listeners[0].AllowedRoutes = allowedFromAll()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Empty(t, routes, "a cross-namespace backend must not resolve without a ReferenceGrant")
 }
@@ -117,7 +117,7 @@ func TestCrossNamespaceBackendRefIsAllowedByAGrant(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Equal(t, []string{"10.9.9.9:8080"}, routes[0].Backends[0].Endpoints)
@@ -183,7 +183,7 @@ func TestCrossNamespaceCertificateRefIsRefusedWithoutAGrant(t *testing.T) {
 	certs := emptyCertMap()
 	refused := map[string]bool{}
 
-	c.loadGatewayCertificates(gw, certs, refused)
+	c.loadGatewayCertificates(gw, certs, refused, make(certificateOwner))
 
 	assert.Empty(t, certs, "another namespace's key must not be loaded without a ReferenceGrant")
 	assert.True(t, refused[listenerKey(gw, "https")])
@@ -204,7 +204,7 @@ func TestCrossNamespaceCertificateRefIsAllowedByAGrant(t *testing.T) {
 	certs := emptyCertMap()
 	refused := map[string]bool{}
 
-	c.loadGatewayCertificates(gw, certs, refused)
+	c.loadGatewayCertificates(gw, certs, refused, make(certificateOwner))
 
 	assert.Contains(t, certs, "shared.example.com")
 	assert.Empty(t, refused)

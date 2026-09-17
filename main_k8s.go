@@ -52,6 +52,8 @@ func registerExtraFlags() {
 		"path to a kubeconfig file (default: in-cluster configuration)")
 	flag.BoolVar(&k8sOptions.DisableStatusUpdates, "disable-status-updates", os.Getenv("DISABLE_STATUS_UPDATES") == "true",
 		"never write status back, and never run for leader election")
+	flag.BoolVar(&k8sOptions.DisableCatchAll, "disable-catch-all", defaults.DisableCatchAll,
+		"ignore hostless Ingress rules and default backends, which would otherwise serve every hostname")
 }
 
 func applyExtraFlags() {

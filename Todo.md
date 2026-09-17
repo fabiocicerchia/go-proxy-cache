@@ -25,26 +25,10 @@ InferencePool currently works as a pool of Pods, not as an inference gateway.
 - [ ] A pool declaring several `targetPorts` uses the first and logs the rest;
       choosing between them is the picker's job, so this resolves with Tier 2.
 
-## Multi-tenancy hardening
+## Done since this list was written
 
-Not vulnerabilities — this matches the accepted baseline for ingress
-controllers, which document admission control as the mitigation — but each is
-something other controllers grew.
-
-- [ ] No equivalent of ingress-nginx's `--disable-catch-all`. A hostless
-      Ingress rule or `defaultBackend` from any namespace captures every
-      unmatched path of every other tenant's hostname.
-- [ ] A cross-namespace `host`+`path` conflict is silently deprioritised rather
-      than rejected with a status condition and an Event. The routing outcome
-      matches ingress-nginx; the operator visibility does not.
-- [ ] The certificate map is last-writer-wins across Ingresses in
-      namespace/name order, with no warning when two objects claim one
-      hostname.
-
-## Housekeeping
-
-- [ ] `gofmt` fails on three files, none of them new:
-      `cache/engine/client/client_cluster_test.go` and `client_wildcard.go`
-      predate the branch; `client.go` was reformatted by `a13f470`. CI runs
-      these under `sca` with `continue-on-error: true`, so nothing is red
-      today.
+- Multi-tenancy visibility: `-disable-catch-all` (Helm:
+  `controller.disableCatchAll`), a `RouteConflict` Event on the losing object
+  when two claim one host and path, and a warning when two objects claim one
+  certificate hostname. `docs/INGRESS.md` has a "Sharing a cluster" section.
+- `gofmt` is clean across the tree.

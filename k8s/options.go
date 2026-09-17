@@ -77,6 +77,13 @@ type Options struct {
 	// election. Useful when RBAC is deliberately read-only.
 	DisableStatusUpdates bool
 
+	// DisableCatchAll - Ignore routes that match every hostname.
+	//
+	// A hostless Ingress rule, or a defaultBackend, otherwise captures every
+	// path no other route claims, on every hostname in the cluster. Harmless
+	// single-tenant, not harmless shared.
+	DisableCatchAll bool
+
 	// ResyncPeriod - Informer relist interval.
 	ResyncPeriod time.Duration
 }
@@ -85,13 +92,14 @@ type Options struct {
 // values a Deployment normally injects.
 func NewOptions() Options {
 	return Options{
-		ControllerName: envOr("INGRESS_CONTROLLER_NAME", ControllerName),
-		IngressClass:   envOr("INGRESS_CLASS", IngressClassName),
-		WatchNamespace: os.Getenv("WATCH_NAMESPACE"),
-		PublishService: os.Getenv("PUBLISH_SERVICE"),
-		ElectionID:     envOr("ELECTION_ID", DefaultElectionID),
-		Namespace:      envOr("POD_NAMESPACE", "default"),
-		ResyncPeriod:   DefaultResyncPeriod,
+		ControllerName:  envOr("INGRESS_CONTROLLER_NAME", ControllerName),
+		IngressClass:    envOr("INGRESS_CLASS", IngressClassName),
+		WatchNamespace:  os.Getenv("WATCH_NAMESPACE"),
+		DisableCatchAll: os.Getenv("DISABLE_CATCH_ALL") == "true",
+		PublishService:  os.Getenv("PUBLISH_SERVICE"),
+		ElectionID:      envOr("ELECTION_ID", DefaultElectionID),
+		Namespace:       envOr("POD_NAMESPACE", "default"),
+		ResyncPeriod:    DefaultResyncPeriod,
 	}
 }
 

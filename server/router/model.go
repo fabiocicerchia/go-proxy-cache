@@ -141,6 +141,11 @@ type Route struct {
 	// and status reporting.
 	Source string
 
+	// ObjectRef - What to hang a Kubernetes Event off when something has to be
+	// reported about this route. Opaque here: this package knows nothing about
+	// Kubernetes, and whoever built the route supplies it.
+	ObjectRef any
+
 	CreationTimestamp time.Time
 
 	pathRe *regexp.Regexp

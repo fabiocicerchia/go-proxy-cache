@@ -12,6 +12,7 @@ package k8s
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +29,7 @@ func (c *Controller) loadGatewayCertificates(
 	gw *gatewayv1.Gateway,
 	into map[string]*tls.Certificate,
 	refused map[string]bool,
+	owners certificateOwner,
 ) {
 	for i := range gw.Spec.Listeners {
 		listener := &gw.Spec.Listeners[i]
@@ -79,12 +81,17 @@ func (c *Controller) loadGatewayCertificates(
 				continue
 			}
 
+			source := fmt.Sprintf("Gateway %s", gatewayKey(gw))
+
 			if listener.Hostname != nil && *listener.Hostname != "" {
+				owners.claim(string(*listener.Hostname), source)
 				into[string(*listener.Hostname)] = cert
+
 				continue
 			}
 
 			for _, host := range hosts {
+				owners.claim(host, source)
 				into[host] = cert
 			}
 		}

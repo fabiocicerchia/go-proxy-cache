@@ -22,16 +22,16 @@ func (rdb *RedisClient) DelWildcard(ctx context.Context, key string) (int, error
 	if rdb.Client.ClusterSlots(ctx).Err() == nil {
 		return rdb.deleteClusterKeys(ctx, key)
 	}
-		k, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
-			keys, err := rdb.Client.Keys(ctx, key).Result()
-			return keys, err
-		})
+	k, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(func() (interface{}, error) {
+		keys, err := rdb.Client.Keys(ctx, key).Result()
+		return keys, err
+	})
 
-		if err != nil {
-			return 0, nil
-		}
+	if err != nil {
+		return 0, nil
+	}
 
-		return rdb.deleteKeys(ctx, key, k.([]string))
+	return rdb.deleteKeys(ctx, key, k.([]string))
 }
 
 func (rdb *RedisClient) deleteClusterKeys(ctx context.Context, key string) (int, error) {
@@ -61,7 +61,7 @@ func (rdb *RedisClient) deleteClusterKeys(ctx context.Context, key string) (int,
 }
 
 func (rdb *RedisClient) deleteKeysByShard(ctx context.Context, key string, keys []string, client *goredislib.Client) (int, error) {
-	if (len(keys) == 0 && keys != nil) {
+	if len(keys) == 0 && keys != nil {
 		rdb.logger.Printf("Keys with pattern: %s not found in node: %s\n", key, client)
 	}
 	deletedKeysByNode, err := rdb.deleteKeys(ctx, key, keys)

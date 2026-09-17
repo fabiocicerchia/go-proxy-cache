@@ -67,7 +67,12 @@ func (c *Controller) setupGatewayInformers(client gatewayclientset.Interface, op
 
 // syncGatewayAPI - Translates the claimed Gateways and the HTTPRoutes bound to
 // them into routes, and collects their certificates.
-func (c *Controller) syncGatewayAPI(ctx context.Context, base config.Configuration, certs map[string]*tls.Certificate) []*router.Route {
+func (c *Controller) syncGatewayAPI(
+	ctx context.Context,
+	base config.Configuration,
+	certs map[string]*tls.Certificate,
+	certOwners certificateOwner,
+) []*router.Route {
 	gateways := c.claimedGateways()
 	if len(gateways) == 0 {
 		return nil
@@ -78,7 +83,7 @@ func (c *Controller) syncGatewayAPI(ctx context.Context, base config.Configurati
 	refusedCerts := make(map[string]bool)
 
 	for _, gw := range gateways {
-		c.loadGatewayCertificates(gw, certs, refusedCerts)
+		c.loadGatewayCertificates(gw, certs, refusedCerts, certOwners)
 	}
 
 	httpRoutes, err := c.gatewayState.routes.List(labels.Everything())
@@ -307,6 +312,7 @@ func (c *Controller) translateHTTPRoute(
 					ID: fmt.Sprintf("httproute/%s/%s/%s/%d/%d/%d",
 						hr.Namespace, hr.Name, gatewayKey(gw), ruleIdx, matchIdx, hostIdx),
 					Source:            source,
+					ObjectRef:         hr,
 					Host:              hostname,
 					Config:            settings.Config,
 					PreserveHost:      settings.PreserveHost,

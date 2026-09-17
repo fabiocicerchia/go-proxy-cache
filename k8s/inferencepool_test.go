@@ -104,7 +104,7 @@ func TestInferencePoolBackendResolvesSelectedPods(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Len(t, routes[0].Backends, 1)
@@ -134,7 +134,7 @@ func TestInferencePoolWithNoReadyPodsIsNotRouted(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Empty(t, routes)
 }
@@ -168,7 +168,7 @@ func TestInferencePoolDegradesWhenTheCRDIsAbsent(t *testing.T) {
 	// What Run() does when the Inference Extension caches never sync.
 	c.inferenceState = nil
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1, "the ordinary route must survive a missing InferencePool CRD")
 	assert.Equal(t, "web.local", routes[0].Host)

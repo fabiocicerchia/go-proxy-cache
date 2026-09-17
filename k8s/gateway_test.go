@@ -114,7 +114,7 @@ func TestSyncGatewayAPITranslatesHTTPRoute(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Equal(t, "demo.local", routes[0].Host)
@@ -139,7 +139,7 @@ func TestGatewayClassFilteringIgnoresOtherControllers(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Empty(t, routes, "a Gateway owned by another controller must be ignored")
 }
@@ -185,7 +185,7 @@ func TestListenerHostnameNarrowsRouteHostname(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Equal(t, "*.example.com", routes[0].Host, "a route with no hostnames inherits the listener's")
@@ -222,7 +222,7 @@ func TestWeightedBackendRefs(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Len(t, routes[0].Backends, 2)
@@ -249,7 +249,7 @@ func TestCrossNamespaceRouteRefusedByDefault(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Empty(t, routes, "a listener that did not opt in must not admit routes from another namespace")
 }
@@ -278,7 +278,7 @@ func TestCrossNamespaceRouteAllowedWhenListenerOptsIn(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 }
@@ -318,7 +318,7 @@ func TestHTTPRouteFiltersAreTranslated(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Len(t, routes[0].Filters, 2)
@@ -351,7 +351,7 @@ func TestHTTPRouteMethodAndHeaderMatches(t *testing.T) {
 	})
 	defer cancel()
 
-	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap())
+	routes := c.syncGatewayAPI(context.Background(), config.Config, emptyCertMap(), make(certificateOwner))
 
 	assert.Len(t, routes, 1)
 	assert.Equal(t, []string{"POST"}, routes[0].Methods)

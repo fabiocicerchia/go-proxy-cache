@@ -268,58 +268,58 @@ func TestClusterPushList(t *testing.T) {
 }
 
 func TestClusterDelWildcardNoMatch(t *testing.T) {
-    initLogsCluster()
+	initLogsCluster()
 
-    cfg := config.Configuration{
-        Cache: config.Cache{
-            Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
-            DB:    0,
-        },
-        CircuitBreaker: circuit_breaker.CircuitBreaker{
-            Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
-            FailureRate: 0.5,              // 1 out of 2 fails, or more
-            Interval:    0,                // doesn't clears counts
-            Timeout:     time.Duration(1), // clears state immediately
-        },
-    }
+	cfg := config.Configuration{
+		Cache: config.Cache{
+			Hosts: strings.Split(utils.GetEnv("REDIS_HOSTS", "172.20.0.36:6379,172.20.0.37:6379,172.20.0.38:6379"), ","),
+			DB:    0,
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,                // after 2nd request, if meet FailureRate goes open.
+			FailureRate: 0.5,              // 1 out of 2 fails, or more
+			Interval:    0,                // doesn't clears counts
+			Timeout:     time.Duration(1), // clears state immediately
+		},
+	}
 
-    circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+	circuit_breaker.InitCircuitBreaker(clusterRedisConnName, cfg.CircuitBreaker, logger.GetGlobal())
 
-    rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
+	rdb := client.Connect(clusterRedisConnName, cfg.Cache, log.StandardLogger())
 
-    done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
-    assert.True(t, done)
-    assert.Nil(t, err)
-    done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
-    assert.True(t, done)
-    assert.Nil(t, err)
-    done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
-    assert.True(t, done)
-    assert.Nil(t, err)
+	done, err := rdb.Set(context.Background(), "test_1", "sample", 0)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	done, err = rdb.Set(context.Background(), "test_2", "sample", 0)
+	assert.True(t, done)
+	assert.Nil(t, err)
+	done, err = rdb.Set(context.Background(), "test_3", "sample", 0)
+	assert.True(t, done)
+	assert.Nil(t, err)
 
-    value, err := rdb.Get("test_1")
-    assert.Equal(t, "sample", value)
-    assert.Nil(t, err)
-    value, err = rdb.Get("test_2")
-    assert.Equal(t, "sample", value)
-    assert.Nil(t, err)
-    value, err = rdb.Get("test_3")
-    assert.Equal(t, "sample", value)
-    assert.Nil(t, err)
+	value, err := rdb.Get("test_1")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_2")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_3")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
 
-    len, err := rdb.DelWildcard(context.Background(), "missing_*")
-    assert.Equal(t, 0, len)
-    assert.Nil(t, err)
+	len, err := rdb.DelWildcard(context.Background(), "missing_*")
+	assert.Equal(t, 0, len)
+	assert.Nil(t, err)
 
-    value, err = rdb.Get("test_1")
-    assert.Equal(t, "sample", value)
-    assert.Nil(t, err)
-    value, err = rdb.Get("test_2")
-    assert.Equal(t, "sample", value)
-    assert.Nil(t, err)
-    value, err = rdb.Get("test_3")
-    assert.Equal(t, "sample", value)
-    assert.Nil(t, err)
+	value, err = rdb.Get("test_1")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_2")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
+	value, err = rdb.Get("test_3")
+	assert.Equal(t, "sample", value)
+	assert.Nil(t, err)
 }
 
 func TestClusterDelWildcard(t *testing.T) {
