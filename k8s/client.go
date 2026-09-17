@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	inferenceclientset "sigs.k8s.io/gateway-api-inference-extension/client-go/clientset/versioned"
 	gatewayclientset "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 )
 
@@ -36,11 +37,11 @@ func restConfig(kubeConfigPath string) (*rest.Config, error) {
 	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(rules, &clientcmd.ConfigOverrides{}).ClientConfig()
 }
 
-// newClients - Builds the core and Gateway API clientsets.
-func newClients(kubeConfigPath string) (kubernetes.Interface, gatewayclientset.Interface, error) {
+// newClients - Builds the core, Gateway API and Inference Extension clientsets.
+func newClients(kubeConfigPath string) (kubernetes.Interface, gatewayclientset.Interface, inferenceclientset.Interface, error) {
 	cfg, err := restConfig(kubeConfigPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// A controller talks to the API server constantly during a resync storm;
@@ -50,13 +51,18 @@ func newClients(kubeConfigPath string) (kubernetes.Interface, gatewayclientset.I
 
 	core, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	gateway, err := gatewayclientset.NewForConfig(cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return core, gateway, nil
+	inference, err := inferenceclientset.NewForConfig(cfg)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return core, gateway, inference, nil
 }

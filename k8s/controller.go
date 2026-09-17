@@ -25,6 +25,8 @@ import (
 	networkinglisters "k8s.io/client-go/listers/networking/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
+	inferenceclientset "sigs.k8s.io/gateway-api-inference-extension/client-go/clientset/versioned"
+	inferenceinformers "sigs.k8s.io/gateway-api-inference-extension/client-go/informers/externalversions"
 	gatewayclientset "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 	gatewayinformers "sigs.k8s.io/gateway-api/pkg/client/informers/externalversions"
 
@@ -62,11 +64,13 @@ type BalancerRegistry interface {
 type Controller struct {
 	opts Options
 
-	core    kubernetes.Interface
-	gateway gatewayclientset.Interface
+	core      kubernetes.Interface
+	gateway   gatewayclientset.Interface
+	inference inferenceclientset.Interface
 
-	factory        informers.SharedInformerFactory
-	gatewayFactory gatewayinformers.SharedInformerFactory
+	factory          informers.SharedInformerFactory
+	gatewayFactory   gatewayinformers.SharedInformerFactory
+	inferenceFactory inferenceinformers.SharedInformerFactory
 
 	ingresses      networkinglisters.IngressLister
 	ingressClasses networkinglisters.IngressClassLister
@@ -77,7 +81,8 @@ type Controller struct {
 	certs    *srvtls.Store
 	registry BalancerRegistry
 
-	gatewayState *gatewayState
+	gatewayState   *gatewayState
+	inferenceState *inferenceState
 
 	queue workqueue.TypedRateLimitingInterface[string]
 
@@ -94,18 +99,19 @@ type Controller struct {
 func New(opts Options, certs *srvtls.Store, registry BalancerRegistry) (*Controller, error) {
 	opts.Normalise()
 
-	core, gateway, err := newClients(opts.KubeConfig)
+	core, gateway, inference, err := newClients(opts.KubeConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	return newWithClients(opts, core, gateway, certs, registry), nil
+	return newWithClients(opts, core, gateway, inference, certs, registry), nil
 }
 
 func newWithClients(
 	opts Options,
 	core kubernetes.Interface,
 	gateway gatewayclientset.Interface,
+	inference inferenceclientset.Interface,
 	certs *srvtls.Store,
 	registry BalancerRegistry,
 ) *Controller {
@@ -122,6 +128,7 @@ func newWithClients(
 		opts:       opts,
 		core:       core,
 		gateway:    gateway,
+		inference:  inference,
 		factory:    factory,
 		certs:      certs,
 		registry:   registry,
@@ -152,6 +159,7 @@ func newWithClients(
 
 	if opts.EnableGatewayAPI {
 		c.setupGatewayInformers(gateway, opts)
+		c.setupInferenceInformers(inference, factory, opts)
 	}
 
 	return c
@@ -194,6 +202,20 @@ func (c *Controller) Run(ctx context.Context) error {
 
 		if err := waitForCaches(c.gatewayFactory.WaitForCacheSync(ctx.Done())); err != nil {
 			return err
+		}
+	}
+
+	if c.inferenceFactory != nil {
+		c.inferenceFactory.Start(ctx.Done())
+
+		// Not waited on, and a failure to sync is not fatal: the Inference
+		// Extension CRDs are optional, and a cluster without them must still
+		// serve every ordinary route. An InferencePool backendRef then reports
+		// itself unresolvable, which is the accurate answer.
+		if err := waitForCaches(c.inferenceFactory.WaitForCacheSync(ctx.Done())); err != nil {
+			log.Warnf("InferencePool support is unavailable: %s", err)
+
+			c.inferenceState = nil
 		}
 	}
 

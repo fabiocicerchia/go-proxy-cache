@@ -13,7 +13,7 @@ rules:
     resources: ["ingresses", "ingressclasses"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["services", "secrets", "namespaces"]
+    resources: ["services", "secrets", "namespaces", "pods"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
@@ -21,6 +21,10 @@ rules:
 {{- if .Values.controller.gatewayAPI.enabled }}
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["gatewayclasses", "gateways", "httproutes", "referencegrants"]
+    verbs: ["get", "list", "watch"]
+  # Only used where the Inference Extension CRDs are installed.
+  - apiGroups: ["inference.networking.k8s.io"]
+    resources: ["inferencepools"]
     verbs: ["get", "list", "watch"]
 {{- end }}
 {{- if not .Values.controller.disableStatusUpdates }}
@@ -31,6 +35,9 @@ rules:
 {{- if .Values.controller.gatewayAPI.enabled }}
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["gatewayclasses/status", "gateways/status", "httproutes/status"]
+    verbs: ["update", "patch"]
+  - apiGroups: ["inference.networking.k8s.io"]
+    resources: ["inferencepools/status"]
     verbs: ["update", "patch"]
 {{- end }}
 {{- end }}

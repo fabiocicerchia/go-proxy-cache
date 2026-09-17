@@ -23,6 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	inferencev1 "sigs.k8s.io/gateway-api-inference-extension/api/v1"
+	inferencefake "sigs.k8s.io/gateway-api-inference-extension/client-go/clientset/versioned/fake"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	gatewayfake "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/fake"
@@ -52,9 +54,10 @@ func newTestController(t *testing.T, opts Options, coreObjects []runtime.Object,
 
 	core := fake.NewSimpleClientset(coreObjects...)
 	gateway := gatewayfake.NewClientset()
+	inference := inferencefake.NewClientset()
 
 	registry := &noopRegistry{}
-	c := newWithClients(opts, core, gateway, srvtls.NewStore(), registry)
+	c := newWithClients(opts, core, gateway, inference, srvtls.NewStore(), registry)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -66,6 +69,13 @@ func newTestController(t *testing.T, opts Options, coreObjects []runtime.Object,
 		c.gatewayFactory.WaitForCacheSync(ctx.Done())
 
 		seedGatewayInformers(t, c, gatewayObjects)
+	}
+
+	if c.inferenceFactory != nil {
+		c.inferenceFactory.Start(ctx.Done())
+		c.inferenceFactory.WaitForCacheSync(ctx.Done())
+
+		seedInferenceInformers(t, c, gatewayObjects)
 	}
 
 	return c, registry, cancel
@@ -93,11 +103,31 @@ func seedGatewayInformers(t *testing.T, c *Controller, objects []runtime.Object)
 			err = c.gatewayFactory.Gateway().V1().HTTPRoutes().Informer().GetIndexer().Add(typed)
 		case *gatewayv1beta1.ReferenceGrant:
 			err = c.gatewayFactory.Gateway().V1beta1().ReferenceGrants().Informer().GetIndexer().Add(typed)
+		case *inferencev1.InferencePool:
+			// Seeded separately, by seedInferenceInformers.
+			continue
 		default:
 			t.Fatalf("unsupported Gateway API object %T", obj)
 		}
 
 		if err != nil {
+			t.Fatalf("cannot seed informer with %T: %s", obj, err)
+		}
+	}
+}
+
+// seedInferenceInformers - Puts InferencePools into the informer indexer, the
+// same way the Gateway API objects are seeded.
+func seedInferenceInformers(t *testing.T, c *Controller, objects []runtime.Object) {
+	t.Helper()
+
+	for _, obj := range objects {
+		pool, ok := obj.(*inferencev1.InferencePool)
+		if !ok {
+			continue
+		}
+
+		if err := c.inferenceFactory.Inference().V1().InferencePools().Informer().GetIndexer().Add(pool); err != nil {
 			t.Fatalf("cannot seed informer with %T: %s", obj, err)
 		}
 	}

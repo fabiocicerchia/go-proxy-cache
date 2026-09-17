@@ -9,7 +9,7 @@ rules:
     resources: ["ingresses", "ingressclasses"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["services", "secrets", "namespaces"]
+    resources: ["services", "secrets", "namespaces", "pods"]
     verbs: ["get", "list", "watch"]
   - apiGroups: ["discovery.k8s.io"]
     resources: ["endpointslices"]
@@ -18,6 +18,14 @@ rules:
   - apiGroups: ["gateway.networking.k8s.io"]
     resources: ["gatewayclasses", "gateways", "httproutes", "referencegrants"]
     verbs: ["get", "list", "watch"]
+  # Only needed with -gateway-api and the Inference Extension CRDs installed;
+  # harmless when they are absent.
+  - apiGroups: ["inference.networking.k8s.io"]
+    resources: ["inferencepools"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["inference.networking.k8s.io"]
+    resources: ["inferencepools/status"]
+    verbs: ["update", "patch"]
   # Status write-back, done only by the replica holding the lease.
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses/status"]

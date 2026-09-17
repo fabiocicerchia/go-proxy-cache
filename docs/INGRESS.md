@@ -12,7 +12,7 @@ forwarding and `PURGE`, configured through annotations.
 ## Which build
 
 The controller needs the Kubernetes client, which is large enough that the
-standalone proxy does not carry it: 36 MB against 89 MB. So there are two
+standalone proxy does not carry it: 36 MB against 91 MB. So there are two
 builds of the same binary.
 
 | | Image | Built with |
@@ -158,6 +158,36 @@ weighted `backendRefs`, and the `RequestHeaderModifier`,
 Not yet supported: `GRPCRoute`, `TCPRoute`/`TLSRoute`, `BackendTLSPolicy`,
 selector-based `allowedRoutes` policies (a listener using one admits no
 cross-namespace routes rather than guessing), and session persistence.
+
+### Inference Extension (partial)
+
+An `HTTPRoute` may name an `InferencePool`
+(`inference.networking.k8s.io/v1`) as a `backendRef`. The pool's
+`selector` and `targetPorts` are resolved to the ready Pods behind it, and
+traffic is load balanced across them like any other backend — with the cache in
+front of it.
+
+```yaml
+rules:
+  - backendRefs:
+      - group: inference.networking.k8s.io
+        kind: InferencePool
+        name: vllm-pool
+```
+
+**The endpoint picker is not implemented.** `endpointPickerRef` is ignored, so
+endpoints are chosen by the configured load-balancing algorithm rather than by
+KV-cache utilisation or queue depth, and `failureMode` has nothing to act on.
+A pool declaring several `targetPorts` uses the first and logs the rest, since
+choosing between them is the picker's job. Model-aware routing on the request
+body is not implemented either.
+
+In other words: an InferencePool works as a pool of Pods, not as an inference
+gateway. If you need the scheduling behaviour the extension exists for, this is
+not yet a substitute for an implementation that speaks ext-proc to the picker.
+
+Cross-namespace `backendRefs` to a pool need a `ReferenceGrant`, the same as
+any other kind.
 
 See `docs/examples/ingress/httproute.yaml` for a weighted canary split.
 

@@ -404,7 +404,13 @@ func (c *Controller) resolveHTTPRouteBackends(
 		group := refGroup(ref.Group)
 		kind := refKind(ref.Kind, "Service")
 
-		if group != coreGroup || kind != "Service" {
+		if group != coreGroup && group != InferencePoolGroup {
+			logger.GetGlobal().Warnf("HTTPRoute %s/%s: unsupported backend group %q", hr.Namespace, hr.Name, group)
+			continue
+		}
+
+		if (group == coreGroup && kind != "Service") ||
+			(group == InferencePoolGroup && kind != InferencePoolKind) {
 			logger.GetGlobal().Warnf("HTTPRoute %s/%s: unsupported backend %s/%s", hr.Namespace, hr.Name, group, kind)
 			continue
 		}
@@ -415,8 +421,8 @@ func (c *Controller) resolveHTTPRouteBackends(
 			FromGroup:     gatewayv1.GroupName,
 			FromKind:      "HTTPRoute",
 			FromNamespace: hr.Namespace,
-			ToGroup:       coreGroup,
-			ToKind:        "Service",
+			ToGroup:       group,
+			ToKind:        kind,
 			ToName:        string(ref.Name),
 			ToNamespace:   namespace,
 		}) {
@@ -426,6 +432,27 @@ func (c *Controller) resolveHTTPRouteBackends(
 			)
 
 			refused = true
+
+			continue
+		}
+
+		weight := int32(1)
+		if ref.Weight != nil {
+			weight = *ref.Weight
+		}
+
+		// An InferencePool names its own Pods and its own port, so it does not
+		// go through the Service resolver at all.
+		if group == InferencePoolGroup {
+			backend, err := c.inferencePoolBackend(namespace, string(ref.Name), weight)
+			if err != nil {
+				logger.GetGlobal().Warnf("HTTPRoute %s/%s: cannot resolve InferencePool %s/%s: %s",
+					hr.Namespace, hr.Name, namespace, ref.Name, err)
+
+				continue
+			}
+
+			backends = append(backends, backend)
 
 			continue
 		}
@@ -444,11 +471,6 @@ func (c *Controller) resolveHTTPRouteBackends(
 		scheme := settings.BackendScheme
 		if scheme == "" {
 			scheme = "http"
-		}
-
-		weight := int32(1)
-		if ref.Weight != nil {
-			weight = *ref.Weight
 		}
 
 		backends = append(backends, router.Backend{
