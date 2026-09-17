@@ -83,6 +83,11 @@ controller:
   # file's `domains` block.
   enabled: false
 
+  # Appended to the image tag when the controller is enabled. The Kubernetes
+  # client is compiled in only for this build, which is what keeps the
+  # standalone image small.
+  imageSuffix: "-ingress"
+
   # Name of the IngressClass this controller serves.
   ingressClass: go-proxy-cache
 

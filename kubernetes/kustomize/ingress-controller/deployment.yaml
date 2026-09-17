@@ -18,7 +18,9 @@ spec:
       serviceAccountName: go-proxy-cache
       containers:
         - name: go-proxy-cache
-          image: fabiocicerchia/go-proxy-cache:latest
+          # The -ingress build is the one carrying the Kubernetes client; the
+          # default image is the standalone proxy and has no controller in it.
+          image: fabiocicerchia/go-proxy-cache:latest-ingress
           args:
             - go-proxy-cache
             - -k8s

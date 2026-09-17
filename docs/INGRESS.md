@@ -9,6 +9,21 @@ What you get over a plain ingress controller is the cache: every route is a
 caching reverse proxy, with per-Ingress TTLs, negative caching, collapsed
 forwarding and `PURGE`, configured through annotations.
 
+## Which build
+
+The controller needs the Kubernetes client, which is large enough that the
+standalone proxy does not carry it: 36 MB against 89 MB. So there are two
+builds of the same binary.
+
+| | Image | Built with |
+|---|---|---|
+| Standalone proxy | `fabiocicerchia/go-proxy-cache:<tag>` | `make build` |
+| Ingress controller | `fabiocicerchia/go-proxy-cache:<tag>-ingress` | `make build-ingress` |
+
+The Helm chart and the kustomize overlay already select the `-ingress` image
+when the controller is enabled. The `-k8s` flag exists only in that build; the
+standalone binary does not accept it.
+
 ## Quick start
 
 ### Helm
@@ -36,7 +51,8 @@ kubectl apply -k kubernetes/kustomize/ingress-controller
 ### Bare binary (development, against a kubeconfig)
 
 ```sh
-go-proxy-cache -k8s -kubeconfig ~/.kube/config -config config.yml
+make build-ingress
+./go-proxy-cache -k8s -kubeconfig ~/.kube/config -config config.yml
 ```
 
 ## How routing works

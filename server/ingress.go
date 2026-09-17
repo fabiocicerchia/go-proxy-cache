@@ -1,3 +1,6 @@
+//go:build k8s
+// +build k8s
+
 package server
 
 //                                                                         __
@@ -23,6 +26,19 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
+
+// WithK8s - Derives the served domains from the cluster's Ingress and Gateway
+// API objects instead of from the configuration file.
+//
+// Only compiled into the build that carries the Kubernetes client, which is
+// why nothing in the tag-free half of this package names a k8s type.
+func WithK8s(opts k8s.Options) Option {
+	return func(o *options) {
+		o.start = func(s *Servers) (controller, error) {
+			return s.startIngressController(opts)
+		}
+	}
+}
 
 // startIngressController - Sets up the listeners and the controller for
 // Kubernetes ingress mode.

@@ -40,11 +40,16 @@ help: ## prints this help
 ##@ BUILD
 ################################################################################
 
-build: ## build
-	go build -o go-proxy-cache main.go
+# The package, not main.go: the entrypoint is split across build-tagged files
+# and naming one of them compiles only that one.
+build: ## build (standalone proxy)
+	go build -o go-proxy-cache .
+
+build-ingress: ## build with the Kubernetes ingress controller
+	go build -tags k8s -o go-proxy-cache .
 
 build-race: ## build-race
-	go build -race -o go-proxy-cache main.go
+	go build -race -o go-proxy-cache .
 
 build-multiarch: ## build-multiarch
 	./bin/build-multiarch.sh
@@ -95,6 +100,7 @@ test: test-unit test-functional test-endtoend test-ws test-http2 ## test
 
 test-unit: ## test unit
 	TESTING=1 grc go test -v -race -count=1 --tags=unit ./...
+	TESTING=1 grc go test -v -race -count=1 --tags=unit,k8s ./...
 
 test-functional: ## test functional
 	python3 -m http.server &> /dev/null &

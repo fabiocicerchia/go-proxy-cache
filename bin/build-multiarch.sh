@@ -17,7 +17,7 @@ for platform in "${platforms[@]}"; do
     output_name+='.exe'
   fi
 
-  env GOOS="$GOOS" GOARCH="$GOARCH" go build -o dist/$output_name main.go
+  env GOOS="$GOOS" GOARCH="$GOARCH" go build ${BUILD_TAGS:+-tags "$BUILD_TAGS"} -o dist/$output_name .
   if [ $? -ne 0 ]; then
     echo "An error has occurred! Aborting..."
     exit 1
