@@ -158,5 +158,10 @@ func (r *Route) Upstream(idx int) config.Upstream {
 	upstream.Endpoints = r.Backends[idx].Endpoints
 	upstream.Scheme = r.Backends[idx].Scheme
 
+	// Probe the backend over the protocol it actually speaks. The inherited
+	// health check defaults to https, which fails every plain-HTTP backend and
+	// leaves the balancer with no healthy node to pick.
+	upstream.HealthCheck.Scheme = r.Backends[idx].Scheme
+
 	return upstream
 }

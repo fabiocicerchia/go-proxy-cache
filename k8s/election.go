@@ -76,7 +76,7 @@ func (c *Controller) runLeaderElection(ctx context.Context) {
 		},
 	}
 
-	leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{
+	cfg := leaderelection.LeaderElectionConfig{
 		Lock:            lock,
 		ReleaseOnCancel: true,
 		LeaseDuration:   leaseDuration,
@@ -101,5 +101,17 @@ func (c *Controller) runLeaderElection(ctx context.Context) {
 				}
 			},
 		},
-	})
+	}
+
+	// RunOrDie returns when the lease is lost, not only when the context ends,
+	// so a single call means a replica that blips once never stands again.
+	// Once every replica has blipped, nothing writes status any more.
+	for ctx.Err() == nil {
+		leaderelection.RunOrDie(ctx, cfg)
+
+		select {
+		case <-ctx.Done():
+		case <-time.After(retryPeriod):
+		}
+	}
 }

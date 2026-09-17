@@ -133,3 +133,23 @@ func TestResetLeavesRoutedMode(t *testing.T) {
 	assert.False(t, router.Enabled())
 	assert.Nil(t, router.Current())
 }
+
+// The health check is inherited from the global configuration, whose scheme
+// defaults to https. Probing a plain-HTTP backend over TLS marks every node
+// unhealthy, which leaves the balancer with nothing to pick.
+func TestUpstreamProbesTheBackendScheme(t *testing.T) {
+	r := &router.Route{Backends: []router.Backend{
+		{Endpoints: []string{"10.0.0.1:8080"}, Scheme: "http"},
+		{Endpoints: []string{"10.0.0.2:8443"}, Scheme: "https"},
+	}}
+	r.Config.Server.Upstream.HealthCheck.Scheme = "https"
+
+	plain := r.Upstream(0)
+	assert.Equal(t, "http", plain.Scheme)
+	assert.Equal(t, "http", plain.HealthCheck.Scheme)
+	assert.Equal(t, []string{"10.0.0.1:8080"}, plain.Endpoints)
+
+	secure := r.Upstream(1)
+	assert.Equal(t, "https", secure.Scheme)
+	assert.Equal(t, "https", secure.HealthCheck.Scheme)
+}

@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -102,6 +103,16 @@ func loadYAMLFilefile(file string) (YamlConfig Configuration) {
 	return YamlConfig
 }
 
+// jwkCaches - One cache per JWKS URL and refresh interval.
+//
+// Every jwk.Cache starts a refresh goroutine that lives as long as its
+// context, so building one per call leaks a goroutine set per call. The same
+// settings therefore have to hand back the same cache.
+var (
+	jwkCachesMu sync.Mutex
+	jwkCaches   = make(map[string]*jwk.Cache)
+)
+
 // InitJWT - Configure the jwk auto-refresh and save it into the JWT config
 func InitJWT(jwtConfig *Jwt) {
 	if jwtConfig.Context == nil {
@@ -109,15 +120,27 @@ func InitJWT(jwtConfig *Jwt) {
 	}
 
 	refreshIntervalDuration := time.Duration(jwtConfig.JwksRefreshInterval) * time.Minute
-	jwtKeyFetcher := jwk.NewCache(jwtConfig.Context, jwk.WithRefreshWindow(refreshIntervalDuration))
+	key := jwtConfig.JwksUrl + utils.StringSeparatorOne + refreshIntervalDuration.String()
 
-	// Registering an empty URL is pointless and would only produce errors at
-	// fetch time; validation is skipped anyway when no JWKS URL is configured.
-	if jwtConfig.JwksUrl != "" {
-		jwtKeyFetcher.Register(
-			jwtConfig.JwksUrl,
-			jwk.WithMinRefreshInterval(refreshIntervalDuration),
-		)
+	jwkCachesMu.Lock()
+	defer jwkCachesMu.Unlock()
+
+	jwtKeyFetcher, found := jwkCaches[key]
+	if !found {
+		// Anchored to the background context: the cache is shared, so it
+		// outlives whichever caller happened to create it.
+		jwtKeyFetcher = jwk.NewCache(context.Background(), jwk.WithRefreshWindow(refreshIntervalDuration))
+
+		// Registering an empty URL is pointless and would only produce errors at
+		// fetch time; validation is skipped anyway when no JWKS URL is configured.
+		if jwtConfig.JwksUrl != "" {
+			jwtKeyFetcher.Register(
+				jwtConfig.JwksUrl,
+				jwk.WithMinRefreshInterval(refreshIntervalDuration),
+			)
+		}
+
+		jwkCaches[key] = jwtKeyFetcher
 	}
 
 	jwtConfig.JwkCache = jwtKeyFetcher

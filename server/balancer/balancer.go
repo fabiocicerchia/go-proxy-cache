@@ -227,16 +227,24 @@ func getClient(timeout time.Duration, tlsFlag bool, allowInsecure bool) *http.Cl
 }
 
 func DoHealthCheck(v *Item, host string, config config.HealthCheck) {
-	url, _ := url.Parse(v.Endpoint)
-	scheme := url.Scheme
+	// A bare "host:port" endpoint is not a parseable URL ("first path segment
+	// in URL cannot contain colon"), and url.Parse returns a nil URL with it.
+	// Endpoints derived from pod addresses always take that form.
+	endpoint, err := url.Parse(v.Endpoint)
+	if err != nil || endpoint == nil {
+		endpoint = &url.URL{Host: v.Endpoint}
+	}
+
+	scheme := endpoint.Scheme
 	if scheme == "" || (scheme != "http" && scheme != "https") {
 		scheme = config.Scheme
 	}
 
-	hostWithPort := url.Host
+	hostWithPort := endpoint.Host
 	if hostWithPort == "" {
 		hostWithPort = v.Endpoint
 	}
+
 	_, port, err := net.SplitHostPort(hostWithPort)
 
 	overridePort := ""
@@ -245,7 +253,7 @@ func DoHealthCheck(v *Item, host string, config config.HealthCheck) {
 	}
 
 	overrideScheme := ""
-	if url.Scheme != scheme {
+	if endpoint.Scheme != scheme {
 		overrideScheme = fmt.Sprintf("%s://", scheme)
 	}
 
