@@ -54,6 +54,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 			AllowedStatuses: rc.DomainConfig.Cache.EffectiveAllowedStatuses(),
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
 			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
+			Variant:         rc.CacheVariant(),
 			CurrentURIObject: cache.URIObj{
 				URL:             rc.GetRequestURL(),
 				Method:          rc.Request.Method,

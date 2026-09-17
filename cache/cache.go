@@ -55,6 +55,17 @@ type Object struct {
 	AllowedMethods   []string
 	CurrentURIObject URIObj
 	DomainID         string
+
+	// Variant - Distinguishes entries that share a method, URL and Vary
+	// checksum but were served by different routes.
+	//
+	// Method plus URL plus Vary identifies a response only when one URL is
+	// served one way. Routing on headers breaks that: a canary splitting
+	// x-version between two backends has two routes with the same host and
+	// path, and without this they overwrite each other's bodies. Empty
+	// outside routed mode, where it is left out of the key entirely so
+	// existing entries keep their current keys.
+	Variant string
 }
 
 // URIObj - Holds details about the response.
@@ -195,7 +206,7 @@ func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bo
 		return false, err
 	}
 
-	key := StorageKey(c.CurrentURIObject, meta)
+	key := StorageKey(c.CurrentURIObject, meta, c.Variant)
 
 	// HARD EVICTION
 	expirationHard := expiration
@@ -230,7 +241,7 @@ func (c *Object) RetrieveFullPage() error {
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	key := StorageKey(c.CurrentURIObject, meta)
+	key := StorageKey(c.CurrentURIObject, meta, c.Variant)
 	logger.GetGlobal().WithFields(log.Fields{
 		"ReqID": c.ReqID,
 	}).Debugf("StorageKey: %s", key)
@@ -272,7 +283,10 @@ func (c Object) PurgeFullPage(ctx context.Context) (bool, error) {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
 
-	key := StorageKey(c.CurrentURIObject, []string{})
+	// No variant here on purpose: the trailing wildcard below then clears
+	// every route's copy of the URL, not just the one that matched this
+	// request.
+	key := StorageKey(c.CurrentURIObject, []string{}, "")
 
 	match := utils.StringSeparatorOne + "PURGE" + utils.StringSeparatorOne
 	replace := utils.StringSeparatorOne + "*" + utils.StringSeparatorOne
@@ -289,11 +303,17 @@ func (c Object) PurgeFullPage(ctx context.Context) (bool, error) {
 }
 
 // StorageKey - Returns the cache key for the requested URL.
-func StorageKey(currentURIObject URIObj, meta []string) string {
+//
+// The variant is appended only when set, so keys written before routes existed
+// keep the shape they already have.
+func StorageKey(currentURIObject URIObj, meta []string, variant string) string {
 	key := []string{"DATA", currentURIObject.Method, currentURIObject.URL.String(), currentURIObject.GetHeadersChecksum(meta)}
-	storageKey := strings.Join(key, utils.StringSeparatorOne)
 
-	return storageKey
+	if variant != "" {
+		key = append(key, variant)
+	}
+
+	return strings.Join(key, utils.StringSeparatorOne)
 }
 
 // FetchMetadata - Returns the cache metadata for the requested URL.

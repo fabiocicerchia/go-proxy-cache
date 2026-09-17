@@ -171,6 +171,21 @@ func (rc RequestCall) IsWebSocket() bool {
 	return wsutil.IsWebSocketRequest(&rc.Request) // TODO: don't like the reference
 }
 
+// CacheVariant - What separates this request's cache entries from those of
+// other routes serving the same method and URL.
+//
+// Two routes can differ only by a header or query match -- a canary on
+// x-version is the usual case -- and would otherwise share one entry and serve
+// each other's bodies. Empty outside routed mode, so existing keys are
+// unchanged.
+func (rc RequestCall) CacheVariant() string {
+	if rc.Route == nil {
+		return ""
+	}
+
+	return rc.Route.ID
+}
+
 // SendNotFound - Sends a 404 response status code.
 func (rc RequestCall) SendNotFound(ctx context.Context) {
 	rc.Response.ForceWriteHeader(http.StatusNotFound)
