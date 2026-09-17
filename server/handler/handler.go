@@ -47,6 +47,17 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 	telemetry.From(ctx).RegisterRequestCall(rc.ReqID, rc.Request, rc.GetRequestURL(), rc.GetScheme(), rc.IsWebSocket())
 
+	// In routed mode the matched route carries the authentication settings,
+	// and only the route does: one host can be split across several objects
+	// with different settings, so resolving by Host picks an arbitrary one.
+	if rc.Route != nil && routeAuthorizer != nil {
+		if err := routeAuthorizer(res, req, &rc.DomainConfig.Jwt); err != nil {
+			logger.LogRequest(rc.Request, http.StatusUnauthorized, 0, rc.ReqID, cache.StatusMiss)
+
+			return
+		}
+	}
+
 	rc.SetHSTSHeader()
 
 	if rc.Request.Method == http.MethodConnect {
@@ -81,6 +92,18 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 	} else {
 		rc.HandleHTTPRequestAndProxy(ctx)
 	}
+}
+
+// routeAuthorizer - Validates a request against the matched route's settings.
+//
+// Wired up by the caller that knows about authentication, so this package does
+// not depend on it (the authentication package already depends on this one).
+// Nil on the static configuration path, which authenticates in middleware.
+var routeAuthorizer func(http.ResponseWriter, *http.Request, *config.Jwt) error
+
+// SetRouteAuthorizer - Installs the per-route request authorizer.
+func SetRouteAuthorizer(authorize func(http.ResponseWriter, *http.Request, *config.Jwt) error) {
+	routeAuthorizer = authorize
 }
 
 // NewRequestCall - Initialize a RequestCall object starting from incoming Request.

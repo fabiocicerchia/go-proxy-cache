@@ -29,6 +29,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/jwt"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -210,12 +211,21 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}
 
+	// The Host-based middleware resolves one configuration per host, which
+	// routed mode cannot honour: a host is split across several objects there,
+	// each with its own settings. Routed mode authenticates per matched route
+	// inside the handler instead.
+	handlerChain := muxMiddleware
+	if !router.Enabled() {
+		handlerChain = jwt.JWTHandler(muxMiddleware)
+	}
+
 	server := &http.Server{
 		ReadTimeout:       normalizeTimeout(timeout.Read),
 		WriteTimeout:      normalizeTimeout(timeout.Write),
 		IdleTimeout:       normalizeTimeout(timeout.Idle),
 		ReadHeaderTimeout: normalizeTimeout(timeout.ReadHeader),
-		Handler:           jwt.JWTHandler(muxMiddleware),
+		Handler:           handlerChain,
 	}
 
 	return server

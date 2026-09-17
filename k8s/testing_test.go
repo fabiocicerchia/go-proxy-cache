@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	gatewayfake "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned/fake"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
@@ -90,6 +91,8 @@ func seedGatewayInformers(t *testing.T, c *Controller, objects []runtime.Object)
 			err = c.gatewayFactory.Gateway().V1().Gateways().Informer().GetIndexer().Add(typed)
 		case *gatewayv1.HTTPRoute:
 			err = c.gatewayFactory.Gateway().V1().HTTPRoutes().Informer().GetIndexer().Add(typed)
+		case *gatewayv1beta1.ReferenceGrant:
+			err = c.gatewayFactory.Gateway().V1beta1().ReferenceGrants().Informer().GetIndexer().Add(typed)
 		default:
 			t.Fatalf("unsupported Gateway API object %T", obj)
 		}

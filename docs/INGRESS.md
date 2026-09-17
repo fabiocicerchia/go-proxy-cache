@@ -145,6 +145,38 @@ cross-namespace routes rather than guessing), and session persistence.
 
 See `docs/examples/ingress/httproute.yaml` for a weighted canary split.
 
+### Cross-namespace references
+
+A `backendRef` or `certificateRef` that names another namespace is only
+honoured when that namespace has published a `ReferenceGrant` permitting it,
+as the Gateway API requires. Without one the reference is skipped and the
+object reports `ResolvedRefs=False` with reason `RefNotPermitted`.
+
+This matters because the controller reads Services and Secrets cluster-wide:
+without the check, anyone able to create an `HTTPRoute` could publish any
+Service in the cluster, and anyone able to create a `Gateway` could serve
+another namespace's TLS private key under a hostname of their choosing.
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-tenant-a
+  namespace: platform          # the namespace being referenced
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: tenant-a      # the namespace doing the referencing
+  to:
+    - group: ""
+      kind: Service
+      name: shared-api         # omit to cover every Service in the namespace
+```
+
+Use `kind: Gateway` in `from` and `kind: Secret` in `to` to grant a
+`certificateRef`. Same-namespace references never need a grant.
+
 ## High availability
 
 Every replica watches the cluster and serves traffic. Only the replica holding

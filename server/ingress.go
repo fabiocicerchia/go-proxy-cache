@@ -16,6 +16,8 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/k8s"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
+	"github.com/fabiocicerchia/go-proxy-cache/server/jwt"
 	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
@@ -33,6 +35,11 @@ import (
 // per-domain left to conflict over.
 func (s *Servers) startIngressController(opts k8s.Options) (*k8s.Controller, error) {
 	router.Enable()
+
+	// One host can be served by several objects with different settings, so
+	// authentication has to follow the matched route rather than the Host
+	// header.
+	handler.SetRouteAuthorizer(jwt.Validate)
 
 	globalConfig := config.Config
 	domainID := globalConfig.Server.Upstream.GetDomainID()

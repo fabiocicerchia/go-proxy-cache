@@ -356,10 +356,14 @@ func wantedBalancers(routes []*router.Route) map[string]config.Upstream {
 
 // routedDomains - A domain entry per routed host.
 //
-// The healthcheck endpoint and the JWT middleware still resolve settings
-// through config.DomainConf, so the routed hosts have to be visible there too.
+// The healthcheck endpoint resolves settings through config.DomainConf, so the
+// routed hosts have to be visible there too. Only one entry can exist per
+// host, so where several objects serve one host the first wins; anything that
+// must honour a specific route's settings reads them from the matched route
+// instead of from here.
 func routedDomains(routes []*router.Route) config.Domains {
 	domains := make(config.Domains)
+	sources := make(map[string]string)
 
 	for _, route := range routes {
 		if route.Host == "" {
@@ -367,6 +371,16 @@ func routedDomains(routes []*router.Route) config.Domains {
 		}
 
 		if _, ok := domains[route.Host]; ok {
+			// Worth saying out loud: an operator splitting a host across
+			// objects would otherwise have no way to tell whose settings this
+			// entry ended up carrying.
+			if sources[route.Host] != route.Source {
+				logger.GetGlobal().Debugf(
+					"Host %s is served by both %s and %s; %s supplies its domain-level settings",
+					route.Host, sources[route.Host], route.Source, sources[route.Host],
+				)
+			}
+
 			continue
 		}
 
@@ -374,6 +388,7 @@ func routedDomains(routes []*router.Route) config.Domains {
 		domainConfig.Domains = nil
 		domainConfig.Server.Upstream.Host = route.Host
 		domains[route.Host] = domainConfig
+		sources[route.Host] = route.Source
 	}
 
 	return domains

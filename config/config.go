@@ -119,6 +119,12 @@ func InitJWT(jwtConfig *Jwt) {
 		jwtConfig.Context = context.Background()
 	}
 
+	// A nil logger panics inside the validation failure path, which turns a
+	// rejected token into a dead request goroutine.
+	if jwtConfig.Logger == nil {
+		jwtConfig.Logger = log.New()
+	}
+
 	refreshIntervalDuration := time.Duration(jwtConfig.JwksRefreshInterval) * time.Minute
 	key := jwtConfig.JwksUrl + utils.StringSeparatorOne + refreshIntervalDuration.String()
 

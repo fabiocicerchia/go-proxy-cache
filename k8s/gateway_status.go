@@ -24,7 +24,11 @@ import (
 // loadGatewayCertificates - Reads the Secrets a Gateway's HTTPS listeners
 // reference, indexing each certificate by the listener hostname (and, when the
 // listener has none, by the names in the certificate itself).
-func (c *Controller) loadGatewayCertificates(gw *gatewayv1.Gateway, into map[string]*tls.Certificate) {
+func (c *Controller) loadGatewayCertificates(
+	gw *gatewayv1.Gateway,
+	into map[string]*tls.Certificate,
+	refused map[string]bool,
+) {
 	for i := range gw.Spec.Listeners {
 		listener := &gw.Spec.Listeners[i]
 
@@ -35,13 +39,32 @@ func (c *Controller) loadGatewayCertificates(gw *gatewayv1.Gateway, into map[str
 		for j := range listener.TLS.CertificateRefs {
 			ref := &listener.TLS.CertificateRefs[j]
 
-			if ref.Kind != nil && *ref.Kind != "Secret" {
+			if refGroup(ref.Group) != coreGroup || refKind(ref.Kind, "Secret") != "Secret" {
 				continue
 			}
 
-			namespace := gw.Namespace
-			if ref.Namespace != nil {
-				namespace = string(*ref.Namespace)
+			namespace := refNamespace(ref.Namespace, gw.Namespace)
+
+			// A listener may only borrow a certificate from another namespace
+			// when that namespace has granted it. Otherwise any tenant able to
+			// create a Gateway could serve another tenant's private key.
+			if !c.permitted(reference{
+				FromGroup:     gatewayv1.GroupName,
+				FromKind:      "Gateway",
+				FromNamespace: gw.Namespace,
+				ToGroup:       coreGroup,
+				ToKind:        "Secret",
+				ToName:        string(ref.Name),
+				ToNamespace:   namespace,
+			}) {
+				logger.GetGlobal().Warnf(
+					"Gateway %s: TLS secret %s/%s is not permitted by any ReferenceGrant",
+					gatewayKey(gw), namespace, ref.Name,
+				)
+
+				refused[listenerKey(gw, listener.Name)] = true
+
+				continue
 			}
 
 			secret, err := c.secrets.Secrets(namespace).Get(string(ref.Name))
@@ -70,7 +93,12 @@ func (c *Controller) loadGatewayCertificates(gw *gatewayv1.Gateway, into map[str
 
 // recordGatewayStatus - Publishes addresses and readiness conditions on the
 // Gateways this controller serves.
-func (c *Controller) recordGatewayStatus(ctx context.Context, gateways []*gatewayv1.Gateway, attached map[string]int32) {
+func (c *Controller) recordGatewayStatus(
+	ctx context.Context,
+	gateways []*gatewayv1.Gateway,
+	attached map[string]int32,
+	refused map[string]bool,
+) {
 	if c.opts.DisableStatusUpdates || !c.leader.IsLeader() {
 		return
 	}
@@ -78,7 +106,7 @@ func (c *Controller) recordGatewayStatus(ctx context.Context, gateways []*gatewa
 	addresses := c.publishAddresses()
 
 	for _, gw := range gateways {
-		if err := c.updateGatewayStatus(ctx, gw, addresses, attached[gatewayKey(gw)]); err != nil {
+		if err := c.updateGatewayStatus(ctx, gw, addresses, attached[gatewayKey(gw)], refused); err != nil {
 			logger.GetGlobal().Errorf("Cannot update status of Gateway %s: %s", gatewayKey(gw), err)
 		}
 	}
@@ -89,6 +117,7 @@ func (c *Controller) updateGatewayStatus(
 	gw *gatewayv1.Gateway,
 	addresses []string,
 	attachedRoutes int32,
+	refused map[string]bool,
 ) error {
 	client := c.gateway.GatewayV1().Gateways(gw.Namespace)
 
@@ -98,7 +127,7 @@ func (c *Controller) updateGatewayStatus(
 			return err
 		}
 
-		desired := gatewayStatusFor(current, addresses, attachedRoutes)
+		desired := gatewayStatusFor(current, addresses, attachedRoutes, refused)
 		if sameGatewayStatus(current.Status, desired) {
 			return nil
 		}
@@ -111,7 +140,12 @@ func (c *Controller) updateGatewayStatus(
 	})
 }
 
-func gatewayStatusFor(gw *gatewayv1.Gateway, addresses []string, attachedRoutes int32) gatewayv1.GatewayStatus {
+func gatewayStatusFor(
+	gw *gatewayv1.Gateway,
+	addresses []string,
+	attachedRoutes int32,
+	refused map[string]bool,
+) gatewayv1.GatewayStatus {
 	status := gatewayv1.GatewayStatus{
 		Addresses:  gatewayAddresses(addresses),
 		Conditions: gatewayConditions(gw.Generation),
@@ -126,7 +160,7 @@ func gatewayStatusFor(gw *gatewayv1.Gateway, addresses []string, attachedRoutes 
 			Name:           listener.Name,
 			SupportedKinds: []gatewayv1.RouteGroupKind{{Kind: "HTTPRoute"}},
 			AttachedRoutes: attachedRoutes,
-			Conditions:     listenerConditions(gw.Generation, supported),
+			Conditions:     listenerConditions(gw.Generation, supported, refused[listenerKey(gw, listener.Name)]),
 		})
 	}
 
@@ -160,7 +194,7 @@ func gatewayConditions(generation int64) []metav1.Condition {
 	}
 }
 
-func listenerConditions(generation int64, supported bool) []metav1.Condition {
+func listenerConditions(generation int64, supported bool, refused bool) []metav1.Condition {
 	if !supported {
 		return []metav1.Condition{
 			condition(string(gatewayv1.ListenerConditionAccepted), metav1.ConditionFalse,
@@ -169,14 +203,27 @@ func listenerConditions(generation int64, supported bool) []metav1.Condition {
 		}
 	}
 
+	resolvedRefs := condition(string(gatewayv1.ListenerConditionResolvedRefs), metav1.ConditionTrue,
+		string(gatewayv1.ListenerReasonResolvedRefs), "All references resolved", generation)
+
+	if refused {
+		resolvedRefs = condition(string(gatewayv1.ListenerConditionResolvedRefs), metav1.ConditionFalse,
+			string(gatewayv1.ListenerReasonRefNotPermitted),
+			"A certificate reference is not permitted by a ReferenceGrant", generation)
+	}
+
 	return []metav1.Condition{
 		condition(string(gatewayv1.ListenerConditionAccepted), metav1.ConditionTrue,
 			string(gatewayv1.ListenerReasonAccepted), "Listener is accepted", generation),
 		condition(string(gatewayv1.ListenerConditionProgrammed), metav1.ConditionTrue,
 			string(gatewayv1.ListenerReasonProgrammed), "Listener is configured on the data plane", generation),
-		condition(string(gatewayv1.ListenerConditionResolvedRefs), metav1.ConditionTrue,
-			string(gatewayv1.ListenerReasonResolvedRefs), "All references resolved", generation),
+		resolvedRefs,
 	}
+}
+
+// listenerKey - Identifies one listener of one Gateway.
+func listenerKey(gw *gatewayv1.Gateway, name gatewayv1.SectionName) string {
+	return gatewayKey(gw) + "/" + string(name)
 }
 
 func condition(condType string, status metav1.ConditionStatus, reason string, message string, generation int64) metav1.Condition {
@@ -306,7 +353,13 @@ func sameParents(current []gatewayv1.RouteParentStatus, desired []gatewayv1.Rout
 }
 
 // routeParentStatus - The status entry for one Gateway an HTTPRoute attached to.
-func routeParentStatus(controllerName string, gw *gatewayv1.Gateway, hr *gatewayv1.HTTPRoute, resolved bool) gatewayv1.RouteParentStatus {
+func routeParentStatus(
+	controllerName string,
+	gw *gatewayv1.Gateway,
+	hr *gatewayv1.HTTPRoute,
+	resolved bool,
+	refused bool,
+) gatewayv1.RouteParentStatus {
 	namespace := gatewayv1.Namespace(gw.Namespace)
 
 	conditions := []metav1.Condition{
@@ -314,10 +367,18 @@ func routeParentStatus(controllerName string, gw *gatewayv1.Gateway, hr *gateway
 			string(gatewayv1.RouteReasonAccepted), "Route is served by go-proxy-cache", hr.Generation),
 	}
 
-	if resolved {
+	switch {
+	// A refused reference is reported even when other backends resolved, so a
+	// tenant is told their cross-namespace reference was rejected rather than
+	// silently dropped.
+	case refused:
+		conditions = append(conditions, condition(string(gatewayv1.RouteConditionResolvedRefs), metav1.ConditionFalse,
+			string(gatewayv1.RouteReasonRefNotPermitted),
+			"One or more backends are not permitted by a ReferenceGrant", hr.Generation))
+	case resolved:
 		conditions = append(conditions, condition(string(gatewayv1.RouteConditionResolvedRefs), metav1.ConditionTrue,
 			string(gatewayv1.RouteReasonResolvedRefs), "All references resolved", hr.Generation))
-	} else {
+	default:
 		conditions = append(conditions, condition(string(gatewayv1.RouteConditionResolvedRefs), metav1.ConditionFalse,
 			string(gatewayv1.RouteReasonBackendNotFound), "One or more backends could not be resolved", hr.Generation))
 	}

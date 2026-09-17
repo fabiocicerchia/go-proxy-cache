@@ -21,6 +21,7 @@ import (
 	gatewayclientset "sigs.k8s.io/gateway-api/pkg/client/clientset/versioned"
 	gatewayinformers "sigs.k8s.io/gateway-api/pkg/client/informers/externalversions"
 	gatewaylisters "sigs.k8s.io/gateway-api/pkg/client/listers/apis/v1"
+	gatewaylistersv1beta1 "sigs.k8s.io/gateway-api/pkg/client/listers/apis/v1beta1"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
@@ -33,6 +34,11 @@ type gatewayState struct {
 	classes  gatewaylisters.GatewayClassLister
 	gateways gatewaylisters.GatewayLister
 	routes   gatewaylisters.HTTPRouteLister
+
+	// grants - ReferenceGrants authorising cross-namespace references. Without
+	// them a tenant could point a route at any Service, or a listener at any
+	// TLS Secret, in the whole cluster.
+	grants gatewaylistersv1beta1.ReferenceGrantLister
 }
 
 func (c *Controller) setupGatewayInformers(client gatewayclientset.Interface, opts Options) {
@@ -48,12 +54,14 @@ func (c *Controller) setupGatewayInformers(client gatewayclientset.Interface, op
 		classes:  factory.Gateway().V1().GatewayClasses().Lister(),
 		gateways: factory.Gateway().V1().Gateways().Lister(),
 		routes:   factory.Gateway().V1().HTTPRoutes().Lister(),
+		grants:   factory.Gateway().V1beta1().ReferenceGrants().Lister(),
 	}
 
 	c.watch(
 		factory.Gateway().V1().GatewayClasses().Informer(),
 		factory.Gateway().V1().Gateways().Informer(),
 		factory.Gateway().V1().HTTPRoutes().Informer(),
+		factory.Gateway().V1beta1().ReferenceGrants().Informer(),
 	)
 }
 
@@ -65,8 +73,12 @@ func (c *Controller) syncGatewayAPI(ctx context.Context, base config.Configurati
 		return nil
 	}
 
+	// Listeners whose certificate reference was refused, so the refusal is
+	// reported on the object rather than only logged.
+	refusedCerts := make(map[string]bool)
+
 	for _, gw := range gateways {
-		c.loadGatewayCertificates(gw, certs)
+		c.loadGatewayCertificates(gw, certs, refusedCerts)
 	}
 
 	httpRoutes, err := c.gatewayState.routes.List(labels.Everything())
@@ -97,14 +109,14 @@ func (c *Controller) syncGatewayAPI(ctx context.Context, base config.Configurati
 
 			attached[gatewayKey(gw)] += int32(len(listeners))
 
-			hrRoutes := c.translateHTTPRoute(hr, gw, listeners, base)
+			hrRoutes, refused := c.translateHTTPRoute(hr, gw, listeners, base)
 			routes = append(routes, hrRoutes...)
 
 			// Every rule producing at least one route means every backend
 			// resolved; anything less is reported as ResolvedRefs=False so
 			// `kubectl describe httproute` says which side is broken.
 			resolved := len(hrRoutes) > 0 || len(hr.Spec.Rules) == 0
-			parents = append(parents, routeParentStatus(c.opts.ControllerName, gw, hr, resolved))
+			parents = append(parents, routeParentStatus(c.opts.ControllerName, gw, hr, resolved, refused))
 		}
 
 		if len(parents) > 0 {
@@ -112,7 +124,7 @@ func (c *Controller) syncGatewayAPI(ctx context.Context, base config.Configurati
 		}
 	}
 
-	c.recordGatewayStatus(ctx, gateways, attached)
+	c.recordGatewayStatus(ctx, gateways, attached, refusedCerts)
 
 	return routes
 }
@@ -243,17 +255,20 @@ func (c *Controller) translateHTTPRoute(
 	gw *gatewayv1.Gateway,
 	listeners []*gatewayv1.Listener,
 	base config.Configuration,
-) []*router.Route {
+) ([]*router.Route, bool) {
 	source := fmt.Sprintf("HTTPRoute %s/%s", hr.Namespace, hr.Name)
 	settings := parseAnnotations(base, hr.Annotations, source)
 
 	hostnames := effectiveHostnames(hr, listeners)
 	routes := make([]*router.Route, 0)
+	refused := false
 
 	for ruleIdx := range hr.Spec.Rules {
 		rule := &hr.Spec.Rules[ruleIdx]
 
-		backends := c.resolveHTTPRouteBackends(hr, rule, settings)
+		backends, ruleRefused := c.resolveHTTPRouteBackends(hr, rule, settings)
+		refused = refused || ruleRefused
+
 		if len(backends) == 0 {
 			logger.GetGlobal().Warnf("%s: rule %d has no resolvable backend", source, ruleIdx)
 			continue
@@ -288,7 +303,7 @@ func (c *Controller) translateHTTPRoute(
 		}
 	}
 
-	return routes
+	return routes, refused
 }
 
 // effectiveHostnames - The intersection of the route's hostnames with the
@@ -379,20 +394,40 @@ func (c *Controller) resolveHTTPRouteBackends(
 	hr *gatewayv1.HTTPRoute,
 	rule *gatewayv1.HTTPRouteRule,
 	settings routeSettings,
-) []router.Backend {
+) ([]router.Backend, bool) {
 	backends := make([]router.Backend, 0, len(rule.BackendRefs))
+	refused := false
 
 	for i := range rule.BackendRefs {
 		ref := &rule.BackendRefs[i]
 
-		if ref.Kind != nil && *ref.Kind != "Service" {
-			logger.GetGlobal().Warnf("HTTPRoute %s/%s: unsupported backend kind %q", hr.Namespace, hr.Name, *ref.Kind)
+		group := refGroup(ref.Group)
+		kind := refKind(ref.Kind, "Service")
+
+		if group != coreGroup || kind != "Service" {
+			logger.GetGlobal().Warnf("HTTPRoute %s/%s: unsupported backend %s/%s", hr.Namespace, hr.Name, group, kind)
 			continue
 		}
 
-		namespace := hr.Namespace
-		if ref.Namespace != nil {
-			namespace = string(*ref.Namespace)
+		namespace := refNamespace(ref.Namespace, hr.Namespace)
+
+		if !c.permitted(reference{
+			FromGroup:     gatewayv1.GroupName,
+			FromKind:      "HTTPRoute",
+			FromNamespace: hr.Namespace,
+			ToGroup:       coreGroup,
+			ToKind:        "Service",
+			ToName:        string(ref.Name),
+			ToNamespace:   namespace,
+		}) {
+			logger.GetGlobal().Warnf(
+				"HTTPRoute %s/%s: backend %s/%s is not permitted by any ReferenceGrant",
+				hr.Namespace, hr.Name, namespace, ref.Name,
+			)
+
+			refused = true
+
+			continue
 		}
 
 		port := intOrName{}
@@ -424,7 +459,7 @@ func (c *Controller) resolveHTTPRouteBackends(
 		})
 	}
 
-	return backends
+	return backends, refused
 }
 
 func applyHTTPMatch(route *router.Route, match *gatewayv1.HTTPRouteMatch) {
