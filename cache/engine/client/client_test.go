@@ -266,6 +266,40 @@ func TestPushList(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+// TestPushListEmptyIsANoOp - A response without a Vary header stores an empty
+// metadata list. `RPUSH key` with no members is an error in Redis, so this used
+// to abort the whole store with "Not Stored: ERR wrong number of arguments for
+// 'rpush' command" — i.e. nothing was cached for the ordinary case.
+func TestPushListEmptyIsANoOp(t *testing.T) {
+	initLogs()
+
+	cfg := config.Configuration{
+		Cache: config.Cache{
+			Hosts: []string{utils.GetEnv("REDIS_HOSTS", "localhost:6379")},
+			DB:    0,
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,
+			FailureRate: 0.5,
+			Interval:    0,
+			Timeout:     time.Duration(1),
+		},
+	}
+
+	circuit_breaker.InitCircuitBreaker(redisConnName, cfg.CircuitBreaker, logger.GetGlobal())
+
+	rdb := client.Connect(redisConnName, cfg.Cache, log.StandardLogger())
+
+	err := rdb.Push(context.Background(), "empty_list", []string{})
+	assert.Nil(t, err)
+
+	// A list with no entries is a key that does not exist, which every reader
+	// here already treats as empty.
+	value, err := rdb.List("empty_list")
+	assert.Nil(t, err)
+	assert.Empty(t, value)
+}
+
 func TestDelWildcardNoMatch(t *testing.T) {
 	initLogs()
 

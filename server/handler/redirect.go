@@ -12,18 +12,27 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // RedirectToHTTPS - Redirects from HTTP to HTTPS.
+//
+// The redirect target's host is the request's own Host header, which static
+// analysis reads as an attacker-controlled redirect destination (gosec G710,
+// CodeQL go/open-redirect). It is not one: HandleRequest calls
+// initRequestParams before it reaches here, and that rejects with 501 any
+// Host that config.DomainConf does not resolve to a configured domain. Only a
+// host already on the configured allowlist can arrive at this line.
+//
+// Keep that ordering. If the DomainConf check ever moves after this call, the
+// finding becomes real.
 func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	targetURL := rc.GetRequestURL()
 	targetURL.Scheme = SchemeHTTPS
 
-	escapedURL := strings.Replace(targetURL.String(), "\n", "", -1)
-	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+	escapedURL := utils.EscapeLogValue(targetURL.String())
 
 	rc.GetLogger().Infof("Redirect to: %s", escapedURL)
 

@@ -12,7 +12,6 @@ package client
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
@@ -111,8 +111,7 @@ func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
 
 func (rdb *RedisClient) lock(ctx context.Context, key string) error {
 	if err := rdb.getMutex(key).Lock(); err != nil {
-		escapedKey := strings.Replace(key, "\n", "", -1)
-		escapedKey = strings.Replace(escapedKey, "\r", "", -1)
+		escapedKey := utils.EscapeLogValue(key)
 		rdb.logger.Errorf("Lock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
@@ -126,8 +125,7 @@ func (rdb *RedisClient) lock(ctx context.Context, key string) error {
 
 func (rdb *RedisClient) unlock(ctx context.Context, key string) error {
 	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
-		escapedKey := strings.Replace(key, "\n", "", -1)
-		escapedKey = strings.Replace(escapedKey, "\r", "", -1)
+		escapedKey := utils.EscapeLogValue(key)
 		rdb.logger.Errorf("Unlock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
@@ -149,7 +147,7 @@ func (rdb *RedisClient) PurgeAll() (bool, error) {
 		})
 		return err == nil, err
 	}
-	
+
 	// single redis instance
 	err := rdb.purgeAllKeys(rdb.Client)
 	return err == nil, err
@@ -254,7 +252,25 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 }
 
 // Push - Append values to a list.
+//
+// Pushing nothing is a no-op, not an error: `RPUSH key` with no members is
+// rejected by Redis with "wrong number of arguments", and go-redis flattens an
+// empty slice into exactly that call. The caller's intent — a list with no
+// entries — is a key that does not exist, which is what every reader here
+// already treats as empty.
+//
+// This is not hypothetical. StoreMetadata pushes the response's Vary header
+// list, and a response without a Vary header yields an empty one, so every
+// such response failed to store with
+//
+//	Not Stored: ERR wrong number of arguments for 'rpush' command
+//
+// i.e. the cache stored nothing at all for the ordinary case.
 func (rdb *RedisClient) Push(ctx context.Context, key string, values []string) error {
+	if len(values) == 0 {
+		return nil
+	}
+
 	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doPushKey(ctx, key, values))
 
 	return err

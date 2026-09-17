@@ -177,12 +177,16 @@ func (u Upstream) GetDomainID() string {
 
 // HealthCheck - Defines the health check settings.
 type HealthCheck struct {
-	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
-	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
-	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
-	Port          string        `yaml:"port" envconfig:"HEALTHCHECK_PORT" default:"443"`
-	Scheme        string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
-	AllowInsecure bool          `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
+	StatusCodes []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
+	Timeout     time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
+	Interval    time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	// No defaults on these two: unset has to stay representable, so the
+	// balancer can inherit the upstream's scheme and port. Defaulting them to
+	// https/443 here probed a plain-HTTP upstream over TLS and failed every
+	// check with "server gave HTTP response to HTTPS client".
+	Port          string `yaml:"port" envconfig:"HEALTHCHECK_PORT"`
+	Scheme        string `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME"`
+	AllowInsecure bool   `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
 }
 
 // Timeout - Defines the server timeouts.

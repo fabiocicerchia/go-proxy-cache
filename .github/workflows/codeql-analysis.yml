@@ -24,6 +24,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The default token is read-only; the analysis job widens it to exactly what
+# CodeQL needs (see its own permissions block below).
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: Analyze
@@ -44,6 +49,10 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+      with:
+        # The job never pushes: don't leave the token in .git/config,
+        # where anything that archives the workspace picks it up.
+        persist-credentials: false
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
