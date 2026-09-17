@@ -27,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -169,13 +170,78 @@ func (rc RequestCall) getRoutedUpstreamURL() (url.URL, error) {
 		scheme = rc.GetScheme()
 	}
 
-	endpoint := balancer.GetUpstreamNode(rc.Route.BalancerID(idx), rc.GetRequestURL(), backend.Endpoints[0])
+	endpoint, err := rc.pickEndpoint(backend, idx)
+	if err != nil {
+		return url.URL{}, err
+	}
 
 	// Endpoints are always "host:port" or "host", never a full URL, so the
 	// scheme comes from the backend rather than from parsing.
 	host := endpoint + getOverridePort(endpoint, "", scheme)
 
 	return url.URL{Scheme: scheme, Host: host}, nil
+}
+
+// endpointPicker - Chooses between a backend's endpoints using signals the
+// load balancer cannot see. Nil unless something installs one.
+var endpointPicker EndpointPicker
+
+// EndpointPicker - Picks one of a set of candidate endpoints for a request.
+//
+// An interface, and injected rather than imported, so this package keeps
+// knowing nothing about the protocol behind it.
+type EndpointPicker interface {
+	Pick(ctx context.Context, address string, req *http.Request, candidates []string) (string, error)
+	Declined(err error) bool
+}
+
+// SetEndpointPicker - Installs the picker consulted for backends that name one.
+func SetEndpointPicker(picker EndpointPicker) {
+	endpointPicker = picker
+}
+
+// pickEndpoint - The endpoint that will serve this request.
+//
+// A backend naming an endpoint picker is one whose endpoints are not
+// interchangeable -- model servers holding different adapters, or with very
+// different queue depths -- so the picker decides and the load balancer does
+// not get a say. When it cannot, the backend's failure mode decides whether
+// the request falls back to ordinary balancing or is refused.
+func (rc RequestCall) pickEndpoint(backend router.Backend, idx int) (string, error) {
+	balanced := func() string {
+		return balancer.GetUpstreamNode(rc.Route.BalancerID(idx), rc.GetRequestURL(), backend.Endpoints[0])
+	}
+
+	if backend.EndpointPicker == "" || endpointPicker == nil {
+		return balanced(), nil
+	}
+
+	endpoint, err := endpointPicker.Pick(
+		rc.Request.Context(),
+		backend.EndpointPicker,
+		&rc.Request,
+		backend.Endpoints,
+	)
+	if err == nil {
+		return endpoint, nil
+	}
+
+	// Declining is the picker working correctly and saying no; anything else
+	// is the picker being unreachable or broken. Neither is a reason to serve
+	// a request it did not sanction unless the pool opted into that.
+	if !backend.EndpointPickerFailOpen {
+		rc.GetLogger().Errorf("Endpoint picker %s: %s", backend.EndpointPicker, err)
+
+		return "", errNoBackend
+	}
+
+	if endpointPicker.Declined(err) {
+		return "", errNoBackend
+	}
+
+	rc.GetLogger().Warnf("Endpoint picker %s unavailable, balancing instead: %s", backend.EndpointPicker, err)
+
+	return balanced(), nil
 }
 
 // GetUpstreamURL - Get the URL based on the upstream.

@@ -108,6 +108,19 @@ type Backend struct {
 	// Name - Human readable backend identity, used in logs and as part of the
 	// load balancer key.
 	Name string
+
+	// EndpointPicker - "host:port" of the service that chooses between the
+	// endpoints, when something smarter than the load balancer decides.
+	// Empty for an ordinary backend.
+	EndpointPicker string
+
+	// EndpointPickerFailOpen - Serve the request by ordinary balancing when
+	// the picker cannot be reached, rather than refusing it.
+	//
+	// The default is to refuse: a picker exists because the endpoints are not
+	// interchangeable, so falling back to picking one at random is a decision
+	// the operator has to opt into.
+	EndpointPickerFailOpen bool
 }
 
 // Route - A single host+path rule resolved to its upstream backends.

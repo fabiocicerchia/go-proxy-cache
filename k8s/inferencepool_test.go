@@ -214,3 +214,72 @@ func TestInferencePoolIgnoresPodsInOtherNamespaces(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"10.2.0.1:8000"}, endpoints)
 }
+
+func poolWithPicker(namespace, name, svc string, port int32, failureMode inferencev1.EndpointPickerFailureMode) *inferencev1.InferencePool {
+	pool := inferencePool(namespace, name, 8000, map[string]string{"app": "vllm"})
+	pool.Spec.EndpointPickerRef = &inferencev1.EndpointPickerRef{
+		Name:        inferencev1.ObjectName(svc),
+		Port:        &inferencev1.Port{Number: inferencev1.PortNumber(port)},
+		FailureMode: failureMode,
+	}
+
+	return pool
+}
+
+func TestResolveEndpointPickerFromService(t *testing.T) {
+	pool := poolWithPicker("default", "vllm", "vllm-epp", 9002, inferencev1.EndpointPickerFailClose)
+
+	picker := service("default", "vllm-epp", 9002, "grpc")
+	picker.Spec.ClusterIP = "10.96.0.42"
+
+	c, _, cancel := newTestController(t, gatewayOptions(), []runtime.Object{picker}, []runtime.Object{pool})
+	defer cancel()
+
+	address, failOpen := c.resolveEndpointPicker(pool)
+
+	assert.Equal(t, "10.96.0.42:9002", address)
+	assert.False(t, failOpen, "FailClose is the default and must not read as fail-open")
+}
+
+// A headless picker Service has no address of its own, so it is reached by DNS.
+func TestResolveEndpointPickerHeadlessService(t *testing.T) {
+	pool := poolWithPicker("default", "vllm", "vllm-epp", 9002, inferencev1.EndpointPickerFailOpen)
+
+	picker := service("default", "vllm-epp", 9002, "grpc")
+	picker.Spec.ClusterIP = corev1.ClusterIPNone
+
+	c, _, cancel := newTestController(t, gatewayOptions(), []runtime.Object{picker}, []runtime.Object{pool})
+	defer cancel()
+
+	address, failOpen := c.resolveEndpointPicker(pool)
+
+	assert.Equal(t, "vllm-epp.default.svc:9002", address)
+	assert.True(t, failOpen)
+}
+
+// A pool with no picker is an ordinary pool of pods, which is what Tier 1 was.
+func TestResolveEndpointPickerAbsent(t *testing.T) {
+	pool := inferencePool("default", "vllm", 8000, map[string]string{"app": "vllm"})
+
+	c, _, cancel := newTestController(t, gatewayOptions(), nil, []runtime.Object{pool})
+	defer cancel()
+
+	address, failOpen := c.resolveEndpointPicker(pool)
+
+	assert.Empty(t, address)
+	assert.False(t, failOpen)
+}
+
+// The picker Service being missing must not read as fail-open unless the pool
+// asked for that: it is the same outage as the picker being down.
+func TestResolveEndpointPickerMissingServiceKeepsFailureMode(t *testing.T) {
+	pool := poolWithPicker("default", "vllm", "gone", 9002, inferencev1.EndpointPickerFailClose)
+
+	c, _, cancel := newTestController(t, gatewayOptions(), nil, []runtime.Object{pool})
+	defer cancel()
+
+	address, failOpen := c.resolveEndpointPicker(pool)
+
+	assert.Empty(t, address)
+	assert.False(t, failOpen)
+}

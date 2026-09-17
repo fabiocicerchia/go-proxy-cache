@@ -12,7 +12,7 @@ forwarding and `PURGE`, configured through annotations.
 ## Which build
 
 The controller needs the Kubernetes client, which is large enough that the
-standalone proxy does not carry it: 36 MB against 91 MB. So there are two
+standalone proxy does not carry it: 36 MB against 99 MB. So there are two
 builds of the same binary.
 
 | | Image | Built with |
@@ -159,7 +159,7 @@ Not yet supported: `GRPCRoute`, `TCPRoute`/`TLSRoute`, `BackendTLSPolicy`,
 selector-based `allowedRoutes` policies (a listener using one admits no
 cross-namespace routes rather than guessing), and session persistence.
 
-### Inference Extension (partial)
+### Inference Extension
 
 An `HTTPRoute` may name an `InferencePool`
 (`inference.networking.k8s.io/v1`) as a `backendRef`. The pool's
@@ -175,16 +175,42 @@ rules:
         name: vllm-pool
 ```
 
-**The endpoint picker is not implemented.** `endpointPickerRef` is ignored, so
-endpoints are chosen by the configured load-balancing algorithm rather than by
-KV-cache utilisation or queue depth, and `failureMode` has nothing to act on.
-A pool declaring several `targetPorts` uses the first and logs the rest, since
-choosing between them is the picker's job. Model-aware routing on the request
-body is not implemented either.
+**The endpoint picker is supported.** When the pool sets `endpointPickerRef`,
+every request to that pool is put to the picker over Envoy's external
+processing protocol (ext-proc, gRPC): the proxy sends the request headers plus
+the pool's ready endpoints as the `x-gateway-destination-endpoint-subset`
+filter metadata, and uses the endpoint the picker answers with — read from the
+`x-gateway-destination-endpoint` header or from the equivalent dynamic
+metadata, whichever the picker uses. A list of endpoints is read as retry
+candidates and the first is taken.
 
-In other words: an InferencePool works as a pool of Pods, not as an inference
-gateway. If you need the scheduling behaviour the extension exists for, this is
-not yet a substitute for an implementation that speaks ext-proc to the picker.
+```yaml
+apiVersion: inference.networking.k8s.io/v1
+kind: InferencePool
+spec:
+  selector:
+    matchLabels: {app: vllm}
+  targetPorts:
+    - number: 8000
+  endpointPickerRef:
+    name: vllm-epp
+    port: {number: 9002}
+    failureMode: FailClose   # the default
+```
+
+`failureMode` decides what happens when the picker cannot be reached:
+`FailClose` (the default) refuses the request, `FailOpen` falls back to the
+ordinary load-balancing algorithm. A picker that *answers* "no suitable
+endpoint" is a decision rather than an outage, so it refuses the request under
+either mode — failing open past it would send the request exactly where the
+picker just ruled out. The per-pick budget is 500ms.
+
+The picker is reached over plaintext gRPC, which is what the reference
+implementation serves; the extension does not define a TLS story for this hop.
+
+Still not implemented: model-aware routing on the request *body* (choosing a
+pool by the `model` field of an OpenAI-style payload), and a pool declaring
+several `targetPorts` uses the first and logs the rest.
 
 Cross-namespace `backendRefs` to a pool need a `ReferenceGrant`, the same as
 any other kind.

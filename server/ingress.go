@@ -17,6 +17,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/k8s"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
+	"github.com/fabiocicerchia/go-proxy-cache/server/epp"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/jwt"
 	"github.com/fabiocicerchia/go-proxy-cache/server/router"
@@ -54,6 +55,10 @@ func (s *Servers) startIngressController(opts k8s.Options) (*k8s.Controller, err
 	// authentication has to follow the matched route rather than the Host
 	// header.
 	handler.SetRouteAuthorizer(jwt.Validate)
+
+	// Backends that name an endpoint picker are resolved through it rather
+	// than by the load balancer.
+	handler.SetEndpointPicker(epp.NewClient(epp.DefaultTimeout))
 
 	globalConfig := config.Config
 	domainID := globalConfig.Server.Upstream.GetDomainID()

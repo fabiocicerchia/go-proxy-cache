@@ -172,12 +172,85 @@ func (c *Controller) inferencePoolBackend(namespace string, name string, weight 
 		return router.Backend{}, err
 	}
 
+	pool, err := c.inferenceState.pools.InferencePools(namespace).Get(name)
+	if err != nil {
+		return router.Backend{}, err
+	}
+
+	picker, failOpen := c.resolveEndpointPicker(pool)
+
 	return router.Backend{
-		Name:      fmt.Sprintf("%s/%s (InferencePool)", namespace, name),
-		Endpoints: endpoints,
-		Scheme:    scheme,
-		Weight:    weight,
+		Name:                   fmt.Sprintf("%s/%s (InferencePool)", namespace, name),
+		Endpoints:              endpoints,
+		Scheme:                 scheme,
+		Weight:                 weight,
+		EndpointPicker:         picker,
+		EndpointPickerFailOpen: failOpen,
 	}, nil
+}
+
+// resolveEndpointPicker - Where to reach the pool's endpoint picker, and what
+// to do when it cannot be reached.
+//
+// The reference is a Service by default, and the picker is addressed through
+// it rather than through its pods: it is a singleton scheduler, so the
+// ClusterIP's own balancing is exactly right.
+func (c *Controller) resolveEndpointPicker(pool *inferencev1.InferencePool) (string, bool) {
+	ref := pool.Spec.EndpointPickerRef
+	if ref == nil || ref.Name == "" {
+		return "", false
+	}
+
+	// FailClose unless the pool says otherwise: a picker exists because the
+	// endpoints are not interchangeable.
+	failOpen := ref.FailureMode == inferencev1.EndpointPickerFailOpen
+
+	group := ""
+	if ref.Group != nil {
+		group = string(*ref.Group)
+	}
+
+	kind := "Service"
+	if ref.Kind != "" {
+		kind = string(ref.Kind)
+	}
+
+	if group != "" || kind != "Service" {
+		logger.GetGlobal().Warnf(
+			"InferencePool %s/%s: unsupported endpointPickerRef %s/%s; only core Services are supported",
+			pool.Namespace, pool.Name, group, kind,
+		)
+
+		return "", failOpen
+	}
+
+	if ref.Port == nil {
+		logger.GetGlobal().Warnf(
+			"InferencePool %s/%s: endpointPickerRef names a Service but no port",
+			pool.Namespace, pool.Name,
+		)
+
+		return "", failOpen
+	}
+
+	svc, err := c.services.Services(pool.Namespace).Get(string(ref.Name))
+	if err != nil {
+		logger.GetGlobal().Warnf(
+			"InferencePool %s/%s: cannot resolve endpoint picker %s/%s: %s",
+			pool.Namespace, pool.Name, pool.Namespace, ref.Name, err,
+		)
+
+		return "", failOpen
+	}
+
+	host := svc.Spec.ClusterIP
+	if host == "" || host == corev1.ClusterIPNone {
+		// A headless picker Service has no address of its own; its DNS name
+		// still resolves to the pods behind it.
+		host = fmt.Sprintf("%s.%s.svc", svc.Name, svc.Namespace)
+	}
+
+	return net.JoinHostPort(host, strconv.Itoa(int(ref.Port.Number))), failOpen
 }
 
 // setupInferenceInformers - Watches InferencePools and the Pods they select.
