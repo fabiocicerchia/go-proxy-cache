@@ -18,12 +18,10 @@ import (
 // Store - A hot-swappable set of certificates indexed by the hostnames they
 // serve.
 //
-// The file-based certificates map in this package is written once at boot and
-// read from the SNI callback without synchronisation, which is safe only
-// because nothing ever changes it. Certificates sourced from Kubernetes
-// Secrets do change while traffic is flowing, so they live here instead,
-// behind an RWMutex, and with the wildcard matching that the exact-map lookup
-// never had.
+// The file-based map elsewhere in this package is written once at boot and read
+// unsynchronised, which only holds while nothing changes it. Certificates that
+// arrive and expire while traffic is flowing live here instead, behind an
+// RWMutex, with the wildcard matching the exact-map lookup never had.
 type Store struct {
 	mu       sync.RWMutex
 	exact    map[string]*crypto_tls.Certificate
@@ -113,8 +111,8 @@ func (s *Store) Len() int {
 	return len(s.exact) + len(s.wildcard)
 }
 
-// dynamicStore - The store consulted by the SNI callback, set when the proxy
-// runs as an ingress controller.
+// dynamicStore - The store consulted by the SNI callback. Nil unless one has
+// been registered.
 var dynamicStore *Store
 
 // UseStore - Registers the store the SNI callback falls back to.
@@ -122,9 +120,8 @@ func UseStore(s *Store) {
 	dynamicStore = s
 }
 
-// DynamicTLSConfig - A TLS configuration that resolves every certificate
-// through the store at handshake time, for the single HTTPS listener the
-// ingress controller runs.
+// DynamicTLSConfig - A TLS configuration resolving every certificate through
+// the store at handshake time, for a listener serving many hostnames.
 func DynamicTLSConfig() *crypto_tls.Config {
 	return newDefaultTLSConfig()
 }

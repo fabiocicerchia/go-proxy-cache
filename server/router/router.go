@@ -33,8 +33,7 @@ type Table struct {
 // Build - Compiles a routing table from a set of routes.
 //
 // Routes with an invalid regular expression are dropped rather than failing
-// the whole table: one malformed Ingress must not take the ingress controller
-// down for every other tenant in the cluster.
+// the whole table: one malformed route must not take down every other one.
 func Build(routes []*Route) *Table {
 	t := &Table{exact: make(map[string][]*Route)}
 

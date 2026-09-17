@@ -107,6 +107,10 @@ func Run(appVersion string, configFile string, opts ...Option) {
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	}
 
+	if config.Config.Metrics.PerRequestSeries != nil {
+		metrics.SetDetailedRequestSeries(*config.Config.Metrics.PerRequestSeries)
+	}
+
 	// init servers
 	servers = &Servers{
 		HTTP:  make(map[string]*Server),

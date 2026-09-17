@@ -57,3 +57,16 @@ func TestInitJWTWithoutURL(t *testing.T) {
 	assert.NotNil(t, empty.JwkCache)
 	assert.NotNil(t, empty.Context)
 }
+
+// The per-request metrics switch is tri-state: unset lets the caller pick a
+// default that suits where its routes come from, while an explicit value is
+// honoured either way.
+func TestMetricsPerRequestSeriesIsTriState(t *testing.T) {
+	assert.Nil(t, config.Configuration{}.Metrics.PerRequestSeries, "unset means the caller decides")
+
+	on := true
+	off := false
+
+	assert.True(t, *config.Configuration{Metrics: config.Metrics{PerRequestSeries: &on}}.Metrics.PerRequestSeries)
+	assert.False(t, *config.Configuration{Metrics: config.Metrics{PerRequestSeries: &off}}.Metrics.PerRequestSeries)
+}

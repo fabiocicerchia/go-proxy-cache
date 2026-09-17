@@ -151,7 +151,7 @@ func getOverridePort(host string, port string, scheme string) string {
 var errNoBackend = errors.New("no healthy backend available for route")
 
 // getRoutedUpstreamURL - Resolves the upstream for a request matched by the
-// routing table (Kubernetes ingress controller mode).
+// routing table (routed mode).
 //
 // Unlike the static path, the endpoints come from the route's backend (pod IPs
 // resolved from EndpointSlices) rather than from the domain configuration, and

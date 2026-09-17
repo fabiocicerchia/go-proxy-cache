@@ -15,23 +15,17 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
-// Snapshot - An immutable view of the configuration.
+// Snapshot - An immutable view of the configuration, swapped atomically.
 //
-// The proxy used to read the mutable package-level `Config` on every request
-// and memoize domain lookups into a map guarded by a mutex. That works only
-// because nothing ever writes the configuration after boot. The Kubernetes
-// ingress controller does exactly that (routes appear and disappear as
-// Ingress objects change), so the configuration is now published as an
-// immutable snapshot swapped atomically: readers never take a lock and never
-// observe a half-written value.
+// The configuration can be rewritten while requests are being served, so
+// readers take a whole consistent version rather than locking around a mutable
+// one: no lock on the request path, and no half-written value.
 type Snapshot struct {
 	Global  Configuration
 	Domains Domains
 
-	// lookup - Pre-computed "host@@scheme" and "host@@*" index, built once at
-	// snapshot creation. This replaces the previous lazily-populated
-	// domainsCache: because the snapshot is immutable there is nothing to
-	// guard, and a lookup is a single map read instead of a linear scan over
+	// lookup - Pre-computed "host@@scheme" and "host@@*" index. Immutable, so
+	// it needs no guard, and a lookup is one map read rather than a scan over
 	// every configured domain.
 	lookup map[string]Configuration
 }
@@ -100,12 +94,6 @@ func Publish(s *Snapshot) {
 // PublishFromConfig - Publishes a snapshot built from the package-level Config.
 func PublishFromConfig() {
 	Publish(NewSnapshot(Config, Config.Domains))
-}
-
-// Reset - Drops the published snapshot, so Current() falls back to Config.
-// Only meant for tests that mutate config.Config directly.
-func Reset() {
-	currentSnapshot.Store(nil)
 }
 
 // DomainConf - Returns the configuration for the requested domain.

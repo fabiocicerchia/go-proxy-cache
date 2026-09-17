@@ -21,11 +21,8 @@ import (
 
 var rdb map[string]*client.RedisClient
 
-// rdbMu - Guards the connection map.
-//
-// Connections used to be created once at boot and read lock-free thereafter.
-// The Kubernetes ingress controller can create one while requests are already
-// being served, so both sides now synchronise.
+// rdbMu - Guards the connection map, which can be written while requests are
+// in flight.
 var rdbMu sync.RWMutex
 
 // GetConn - Retrieves the Redis connection.
@@ -56,14 +53,4 @@ func InitConn(connName string, config config.Cache, logger *log.Logger) {
 	}
 
 	rdb[connName] = conn
-}
-
-// HasConn - Whether a connection is already registered under a name.
-func HasConn(connName string) bool {
-	rdbMu.RLock()
-	defer rdbMu.RUnlock()
-
-	_, ok := rdb[connName]
-
-	return ok
 }

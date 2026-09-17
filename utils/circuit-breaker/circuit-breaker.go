@@ -19,11 +19,8 @@ import (
 
 var cb map[string]*gobreaker.CircuitBreaker = make(map[string]*gobreaker.CircuitBreaker)
 
-// cbMu - Guards the circuit breaker map.
-//
-// Breakers used to be registered once at boot and read lock-free thereafter.
-// The Kubernetes ingress controller derives its domain IDs from cluster
-// objects, so one can be registered while requests are already in flight.
+// cbMu - Guards the breaker map, which can be written while requests are in
+// flight.
 var cbMu sync.RWMutex
 
 // Fallback settings for a breaker requested before one was registered under
@@ -81,12 +78,10 @@ func cbOnStateChange(log *logrus.Logger) func(name string, from gobreaker.State,
 
 // CB - Returns instance of gobreaker.CircuitBreaker.
 //
-// A breaker is created on demand when none is registered under the name. It
-// used to return nil, and every caller dereferences the result, so a domain ID
-// that had not been registered panicked the whole process from the request
-// path rather than merely losing the cache. That was unreachable while every
-// breaker was registered at boot; it stops being so once domain IDs are
-// derived from cluster objects.
+// A breaker is created on demand when none is registered under the name. Every
+// caller dereferences the result, so returning nil for an unregistered domain
+// ID panicked the process from the request path instead of merely losing the
+// cache.
 func CB(name string, log *logrus.Logger) *gobreaker.CircuitBreaker {
 	cbMu.RLock()
 	val, ok := cb[name]

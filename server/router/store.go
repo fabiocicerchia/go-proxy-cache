@@ -13,12 +13,12 @@ import "sync/atomic"
 
 // current - The routing table currently serving traffic.
 //
-// Nil until the ingress controller publishes one, which is what keeps the
-// static configuration path untouched: Enabled() stays false and the handler
-// never consults the router.
+// Nil until something publishes one, which is what keeps the static
+// configuration path untouched: Enabled() stays false and the handler never
+// consults the router.
 var current atomic.Pointer[Table]
 
-// enabled - Whether the proxy runs in routed (ingress controller) mode.
+// enabled - Whether the proxy runs in routed mode.
 var enabled atomic.Bool
 
 // Enable - Switches the proxy into routed mode.

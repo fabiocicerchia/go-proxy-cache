@@ -47,8 +47,7 @@ type RequestCall struct {
 	Request      http.Request
 	DomainConfig config.Configuration
 
-	// Route - The routing table entry serving this request, set only when the
-	// proxy runs as a Kubernetes ingress controller. Nil for the static
+	// Route - The routing table entry serving this request. Nil on the static
 	// configuration path.
 	Route *router.Route
 }
@@ -174,10 +173,8 @@ func (rc RequestCall) IsWebSocket() bool {
 // CacheVariant - What separates this request's cache entries from those of
 // other routes serving the same method and URL.
 //
-// Two routes can differ only by a header or query match -- a canary on
-// x-version is the usual case -- and would otherwise share one entry and serve
-// each other's bodies. Empty outside routed mode, so existing keys are
-// unchanged.
+// Two routes can differ only by a header or query match, and would otherwise
+// share one entry. Empty outside routed mode, leaving existing keys unchanged.
 func (rc RequestCall) CacheVariant() string {
 	if rc.Route == nil {
 		return ""

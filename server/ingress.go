@@ -13,8 +13,6 @@ package server
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"os"
-
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/k8s"
@@ -67,12 +65,12 @@ func (s *Servers) startIngressController(opts k8s.Options) (*k8s.Controller, err
 	circuitbreaker.InitCircuitBreaker(domainID, globalConfig.CircuitBreaker, logger.GetGlobal())
 	engine.InitConn(domainID, globalConfig.Cache, logger.GetGlobal())
 
-	// gpcee_http_request/response carry req_id, url, size and duration as
-	// labels, i.e. one time series per request. Across a whole cluster's
-	// traffic that is an unbounded leak, so it is off here unless asked for.
-	if os.Getenv("METRICS_PER_REQUEST_SERIES") != "true" {
+	// Routed mode serves whatever hosts the cluster asks it to, so the
+	// per-request series have no bound anyone has agreed to. Off unless the
+	// configuration says otherwise; an explicit setting is applied by Run.
+	if globalConfig.Metrics.PerRequestSeries == nil {
 		metrics.SetDetailedRequestSeries(false)
-		logger.GetGlobal().Info("Per-request Prometheus series disabled (set METRICS_PER_REQUEST_SERIES=true to record them)")
+		logger.GetGlobal().Info("Per-request Prometheus series disabled (set metrics.per_request_series to record them)")
 	}
 
 	certs := srvtls.NewStore()

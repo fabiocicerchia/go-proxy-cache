@@ -56,15 +56,12 @@ type Object struct {
 	CurrentURIObject URIObj
 	DomainID         string
 
-	// Variant - Distinguishes entries that share a method, URL and Vary
-	// checksum but were served by different routes.
+	// Variant - Distinguishes entries sharing a method, URL and Vary checksum
+	// but served by different routes.
 	//
-	// Method plus URL plus Vary identifies a response only when one URL is
-	// served one way. Routing on headers breaks that: a canary splitting
-	// x-version between two backends has two routes with the same host and
-	// path, and without this they overwrite each other's bodies. Empty
-	// outside routed mode, where it is left out of the key entirely so
-	// existing entries keep their current keys.
+	// Header-based routing makes that combination ambiguous: two routes can
+	// differ only by a header match and would otherwise overwrite each other's
+	// bodies. Empty outside routed mode, and then left out of the key entirely.
 	Variant string
 }
 

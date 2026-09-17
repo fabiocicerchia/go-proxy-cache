@@ -266,10 +266,11 @@ connection level. The shipped kustomize overlay sets it.
 ## Metrics
 
 `gpcee_http_request` and `gpcee_http_response` carry `req_id`, `url`, `size`
-and `duration` as *labels*, so each request creates a new Prometheus time
-series that is then held forever. Across a whole cluster's traffic that is an
-unbounded memory leak, so ingress mode does not record them. Set
-`METRICS_PER_REQUEST_SERIES=true` to opt back in.
+and `duration` as *labels*, so their cardinality grows with the number of
+distinct URLs served. Serving a whole cluster's traffic, that has no bound
+anyone has agreed to, so ingress mode does not record them. Set
+`metrics.per_request_series: true` (or `METRICS_PER_REQUEST_SERIES=true`) to
+opt back in.
 
 Every aggregate metric — by host, method, scheme, status code, cache
 hit/miss/stale, upstream health — is bounded and always recorded.

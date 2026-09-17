@@ -371,3 +371,16 @@ domains:
     server:
       upstream:
         host: example.org
+
+################################################################################
+# METRICS #####################################################################
+################################################################################
+metrics:
+  # Record the per-request Prometheus series (gpcee_http_request and
+  # gpcee_http_response), which carry req_id, url, size and duration as labels.
+  # Their cardinality grows with the number of distinct URLs served.
+  #
+  # Unset: on for this configuration file, off when routes come from a cluster,
+  # where the set of hosts is not known in advance. Setting it is honoured
+  # either way. Aggregate metrics are always recorded.
+  #per_request_series: true

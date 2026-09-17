@@ -350,14 +350,11 @@ func SetHostUnhealthy(val float64) {
 // detailedRequestSeries - Whether the per-request series are recorded.
 //
 // gpcee_http_request and gpcee_http_response carry req_id, url, size and
-// duration as *labels*, so every single request creates a new time series that
-// the collector then holds forever. For a proxy serving a handful of known
-// domains that is merely wasteful; for an ingress controller fronting a whole
-// cluster it is an unbounded memory leak in both this process and Prometheus.
+// duration as *labels*, so each request creates a time series the collector
+// then keeps. Bounded only by how many distinct URLs are served, which is why
+// it can be switched off. The aggregate counters are always recorded.
 //
-// It stays on by default so existing dashboards keep working, and the ingress
-// controller turns it off unless explicitly asked for. The aggregate counters
-// (by host, method, scheme, status code) are bounded and always recorded.
+// On by default, so existing dashboards keep working.
 var detailedRequestSeries atomic.Bool
 
 func init() {
@@ -367,11 +364,6 @@ func init() {
 // SetDetailedRequestSeries - Enables or disables the per-request series.
 func SetDetailedRequestSeries(enabled bool) {
 	detailedRequestSeries.Store(enabled)
-}
-
-// DetailedRequestSeriesEnabled - Whether the per-request series are recorded.
-func DetailedRequestSeriesEnabled() bool {
-	return detailedRequestSeries.Load()
 }
 
 // IncWholeRequest - Increments metrics for gpcee_http_request_total.

@@ -96,9 +96,8 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 // routeAuthorizer - Validates a request against the matched route's settings.
 //
-// Wired up by the caller that knows about authentication, so this package does
-// not depend on it (the authentication package already depends on this one).
-// Nil on the static configuration path, which authenticates in middleware.
+// Injected rather than imported: the authentication package already depends on
+// this one. Nil on the static path, which authenticates in middleware.
 var routeAuthorizer func(http.ResponseWriter, *http.Request, *config.Jwt) error
 
 // SetRouteAuthorizer - Installs the per-route request authorizer.
@@ -124,10 +123,9 @@ func initRequestParams(ctx context.Context, res http.ResponseWriter, req *http.R
 
 	listeningPort := getListeningPort(req.Context())
 
-	// Routed (Kubernetes ingress controller) mode: the routing table resolves
-	// host AND path, which the static per-domain configuration cannot express.
-	// An unmatched request is a 404, the ingress convention, rather than the
-	// 501 the static path returns for an unknown virtual host.
+	// The routing table resolves host and path together, which the static
+	// per-domain configuration cannot express. An unmatched request is a 404
+	// here, not the 501 the static path returns for an unknown virtual host.
 	if router.Enabled() {
 		route, found := router.Current().Match(req)
 		if !found {

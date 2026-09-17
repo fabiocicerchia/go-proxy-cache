@@ -73,8 +73,8 @@ func initBalancer(name string, config config.Upstream, enableHealthchecks bool, 
 	lbMu.Lock()
 	initLB()
 
-	// Replacing a balancer must stop the health-check goroutine of the one it
-	// replaces, otherwise every reconfiguration leaks a ticker.
+	// Stop the replaced balancer's health check, or every reconfiguration
+	// leaks a ticker.
 	if stop, ok := stopHealthChecks[name]; ok {
 		close(stop)
 		delete(stopHealthChecks, name)

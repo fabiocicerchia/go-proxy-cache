@@ -60,7 +60,8 @@ type Configuration struct {
 	Domains        Domains                       `yaml:"domains"`
 	Log            Log                           `yaml:"log"`
 	Tracing        Tracing                       `yaml:"tracing"`
-	Jwt		   	   Jwt					 		 `yaml:"jwt"`
+	Metrics        Metrics                       `yaml:"metrics"`
+	Jwt            Jwt                           `yaml:"jwt"`
 }
 
 // Domains - Overrides per domain.
@@ -250,6 +251,18 @@ type Tracing struct {
 	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:"1.0"`
 }
 
+// Metrics - Defines what the Prometheus exporter records.
+type Metrics struct {
+	// PerRequestSeries - Record the per-request series.
+	//
+	// gpcee_http_request and gpcee_http_response carry req_id, url, size and
+	// duration as labels, so their cardinality grows with the number of
+	// distinct URLs served. Left unset it is on for a static configuration,
+	// where the served hosts are known in advance, and off in routed mode,
+	// where they are not. Setting it either way is honoured in both.
+	PerRequestSeries *bool `yaml:"per_request_series" envconfig:"METRICS_PER_REQUEST_SERIES"`
+}
+
 // Internals - Defines the config for the internal listening address/port.
 type Internals struct {
 	ListeningAddress string `yaml:"listening_address" envconfig:"INTERNAL_LISTENING_ADDRESS" default:"127.0.0.1"`
@@ -264,10 +277,10 @@ type DomainSet struct {
 
 // Jwt - Defines the config for the jwt validation.
 type Jwt struct {
-	ExcludedPaths       []string   `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
-	AllowedScopes       []string   `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
-	JwksUrl             string     `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
-	JwksRefreshInterval int        `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
+	ExcludedPaths       []string `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
+	AllowedScopes       []string `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
+	JwksUrl             string   `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
+	JwksRefreshInterval int      `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
 	JwkCache            *jwk.Cache
 	Context             context.Context
 	Logger              *logrus.Logger
