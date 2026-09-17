@@ -139,8 +139,11 @@ func TestInferencePoolWithNoReadyPodsIsNotRouted(t *testing.T) {
 	assert.Empty(t, routes)
 }
 
-// The CRDs are optional. Without them the pool cannot resolve, and that must
-// cost only the routes that referenced it.
+// Once support has been dropped, only the routes that referenced a pool are
+// lost. This sets that state directly; what gets the controller into it is
+// covered by TestRunPublishesRoutesWhenInferenceCachesNeverSync, which drives
+// Run with an informer that never syncs. Asserting this state without also
+// testing the path that reaches it is how the blocking cache wait shipped.
 func TestInferencePoolDegradesWhenTheCRDIsAbsent(t *testing.T) {
 	gw := gateway("default", "gw", "gpc", "")
 

@@ -153,3 +153,23 @@ func TestUpstreamProbesTheBackendScheme(t *testing.T) {
 	assert.Equal(t, "https", secure.Scheme)
 	assert.Equal(t, "https", secure.HealthCheck.Scheme)
 }
+
+// A WebSocket backend is reached through an HTTP handshake, and an HTTP client
+// refuses a ws:// URL outright, so probing one marks every node unhealthy.
+func TestUpstreamProbesWebSocketBackendsOverHTTP(t *testing.T) {
+	for backend, probe := range map[string]string{
+		"http":  "http",
+		"https": "https",
+		"ws":    "http",
+		"wss":   "https",
+	} {
+		r := &router.Route{Backends: []router.Backend{
+			{Endpoints: []string{"10.0.0.1:8080"}, Scheme: backend},
+		}}
+
+		upstream := r.Upstream(0)
+
+		assert.Equal(t, backend, upstream.Scheme, backend)
+		assert.Equal(t, probe, upstream.HealthCheck.Scheme, backend)
+	}
+}

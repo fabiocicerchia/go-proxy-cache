@@ -208,11 +208,19 @@ func (c *Controller) Run(ctx context.Context) error {
 	if c.inferenceFactory != nil {
 		c.inferenceFactory.Start(ctx.Done())
 
-		// Not waited on, and a failure to sync is not fatal: the Inference
-		// Extension CRDs are optional, and a cluster without them must still
-		// serve every ordinary route. An InferencePool backendRef then reports
-		// itself unresolvable, which is the accurate answer.
-		if err := waitForCaches(c.inferenceFactory.WaitForCacheSync(ctx.Done())); err != nil {
+		// Bounded, and never fatal. The Inference Extension CRDs are optional,
+		// and where they are absent the reflector's LIST fails forever, so
+		// HasSynced never flips and an unbounded wait here would block until
+		// the process is stopped -- leaving the proxy listening and answering
+		// 404 to everything. Giving up just drops InferencePool support; an
+		// InferencePool backendRef then reports itself unresolvable, which is
+		// the accurate answer.
+		syncCtx, stopWaiting := context.WithTimeout(ctx, inferenceSyncTimeout)
+		err := waitForCaches(c.inferenceFactory.WaitForCacheSync(syncCtx.Done()))
+
+		stopWaiting()
+
+		if err != nil {
 			log.Warnf("InferencePool support is unavailable: %s", err)
 
 			c.inferenceState = nil

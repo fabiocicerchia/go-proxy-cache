@@ -67,3 +67,26 @@ func TestStorageKeyIsStableForOneRoute(t *testing.T) {
 
 	assert.Equal(t, first, second)
 }
+
+// Vary is a property of the response, so two routes serving one method and URL
+// can answer with different Vary headers. Sharing one metadata list makes each
+// route compute its header checksum over the other's headers and miss for
+// ever, while still writing entries nothing will read.
+func TestMetadataKeySeparatesRoutes(t *testing.T) {
+	target := url.URL{Scheme: "http", Host: "example.com", Path: "/api"}
+
+	stable := cache.MetadataKeyForTest("GET", target, "httproute/default/demo/gw/0/0/0")
+	canary := cache.MetadataKeyForTest("GET", target, "httproute/default/demo/gw/1/0/0")
+
+	assert.NotEqual(t, stable, canary, "routes with distinct identities must not share metadata")
+}
+
+// Keys written before routes existed keep their shape.
+func TestMetadataKeyIsUnchangedWithoutAVariant(t *testing.T) {
+	target := url.URL{Scheme: "http", Host: "example.com", Path: "/api"}
+
+	withoutVariant := cache.MetadataKeyForTest("GET", target, "")
+
+	assert.Equal(t, "META@@GET@@http://example.com/api", withoutVariant)
+	assert.Equal(t, withoutVariant+"@@route-a", cache.MetadataKeyForTest("GET", target, "route-a"))
+}

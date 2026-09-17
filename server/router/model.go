@@ -161,7 +161,23 @@ func (r *Route) Upstream(idx int) config.Upstream {
 	// Probe the backend over the protocol it actually speaks. The inherited
 	// health check defaults to https, which fails every plain-HTTP backend and
 	// leaves the balancer with no healthy node to pick.
-	upstream.HealthCheck.Scheme = r.Backends[idx].Scheme
+	upstream.HealthCheck.Scheme = healthCheckScheme(r.Backends[idx].Scheme)
 
 	return upstream
+}
+
+// healthCheckScheme - The scheme to probe a backend with.
+//
+// A WebSocket backend is reached through an HTTP handshake, and an HTTP client
+// refuses a ws:// URL outright ("unsupported protocol scheme"), which would
+// mark every node unhealthy for ever.
+func healthCheckScheme(backendScheme string) string {
+	switch backendScheme {
+	case "ws":
+		return "http"
+	case "wss":
+		return "https"
+	default:
+		return backendScheme
+	}
 }

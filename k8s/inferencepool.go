@@ -14,6 +14,7 @@ import (
 	"net"
 	"sort"
 	"strconv"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -26,6 +27,13 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 )
+
+// inferenceSyncTimeout - How long to wait for the InferencePool caches.
+//
+// Long enough for a slow API server, short enough that a cluster without the
+// CRDs is not held up: the wait cannot succeed there, so it is spent in full
+// on every start.
+const inferenceSyncTimeout = 10 * time.Second
 
 // InferencePoolGroup - The API group the Gateway API Inference Extension owns.
 const InferencePoolGroup = inferencev1.GroupName

@@ -162,7 +162,7 @@ func (c Object) handleMetadata(ctx context.Context, domainID string, targetURL u
 		return []string{}, err
 	}
 
-	_, err = StoreMetadata(ctx, domainID, c.CurrentURIObject.Method, targetURL, meta, expiration)
+	_, err = StoreMetadata(ctx, domainID, c.CurrentURIObject.Method, targetURL, meta, expiration, c.Variant)
 	if err != nil {
 		return []string{}, err
 	}
@@ -228,7 +228,7 @@ func (c *Object) RetrieveFullPage() error {
 
 	obj := &URIObj{}
 
-	meta, err := FetchMetadata(c.DomainID, c.CurrentURIObject.Method, c.CurrentURIObject.URL)
+	meta, err := FetchMetadata(c.DomainID, c.CurrentURIObject.Method, c.CurrentURIObject.URL, c.Variant)
 	if err != nil {
 		return errors.Wrap(errCannotFetchMetadata, err.Error())
 	}
@@ -313,35 +313,59 @@ func StorageKey(currentURIObject URIObj, meta []string, variant string) string {
 	return strings.Join(key, utils.StringSeparatorOne)
 }
 
-// FetchMetadata - Returns the cache metadata for the requested URL.
-func FetchMetadata(domainID string, method string, url url.URL) ([]string, error) {
+// metadataKey - The key holding the Vary header names for a URL.
+//
+// Carries the variant for the same reason the storage key does: Vary is a
+// property of the response, and two routes serving one method and URL can
+// answer with different ones. Sharing the list makes each route compute its
+// header checksum over the other's headers and miss for ever. Appended only
+// when set, so keys written before routes existed keep their shape.
+func metadataKey(method string, url url.URL, variant string) string {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
+	if variant != "" {
+		key += utils.StringSeparatorOne + variant
+	}
+
+	return key
+}
+
+// FetchMetadata - Returns the cache metadata for the requested URL.
+func FetchMetadata(domainID string, method string, url url.URL, variant string) ([]string, error) {
 	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return []string{}, errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
-	return conn.List(key)
+	return conn.List(metadataKey(method, url, variant))
 }
 
 // PurgeMetadata - Purges the cache metadata for the requested URL.
+//
+// Clears every route's copy, not just the one belonging to the request that
+// asked, so a purge leaves nothing behind. Two patterns rather than one with a
+// bare trailing wildcard: the separator before the second one anchors it, so it
+// cannot also match a longer URL.
 func PurgeMetadata(ctx context.Context, domainID string, url url.URL) error {
-	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
-
 	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
 
-	_, err := conn.DelWildcard(ctx, keyPattern)
+	base := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
 
-	return err
+	for _, pattern := range []string{base, base + utils.StringSeparatorOne + "*"} {
+		if _, err := conn.DelWildcard(ctx, pattern); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // StoreMetadata - Saves the cache metadata for the requested URL.
-func StoreMetadata(ctx context.Context, domainID string, method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
-	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
+func StoreMetadata(ctx context.Context, domainID string, method string, url url.URL, meta []string, expiration time.Duration, variant string) (bool, error) {
+	key := metadataKey(method, url, variant)
 
 	conn := engine.GetConn(domainID)
 	if conn == nil {
