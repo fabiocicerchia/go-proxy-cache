@@ -23,7 +23,17 @@ metadata:
   labels:
     meta.service: {{ .Values.prefix }}-go-proxy-cache
     {{- include "go-proxy-cache.labels" . | nindent 4 }}
+  {{- with .Values.goproxycache.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
+  type: {{ .Values.goproxycache.service.type }}
+  {{- with .Values.goproxycache.service.externalTrafficPolicy }}
+  # Local preserves the client source IP, which the proxy needs for
+  # X-Forwarded-For and for the PURGE allowlist.
+  externalTrafficPolicy: {{ . }}
+  {{- end }}
   ports:
   - name: http
     port: {{ .Values.goproxycache.service.httpPort }}

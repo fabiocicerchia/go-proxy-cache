@@ -163,3 +163,36 @@ jobs:
       - name: SCA
         continue-on-error: true
         run: make sca
+
+  build-variants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build the standalone proxy
+        run: make build
+
+      - name: Build with the ingress controller
+        run: make build-ingress
+
+      - name: Vet both variants
+        run: |
+          go vet ./...
+          go vet -tags k8s ./...
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@0717577d45739eb3c851188b29f50ed6c0b2194e  # v2
+
+      - uses: azure/setup-helm@v4
+
+      - name: Render the chart, with and without the ingress controller
+        run: make helm-template
+
+      - name: Build the kustomize overlays
+        run: make kustomize-build

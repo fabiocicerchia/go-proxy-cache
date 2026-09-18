@@ -3,14 +3,43 @@ package metrics
 import (
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 // EE Metrics ------------------------------------------------------------------
 
+// detailedRequestSeries - Whether the per-request series are recorded.
+//
+// gpcee_http_request and gpcee_http_response carry req_id, url, size and
+// duration as *labels*, so each request creates a time series the collector
+// then keeps. Bounded only by how many distinct URLs are served, which is why
+// it can be switched off. The aggregate counters are always recorded.
+//
+// On by default, so existing dashboards keep working.
+var detailedRequestSeries atomic.Bool
+
+func init() {
+	detailedRequestSeries.Store(true)
+}
+
+// SetDetailedRequestSeries - Enables or disables the per-request series.
+func SetDetailedRequestSeries(enabled bool) {
+	detailedRequestSeries.Store(enabled)
+}
+
 // IncWholeRequest - Increments metrics for gpcee_http_request_total.
 func IncWholeRequest(reqID string, req http.Request, scheme string) {
+	if !detailedRequestSeries.Load() {
+		IncRequestHost(req.Host)
+		IncHttpMethod(req.Method)
+		IncUrlScheme(scheme)
+		IncHttpRequestsTotal()
+
+		return
+	}
+
 	wholeRequest.With(baseLabels(prometheus.Labels{
 		"req_id":         reqID,
 		"url":            req.URL.String(),
@@ -29,6 +58,10 @@ func IncWholeRequest(reqID string, req http.Request, scheme string) {
 
 // IncWholeResponse - Increments metrics for gpcee_http_response_total.
 func IncWholeResponse(reqID string, req http.Request, statusCode int, size int, duration int64, scheme string, cached bool, stale bool) {
+	if !detailedRequestSeries.Load() {
+		return
+	}
+
 	wholeResponse.With(baseLabels(prometheus.Labels{
 		"host":     req.Host,
 		"req_id":   reqID,

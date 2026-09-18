@@ -1,0 +1,63 @@
+---
+# A minimal Ingress served by go-proxy-cache, with per-route cache tuning.
+#
+#   kubectl apply -f docs/examples/ingress/
+#   curl -H 'Host: demo.local' http://<ingress-address>/ -D-
+#
+# The second request should come back with X-Go-Proxy-Cache-Status: HIT.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo
+  annotations:
+    # Cache successful responses for 5 minutes, and 404s for 30 seconds so a
+    # missing page does not hammer the origin.
+    go-proxy-cache.fabiocicerchia.it/cache-ttl: "300"
+    go-proxy-cache.fabiocicerchia.it/cache-negative-ttl: "404=30,502=10"
+    go-proxy-cache.fabiocicerchia.it/gzip: "true"
+spec:
+  ingressClassName: go-proxy-cache
+  rules:
+    - host: demo.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo
+                port:
+                  number: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo
+spec:
+  selector:
+    app: demo
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: demo
+          image: hashicorp/http-echo:1.0
+          args: ["-listen=:8080", "-text=hello from go-proxy-cache"]
+          ports:
+            - containerPort: 8080

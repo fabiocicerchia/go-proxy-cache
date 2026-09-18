@@ -25,6 +25,14 @@ type LoadBalancing map[string]Balancer
 
 var lb LoadBalancing
 
+// lbMu - Guards the lb map, which gains and loses balancers while traffic is
+// flowing.
+var lbMu sync.RWMutex
+
+// stopHealthChecks - Per-balancer stop channels for the health-check
+// goroutines, so a balancer that goes away does not leak its ticker.
+var stopHealthChecks = make(map[string]chan struct{})
+
 // Item - Represents a load balanced node.
 type Item struct {
 	Healthy  bool

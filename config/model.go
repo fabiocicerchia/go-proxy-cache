@@ -60,8 +60,8 @@ type Configuration struct {
 	Domains        Domains                       `yaml:"domains"`
 	Log            Log                           `yaml:"log"`
 	Tracing        Tracing                       `yaml:"tracing"`
-	domainsCache   map[string]Configuration
-	Jwt            Jwt `yaml:"jwt"`
+	Metrics        Metrics                       `yaml:"metrics"`
+	Jwt            Jwt                           `yaml:"jwt"`
 }
 
 // Domains - Overrides per domain.
@@ -79,6 +79,14 @@ type Server struct {
 	GZip      bool      `yaml:"gzip" envconfig:"GZIP_ENABLED"`
 	Internals Internals `yaml:"internals"`
 	Purge     Purge     `yaml:"purge"`
+	// TrustedProxies - IPs/CIDRs of proxies allowed to speak for the client.
+	//
+	// When a request arrives from one of these, X-Forwarded-Proto is believed
+	// (so a request the load balancer terminated TLS for is not mistaken for
+	// plain HTTP) and the client IP is taken from X-Forwarded-For rather than
+	// from the connection. Empty means trust nothing, which is the safe
+	// default for a proxy exposed directly to the internet.
+	TrustedProxies []string `yaml:"trusted_proxies" envconfig:"TRUSTED_PROXIES" split_words:"true"`
 }
 
 // Purge - Defines access control for PURGE requests.
@@ -245,6 +253,18 @@ type Tracing struct {
 	JaegerEndpoint string  `yaml:"jaeger_endpoint" envconfig:"TRACING_JAEGER_ENDPOINT"`
 	Enabled        bool    `yaml:"enabled" envconfig:"TRACING_ENABLED"`
 	SamplingRatio  float64 `yaml:"sampling_ratio" envconfig:"TRACING_SAMPLING_RATIO" default:"1.0"`
+}
+
+// Metrics - Defines what the Prometheus exporter records.
+type Metrics struct {
+	// PerRequestSeries - Record the per-request series.
+	//
+	// gpcee_http_request and gpcee_http_response carry req_id, url, size and
+	// duration as labels, so their cardinality grows with the number of
+	// distinct URLs served. Left unset it is on for a static configuration,
+	// where the served hosts are known in advance, and off in routed mode,
+	// where they are not. Setting it either way is honoured in both.
+	PerRequestSeries *bool `yaml:"per_request_series" envconfig:"METRICS_PER_REQUEST_SERIES"`
 }
 
 // Internals - Defines the config for the internal listening address/port.

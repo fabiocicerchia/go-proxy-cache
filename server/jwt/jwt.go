@@ -80,25 +80,47 @@ func getKeySet(w http.ResponseWriter, jwtConfig *config.Jwt) (jwk.Set, error) {
 	return keySet, nil
 }
 
+// Validate - Runs JWT validation for one request against one set of settings.
+//
+// Returns nil when validation is not configured, when the path is excluded, or
+// when the token is good. A non-nil error means a response has already been
+// written and the request must not be forwarded.
+//
+// This takes the settings rather than resolving them, so the caller decides
+// which configuration applies. Resolving by Host is only correct when a host
+// maps to exactly one configuration.
+func Validate(w http.ResponseWriter, r *http.Request, jwtConfig *config.Jwt) error {
+	// Without this guard every request on a JWT-less setup hit getKeySet with
+	// a nil JwkCache (panic) or an empty JWKS URL (unconditional 401).
+	if jwtConfig == nil || jwtConfig.JwksUrl == "" {
+		return nil
+	}
+
+	if IsExcluded(jwtConfig.ExcludedPaths, r.URL.Path) {
+		return nil
+	}
+
+	keySet, err := getKeySet(w, jwtConfig)
+	if err != nil {
+		return err
+	}
+
+	return ValidateJWT(w, r, keySet, jwtConfig)
+}
+
+// JWTHandler - Validates against the configuration the Host header resolves to.
+//
+// Only correct when each host has a single configuration, which is the case
+// for the static configuration but not for routed mode, where one host is
+// split across several objects. Routed mode validates per matched route
+// instead, and does not install this middleware.
 func JWTHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rc := handler.NewRequestCall(w, r)
+
 		domainConfig, isDomainFound := config.DomainConf(r.Host, rc.GetScheme())
-
-		// JWT validation applies only when a JWKS URL is configured for the
-		// matched domain. Without this guard every request on a JWT-less setup
-		// hit getKeySet with a nil JwkCache (panic) or an empty JWKS URL
-		// (unconditional 401), taking the whole proxy down.
-		jwtEnabled := isDomainFound && domainConfig.Jwt.JwksUrl != ""
-
-		if jwtEnabled && !IsExcluded(domainConfig.Jwt.ExcludedPaths, r.URL.Path) {
-			keySet, err := getKeySet(w, &domainConfig.Jwt)
-			if err != nil {
-				return
-			}
-
-			err = ValidateJWT(w, r, keySet, &domainConfig.Jwt)
-			if err != nil {
+		if isDomainFound {
+			if err := Validate(w, r, &domainConfig.Jwt); err != nil {
 				return
 			}
 		}

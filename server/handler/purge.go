@@ -44,8 +44,10 @@ func (rc RequestCall) isPurgeAuthorized() bool {
 	}
 
 	if len(purge.AllowedIPs) > 0 {
-		// Use the direct connection IP, not the spoofable X-Forwarded-For header.
-		clientIP := net.ParseIP(utils.StripPort(rc.Request.RemoteAddr))
+		// The connection IP, unless a configured trusted proxy vouched for a
+		// client address. X-Forwarded-For is never believed on its own: it is
+		// forgeable by anything that can reach the listener.
+		clientIP := net.ParseIP(rc.ClientIP())
 		if clientIP == nil || !isIPAllowed(clientIP, purge.AllowedIPs) {
 			return false
 		}

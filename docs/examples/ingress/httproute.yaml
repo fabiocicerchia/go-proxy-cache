@@ -1,0 +1,62 @@
+---
+# The Gateway API equivalent, including a weighted canary split that plain
+# Ingress cannot express.
+#
+# Requires the Gateway API CRDs and the controller started with -gateway-api:
+#   kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: demo
+spec:
+  gatewayClassName: go-proxy-cache
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.demo.local"
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: demo
+spec:
+  parentRefs:
+    - name: demo
+  hostnames:
+    - app.demo.local
+  rules:
+    # Strip the /api prefix before forwarding, and split 90/10 for a canary.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            set:
+              - name: X-Served-By
+                value: go-proxy-cache
+      backendRefs:
+        - name: demo
+          port: 80
+          weight: 90
+        - name: demo-canary
+          port: 80
+          weight: 10
+    # Everything else goes to the stable backend.
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: demo
+          port: 80

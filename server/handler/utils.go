@@ -12,6 +12,7 @@ package handler
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -53,6 +55,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 			AllowedStatuses: rc.DomainConfig.Cache.EffectiveAllowedStatuses(),
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
 			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
+			Variant:         rc.CacheVariant(),
 			CurrentURIObject: cache.URIObj{
 				URL:             rc.GetRequestURL(),
 				Method:          rc.Request.Method,
@@ -145,8 +148,108 @@ func getOverridePort(host string, port string, scheme string) string {
 	return portOverride
 }
 
+// errNoBackend - Returned when a matched route has no endpoint left to serve.
+var errNoBackend = errors.New("no healthy backend available for route")
+
+// getRoutedUpstreamURL - Resolves the upstream for a request matched by the
+// routing table (routed mode).
+//
+// Unlike the static path, the endpoints come from the route's backend (pod IPs
+// resolved from EndpointSlices) rather than from the domain configuration, and
+// the balancer is keyed per backend so each Service gets its own rotation.
+func (rc RequestCall) getRoutedUpstreamURL() (url.URL, error) {
+	idx, ok := rc.Route.SelectBackend()
+	if !ok {
+		return url.URL{}, errNoBackend
+	}
+
+	backend := rc.Route.Backends[idx]
+
+	scheme := backend.Scheme
+	if scheme == "" || scheme == config.SchemeWildcard {
+		scheme = rc.GetScheme()
+	}
+
+	endpoint, err := rc.pickEndpoint(backend, idx)
+	if err != nil {
+		return url.URL{}, err
+	}
+
+	// Endpoints are always "host:port" or "host", never a full URL, so the
+	// scheme comes from the backend rather than from parsing.
+	host := endpoint + getOverridePort(endpoint, "", scheme)
+
+	return url.URL{Scheme: scheme, Host: host}, nil
+}
+
+// endpointPicker - Chooses between a backend's endpoints using signals the
+// load balancer cannot see. Nil unless something installs one.
+var endpointPicker EndpointPicker
+
+// EndpointPicker - Picks one of a set of candidate endpoints for a request.
+//
+// An interface, and injected rather than imported, so this package keeps
+// knowing nothing about the protocol behind it.
+type EndpointPicker interface {
+	Pick(ctx context.Context, address string, req *http.Request, candidates []string) (string, error)
+	Declined(err error) bool
+}
+
+// SetEndpointPicker - Installs the picker consulted for backends that name one.
+func SetEndpointPicker(picker EndpointPicker) {
+	endpointPicker = picker
+}
+
+// pickEndpoint - The endpoint that will serve this request.
+//
+// A backend naming an endpoint picker is one whose endpoints are not
+// interchangeable -- model servers holding different adapters, or with very
+// different queue depths -- so the picker decides and the load balancer does
+// not get a say. When it cannot, the backend's failure mode decides whether
+// the request falls back to ordinary balancing or is refused.
+func (rc RequestCall) pickEndpoint(backend router.Backend, idx int) (string, error) {
+	balanced := func() string {
+		return balancer.GetUpstreamNode(rc.Route.BalancerID(idx), rc.GetRequestURL(), backend.Endpoints[0])
+	}
+
+	if backend.EndpointPicker == "" || endpointPicker == nil {
+		return balanced(), nil
+	}
+
+	endpoint, err := endpointPicker.Pick(
+		rc.Request.Context(),
+		backend.EndpointPicker,
+		&rc.Request,
+		backend.Endpoints,
+	)
+	if err == nil {
+		return endpoint, nil
+	}
+
+	// Declining is the picker working correctly and saying no; anything else
+	// is the picker being unreachable or broken. Neither is a reason to serve
+	// a request it did not sanction unless the pool opted into that.
+	if !backend.EndpointPickerFailOpen {
+		rc.GetLogger().Errorf("Endpoint picker %s: %s", backend.EndpointPicker, err)
+
+		return "", errNoBackend
+	}
+
+	if endpointPicker.Declined(err) {
+		return "", errNoBackend
+	}
+
+	rc.GetLogger().Warnf("Endpoint picker %s unavailable, balancing instead: %s", backend.EndpointPicker, err)
+
+	return balanced(), nil
+}
+
 // GetUpstreamURL - Get the URL based on the upstream.
 func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
+	if rc.Route != nil {
+		return rc.getRoutedUpstreamURL()
+	}
+
 	upstream := rc.DomainConfig.Server.Upstream
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 
@@ -202,6 +305,20 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 
 // GetUpstreamHost - Retrieve the real upstream host
 func (rc RequestCall) GetUpstreamHost() string {
+	if rc.Route != nil {
+		// Ingress preserves the client's Host header by default, unlike the
+		// static configuration which always rewrites it to the upstream host.
+		if rc.Route.PreserveHost {
+			return rc.Request.Host
+		}
+
+		if rc.Route.UpstreamHost != "" {
+			return rc.Route.UpstreamHost
+		}
+
+		return rc.Request.Host
+	}
+
 	upstream := rc.DomainConfig.Server.Upstream
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 	host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
@@ -238,6 +355,10 @@ func (rc RequestCall) ProxyDirector(ctx context.Context) func(req *http.Request)
 		req.Header.Set("X-Forwarded-For", xForwardedFor)
 
 		req.Host = upstreamHost
+
+		if rc.Route != nil {
+			applyRequestFilters(rc.Route, req)
+		}
 
 		tracing.Inject(ctx, req)
 	}
