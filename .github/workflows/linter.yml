@@ -46,7 +46,11 @@ jobs:
           # `{{- if .Values.x }}` is not YAML and yamllint cannot parse it, so
           # those files failed structurally rather than for anything wrong with
           # them. `make helm-template` renders and validates them properly.
-          FILTER_REGEX_EXCLUDE: kubernetes/helm/templates/.*
+          # catalog-info.yaml is a Backstage entity: it has an
+          # apiVersion and a kind, so kubeconform validates it as a
+          # Kubernetes manifest and fails on a schema that does not
+          # exist. It is not one, and there is nothing to fix in it.
+          FILTER_REGEX_EXCLUDE: (kubernetes/helm/templates/.*|catalog-info\.yaml)
 
           # Renamed from DOCKERFILE_HADOLINT_FILE_NAME in v6; resolved relative
           # to LINTER_RULES_PATH, which still defaults to .github/linters.
