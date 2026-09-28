@@ -27,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/random"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
 var errMissingRedisConnection = errors.New("missing redis connection")
@@ -100,6 +101,33 @@ func (u URIObj) IsPartialContent() bool {
 	return u.StatusCode == http.StatusPartialContent || u.ResponseHeaders.Get("Content-Range") != ""
 }
 
+// IsStorableBySharedCache - Checks whether a shared cache may store the
+// response at all (RFC 9111 §3), whatever TTL it would otherwise get (this
+// also covers the negative TTL override):
+//   - no-store, private (incl. private="...") and no-cache forbid it, see
+//     ttl.ForbidsStoring;
+//   - a response to a request carrying Authorization is only storable when
+//     the response explicitly allows it with public, s-maxage or
+//     must-revalidate (RFC 9111 §3.5).
+func (u URIObj) IsStorableBySharedCache() bool {
+	directives := ttl.ParseCacheControl(u.ResponseHeaders)
+	if ttl.ForbidsStoring(directives) {
+		return false
+	}
+
+	if u.RequestHeaders.Get("Authorization") == "" {
+		return true
+	}
+
+	for _, name := range []string{"public", "s-maxage", "must-revalidate"} {
+		if _, ok := directives[name]; ok {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getRandomSoftExpirationTTL() time.Duration {
 	// Pick a random value in the range [Min, Max) so the soft expiration jitter
 	// respects its lower bound. The previous formula (Max - Min + Min) collapsed
@@ -165,16 +193,18 @@ func (c Object) handleMetadata(ctx context.Context, domainID string, targetURL u
 // StoreFullPage - Stores the whole page response in cache.
 func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bool, error) {
 	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 ||
-		c.CurrentURIObject.HasRangeRequest() || c.CurrentURIObject.IsPartialContent() {
+		c.CurrentURIObject.HasRangeRequest() || c.CurrentURIObject.IsPartialContent() ||
+		!c.CurrentURIObject.IsStorableBySharedCache() {
 		logger.GetGlobal().WithFields(log.Fields{
 			"ReqID": c.ReqID,
 		}).Debugf(
-			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v - Range: %v - Partial: %v",
+			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v - Range: %v - Partial: %v - Storable: %v",
 			c.IsStatusAllowed(),
 			c.IsMethodAllowed(),
 			expiration,
 			c.CurrentURIObject.HasRangeRequest(),
 			c.CurrentURIObject.IsPartialContent(),
+			c.CurrentURIObject.IsStorableBySharedCache(),
 		)
 
 		return false, nil
