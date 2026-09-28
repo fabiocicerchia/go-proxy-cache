@@ -98,3 +98,64 @@ func TestRetrieveFullPageBypassesCacheForRangeRequest(t *testing.T) {
 
 	assert.ErrorIs(t, err, cache.ErrEmptyValue)
 }
+
+func storableObject(requestHeaders, responseHeaders http.Header) cache.Object {
+	return cache.Object{
+		AllowedStatuses: []int{http.StatusOK},
+		AllowedMethods:  []string{http.MethodGet},
+		CurrentURIObject: cache.URIObj{
+			Method:          http.MethodGet,
+			StatusCode:      http.StatusOK,
+			RequestHeaders:  requestHeaders,
+			ResponseHeaders: responseHeaders,
+			Content:         [][]byte{[]byte("hello")},
+		},
+	}
+}
+
+func TestIsStorableBySharedCache(t *testing.T) {
+	cases := []struct {
+		name     string
+		request  http.Header
+		response http.Header
+		want     bool
+	}{
+		{"plain public response", http.Header{}, http.Header{"Cache-Control": []string{"public, max-age=60"}}, true},
+		{"no cache headers", http.Header{}, http.Header{}, true},
+		{"private", http.Header{}, http.Header{"Cache-Control": []string{"private, max-age=60"}}, false},
+		{"qualified private", http.Header{}, http.Header{"Cache-Control": []string{`private="Set-Cookie"`}}, false},
+		{"no-store", http.Header{}, http.Header{"Cache-Control": []string{"no-store"}}, false},
+		{"no-cache", http.Header{}, http.Header{"Cache-Control": []string{"no-cache"}}, false},
+		{"private in a second header", http.Header{}, http.Header{"Cache-Control": []string{"max-age=60", "private"}}, false},
+		{"substring is not a directive", http.Header{}, http.Header{"Cache-Control": []string{"x-no-store-hint, max-age=60"}}, true},
+		{"authorization without permission", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"max-age=60"}}, false},
+		{"authorization with public", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"public, max-age=60"}}, true},
+		{"authorization with s-maxage", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"s-maxage=60"}}, true},
+		{"authorization with must-revalidate", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"must-revalidate, max-age=60"}}, true},
+		{"authorization with public but private", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"public, private"}}, false},
+	}
+
+	for _, tc := range cases {
+		uri := cache.URIObj{RequestHeaders: tc.request, ResponseHeaders: tc.response}
+		assert.Equal(t, tc.want, uri.IsStorableBySharedCache(), tc.name)
+	}
+}
+
+func TestStoreFullPageBypassesCacheForPrivateResponse(t *testing.T) {
+	obj := storableObject(http.Header{}, http.Header{"Cache-Control": []string{"private, max-age=60"}})
+
+	// No Redis connection is configured: reaching the engine would error.
+	stored, err := obj.StoreFullPage(context.Background(), time.Minute)
+
+	assert.False(t, stored)
+	assert.NoError(t, err)
+}
+
+func TestStoreFullPageBypassesCacheForAuthorizedRequest(t *testing.T) {
+	obj := storableObject(http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"max-age=60"}})
+
+	stored, err := obj.StoreFullPage(context.Background(), time.Minute)
+
+	assert.False(t, stored)
+	assert.NoError(t, err)
+}

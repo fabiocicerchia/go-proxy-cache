@@ -277,6 +277,11 @@ cache:
   #    value of the Date response header field, or
   #  - Otherwise, no explicit expiration time is present in the response.
   #    A heuristic freshness lifetime might be applicable.
+  # Whatever the TTL (including negative_ttl), a response is never stored when:
+  #  - Cache-Control has no-store, private (also private="..."), or no-cache
+  #    (this cache doesn't revalidate, so no-cache is treated as no-store), or
+  #  - the request had an Authorization header and the response doesn't
+  #    allow it explicitly with public, s-maxage or must-revalidate.
   # Default: 0
   ttl: 0
   # --- ALLOWED VALUES

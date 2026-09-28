@@ -13,11 +13,15 @@ package storage_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"context"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/fabiocicerchia/go-proxy-cache/cache"
+	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 )
 
@@ -39,4 +43,30 @@ func TestApplyNegativeTTLWithNilMap(t *testing.T) {
 	value := storage.ApplyNegativeTTL(200, nil, 3600*time.Second)
 
 	assert.Equal(t, 3600*time.Second, value)
+}
+
+// --- StoreGeneratedPage
+
+func TestStoreGeneratedPageNegativeTTLDoesNotStorePrivate(t *testing.T) {
+	rc := storage.RequestCallDTO{
+		CacheObject: cache.Object{
+			AllowedStatuses: []int{http.StatusNotFound},
+			AllowedMethods:  []string{http.MethodGet},
+			CurrentURIObject: cache.URIObj{
+				Method:          http.MethodGet,
+				StatusCode:      http.StatusNotFound,
+				RequestHeaders:  http.Header{},
+				ResponseHeaders: http.Header{"Cache-Control": []string{"private"}},
+				Content:         [][]byte{[]byte("not found")},
+			},
+		},
+	}
+
+	// No Redis connection is configured: if the negative TTL turned this
+	// private 404 into a positive TTL, storing would fail on the engine
+	// instead of returning the expected "not stored" false/nil.
+	stored, err := storage.StoreGeneratedPage(context.Background(), rc, config.Cache{NegativeTTL: map[int]int{404: 30}})
+
+	assert.False(t, stored)
+	assert.NoError(t, err)
 }
