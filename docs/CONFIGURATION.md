@@ -263,7 +263,7 @@ server:
 # --- CACHE
 cache:
   # --- REDIS SERVER
-  hosts: 
+  hosts:
     - localhost:6379
   password: ~
   db: 0
