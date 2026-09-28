@@ -19,6 +19,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/rs/dnscache"
 
@@ -87,13 +89,35 @@ func isLegitPort(port config.Port, listeningPort string) bool {
 	return port.HTTP == listeningPort || port.HTTPS == listeningPort
 }
 
+// upstreamTransports - One transport per InsecureBridge value, the only input
+// that varies between requests. http.Transport owns the connection pool, so a
+// new one per request meant a fresh TCP and TLS handshake to the origin every
+// time, and an abandoned idle pool held open until the origin closed it.
+var upstreamTransports sync.Map // bool -> *http.Transport
+
+// DefaultTransportIdleConnTimeout - Default value used for http.Transport.IdleConnTimeout.
+var DefaultTransportIdleConnTimeout time.Duration = 90 * time.Second
+
 func (rc RequestCall) patchProxyTransport() *http.Transport {
+	insecure := rc.DomainConfig.Server.Upstream.InsecureBridge
+	if t, ok := upstreamTransports.Load(insecure); ok {
+		return t.(*http.Transport)
+	}
+
+	// A lost race builds a transport that is dropped before it ever dials.
+	t, _ := upstreamTransports.LoadOrStore(insecure, newUpstreamTransport(insecure))
+
+	return t.(*http.Transport)
+}
+
+func newUpstreamTransport(insecure bool) *http.Transport {
 	// G402 (CWE-295): TLS InsecureSkipVerify may be true. (Confidence: LOW, Severity: HIGH)
 	// It can be ignored as it is customisable, but the default is false.
 	return &http.Transport{
 		MaxIdleConns:        DefaultTransportMaxIdleConns,
 		MaxIdleConnsPerHost: DefaultTransportMaxIdleConnsPerHost,
 		MaxConnsPerHost:     DefaultTransportMaxConnsPerHost,
+		IdleConnTimeout:     DefaultTransportIdleConnTimeout,
 		DialContext: func(ctx context.Context, network string, address string) (conn net.Conn, err error) {
 			// DNS Cache
 			host, port, err := net.SplitHostPort(address)
@@ -119,7 +143,7 @@ func (rc RequestCall) patchProxyTransport() *http.Transport {
 		},
 		DisableKeepAlives: false,
 		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: rc.DomainConfig.Server.Upstream.InsecureBridge,
+			InsecureSkipVerify: insecure,
 		},
 	} // #nosec
 }
