@@ -13,8 +13,6 @@ package config_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
-	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -37,52 +35,12 @@ func TestTLSOverrideSurvivesMerge(t *testing.T) {
 	}
 }
 
-const mergeYAML = `
-server:
-  upstream:
-    host: global.example
-cache:
-  eviction_policy: allkeys-lru
-  negative_ttl:
-    404: 30
-    502: 10
-circuit_breaker:
-  threshold: 9
-log:
-  format: "$host custom"
-domains:
-  inherits:
-    server:
-      upstream:
-        host: inherits.example
-  overrides:
-    server:
-      upstream:
-        host: overrides.example
-      tls:
-        hsts:
-          enabled: true
-    cache:
-      eviction_policy: volatile-ttl
-      negative_ttl:
-        404: 5
-  clears:
-    server:
-      upstream:
-        host: clears.example
-    cache:
-      negative_ttl: {}
-`
-
-// loadYAML - Loads yaml as the config file, restoring the global Config afterwards.
-func loadYAML(t *testing.T, yaml string) {
+// loadYAML - Loads file as the config file, restoring the global Config afterwards.
+func loadYAML(t *testing.T, file string) {
 	t.Helper()
 
 	orig := config.Config
 	t.Cleanup(func() { config.Config = orig })
-
-	file := filepath.Join(t.TempDir(), "config.yml")
-	assert.NoError(t, os.WriteFile(file, []byte(yaml), 0o600))
 
 	config.InitConfigFromFileOrEnv(file)
 }
@@ -91,7 +49,7 @@ func loadYAML(t *testing.T, yaml string) {
 // the YAML load, globally and per domain. A domain setting its own
 // negative_ttl replaces the global map (no key-by-key merge); `{}` clears it.
 func TestYAMLMergeKeepsCacheFields(t *testing.T) {
-	loadYAML(t, mergeYAML)
+	loadYAML(t, "testdata/merge.yml")
 
 	assert.Equal(t, map[int]int{404: 30, 502: 10}, config.Config.Cache.NegativeTTL)
 	assert.Equal(t, "allkeys-lru", config.Config.Cache.EvictionPolicy)
