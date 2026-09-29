@@ -93,6 +93,7 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 	c.Cache.Password = utils.Coalesce(overrides.Password, c.Cache.Password).(string)
 	c.Cache.DB = utils.Coalesce(overrides.DB, c.Cache.DB).(int)
 	c.Cache.TTL = utils.Coalesce(overrides.TTL, c.Cache.TTL).(int)
+	c.Cache.OverrideTTL = utils.Coalesce(overrides.OverrideTTL, c.Cache.OverrideTTL).(int)
 	c.Cache.AllowedStatuses = utils.Coalesce(overrides.AllowedStatuses, c.Cache.AllowedStatuses).([]int)
 	c.Cache.AllowedMethods = utils.Coalesce(overrides.AllowedMethods, c.Cache.AllowedMethods).([]string)
 

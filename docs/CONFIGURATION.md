@@ -10,7 +10,7 @@
 - `CACHE_ALLOWED_METHODS`
 - `CACHE_ALLOWED_STATUSES`
 - `COLLAPSED_FORWARDING`
-- `DEFAULT_TTL`
+- `DEFAULT_TTL` - Fallback TTL (seconds) when the origin sends no Expires / max-age / s-maxage.
 - `FORWARD_HOST`
 - `FORWARD_PORT`
 - `FORWARD_SCHEME`
@@ -22,6 +22,7 @@
 - `HEALTHCHECK_TIMEOUT`
 - `HTTP2HTTPS`
 - `LB_ENDPOINT_LIST`
+- `OVERRIDE_TTL` - Forced TTL (seconds) for cacheable responses, replacing the origin's freshness; `0` = off. See `override_ttl` below.
 - `REDIRECT_STATUS_CODE` = `301`
 - `REDIS_DB`
 - `REDIS_EVICTION_POLICY` - Redis `maxmemory-policy` to apply on connect (e.g. `allkeys-lru`, `allkeys-lfu`). Empty leaves Redis's own default.
@@ -277,13 +278,29 @@ cache:
   #    value of the Date response header field, or
   #  - Otherwise, no explicit expiration time is present in the response.
   #    A heuristic freshness lifetime might be applicable.
-  # Whatever the TTL (including negative_ttl), a response is never stored when:
+  # Whatever the TTL (including negative_ttl and override_ttl), a response is never stored when:
   #  - Cache-Control has no-store, private (also private="..."), or no-cache
   #    (this cache doesn't revalidate, so no-cache is treated as no-store), or
   #  - the request had an Authorization header and the response doesn't
   #    allow it explicitly with public, s-maxage or must-revalidate.
   # Default: 0
   ttl: 0
+  # --- OVERRIDE TTL
+  # Forced storage TTL (seconds) for cacheable responses. When > 0 it replaces
+  # whatever the origin sent (s-maxage, max-age, Expires) and the `ttl`
+  # fallback above. `ttl` only applies when the origin sends no freshness
+  # information; `override_ttl` applies always. Precedence:
+  #  1. negative_ttl, for the statuses it lists;
+  #  2. override_ttl, when > 0;
+  #  3. s-maxage, then max-age, then Expires from the origin;
+  #  4. ttl.
+  # It never makes a response cacheable: no-store, private, no-cache and
+  # Authorization requests without public/s-maxage/must-revalidate are still
+  # not stored. max-age=0 / s-maxage=0 only say "stale now", not "don't store",
+  # so override_ttl applies to them (use no-store/no-cache to opt out).
+  # Negative values are rejected.
+  # Default: 0 (off)
+  override_ttl: 0
   # --- ALLOWED VALUES
   # Allows caching for different response codes.
   # Default: 200, 301, 302

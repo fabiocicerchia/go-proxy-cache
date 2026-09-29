@@ -71,15 +71,30 @@ func ApplyNegativeTTL(status int, negativeTTL map[int]int, defaultTTL time.Durat
 	return defaultTTL
 }
 
+// StorageTTL - Decides the TTL a response is stored with, by precedence:
+//  1. negative_ttl, for the statuses it lists;
+//  2. override_ttl, when > 0, replacing any origin freshness information;
+//  3. s-maxage / max-age / Expires from the origin (see ttl.GetTTL);
+//  4. ttl, the default when the origin sends no freshness information.
+//
+// It never makes a response storable: StoreFullPage still refuses what a
+// shared cache must not store (no-store, private, no-cache, Authorization
+// without public/s-maxage/must-revalidate) whatever TTL is returned here.
+func StorageTTL(uri cache.URIObj, domainConfigCache config.Cache) time.Duration {
+	currentTTL := ttl.GetTTL(uri.ResponseHeaders, domainConfigCache.TTL)
+	if domainConfigCache.OverrideTTL > 0 {
+		currentTTL = time.Duration(domainConfigCache.OverrideTTL) * time.Second
+	}
+
+	return ApplyNegativeTTL(uri.StatusCode, domainConfigCache.NegativeTTL, currentTTL)
+}
+
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(ctx context.Context, rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
 	// Use the static rc.CacheObject.CurrentURIObject.ResponseHeaders to avoid data race
-	currentTTL := ttl.GetTTL(rc.CacheObject.CurrentURIObject.ResponseHeaders, domainConfigCache.TTL)
-	currentTTL = ApplyNegativeTTL(rc.CacheObject.CurrentURIObject.StatusCode, domainConfigCache.NegativeTTL, currentTTL)
+	currentTTL := StorageTTL(rc.CacheObject.CurrentURIObject, domainConfigCache)
 
-	done, err := rc.CacheObject.StoreFullPage(ctx, currentTTL)
-
-	return done, err
+	return rc.CacheObject.StoreFullPage(ctx, currentTTL)
 }
 
 // PurgeCachedContent - Purges a content in the cache.

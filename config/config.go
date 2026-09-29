@@ -11,6 +11,7 @@ package config
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +39,9 @@ func newFromEnv() Configuration {
 	envConfig := Configuration{}
 
 	err := envconfig.Process("", &envConfig)
+	if err == nil {
+		err = envConfig.Cache.validate()
+	}
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -57,6 +61,16 @@ func getFromYaml(file string) (Configuration, error) {
 
 	if err != nil {
 		return YamlConfig, err
+	}
+
+	if err = YamlConfig.Cache.validate(); err != nil {
+		return YamlConfig, err
+	}
+
+	for name, domain := range YamlConfig.Domains {
+		if err = domain.Cache.validate(); err != nil {
+			return YamlConfig, fmt.Errorf("domain %s: %w", name, err)
+		}
 	}
 
 	YamlConfig.Server.Upstream.Scheme = scheme.NormalizeScheme(YamlConfig.Server.Upstream.Scheme)
