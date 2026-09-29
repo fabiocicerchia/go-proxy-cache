@@ -17,6 +17,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
 )
 
@@ -27,6 +28,7 @@ func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
 	c.copyOverWithTimeout(overrides.Server)
 	c.copyOverWithUpstream(overrides.Server)
 	c.copyOverWithCache(overrides.Cache)
+	c.copyOverWithCircuitBreaker(overrides.CircuitBreaker)
 	c.copyOverWithTracing(overrides.Tracing)
 	c.copyOverWithLog(overrides.Log)
 	c.copyOverWithJwt(overrides.Jwt)
@@ -52,6 +54,10 @@ func (c *Configuration) copyOverWithTLS(overrides Server, file *string) {
 	c.Server.TLS.KeyFile = utils.Coalesce(overrides.TLS.KeyFile, c.Server.TLS.KeyFile).(string)
 	c.Server.TLS.Override = utils.Coalesce(overrides.TLS.Override, c.Server.TLS.Override).(*tls.Config)
 	c.Server.TLS.CertCacheDir = utils.Coalesce(overrides.TLS.CertCacheDir, c.Server.TLS.CertCacheDir).(string)
+	c.Server.TLS.HSTS.Enabled = utils.Coalesce(overrides.TLS.HSTS.Enabled, c.Server.TLS.HSTS.Enabled).(bool)
+	c.Server.TLS.HSTS.MaxAge = utils.Coalesce(overrides.TLS.HSTS.MaxAge, c.Server.TLS.HSTS.MaxAge).(int)
+	c.Server.TLS.HSTS.IncludeSubdomains = utils.Coalesce(overrides.TLS.HSTS.IncludeSubdomains, c.Server.TLS.HSTS.IncludeSubdomains).(bool)
+	c.Server.TLS.HSTS.Preload = utils.Coalesce(overrides.TLS.HSTS.Preload, c.Server.TLS.HSTS.Preload).(bool)
 
 	c.Server.TLS.CertFile = patchAbsFilePath(c.Server.TLS.CertFile, file)
 	c.Server.TLS.KeyFile = patchAbsFilePath(c.Server.TLS.KeyFile, file)
@@ -96,21 +102,35 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 	c.Cache.OverrideTTL = utils.Coalesce(overrides.OverrideTTL, c.Cache.OverrideTTL).(int)
 	c.Cache.AllowedStatuses = utils.Coalesce(overrides.AllowedStatuses, c.Cache.AllowedStatuses).([]int)
 	c.Cache.AllowedMethods = utils.Coalesce(overrides.AllowedMethods, c.Cache.AllowedMethods).([]string)
+	c.Cache.EvictionPolicy = utils.Coalesce(overrides.EvictionPolicy, c.Cache.EvictionPolicy).(string)
+	// A set negative_ttl replaces the inherited map as a whole (no per-status
+	// merge), so a domain lists exactly the statuses it wants; `{}` clears it.
+	c.Cache.NegativeTTL = utils.Coalesce(overrides.NegativeTTL, c.Cache.NegativeTTL).(map[int]int)
 
 	c.Cache.AllowedMethods = append(c.Cache.AllowedMethods, "HEAD", "GET")
 	c.Cache.AllowedMethods = slice.Unique(c.Cache.AllowedMethods)
+}
+
+// --- CIRCUIT BREAKER.
+func (c *Configuration) copyOverWithCircuitBreaker(overrides circuitbreaker.CircuitBreaker) {
+	c.CircuitBreaker.FailureRate = utils.Coalesce(overrides.FailureRate, c.CircuitBreaker.FailureRate).(float64)
+	c.CircuitBreaker.Interval = utils.Coalesce(overrides.Interval, c.CircuitBreaker.Interval).(time.Duration)
+	c.CircuitBreaker.Timeout = utils.Coalesce(overrides.Timeout, c.CircuitBreaker.Timeout).(time.Duration)
+	c.CircuitBreaker.Threshold = utils.Coalesce(overrides.Threshold, c.CircuitBreaker.Threshold).(uint32)
+	c.CircuitBreaker.MaxRequests = utils.Coalesce(overrides.MaxRequests, c.CircuitBreaker.MaxRequests).(uint32)
 }
 
 // --- TRACING.
 func (c *Configuration) copyOverWithTracing(overrides Tracing) {
 	c.Tracing.JaegerEndpoint = utils.Coalesce(overrides.JaegerEndpoint, c.Tracing.JaegerEndpoint).(string)
 	c.Tracing.Enabled = utils.Coalesce(overrides.Enabled, c.Tracing.Enabled).(bool)
-	// TODO: when starting is not using the default value set in the tag. it might happen to other properties as well.
 	c.Tracing.SamplingRatio = utils.Coalesce(overrides.SamplingRatio, c.Tracing.SamplingRatio).(float64)
 }
 
 // --- LOG.
 func (c *Configuration) copyOverWithLog(overrides Log) {
+	c.Log.TimeFormat = utils.Coalesce(overrides.TimeFormat, c.Log.TimeFormat).(string)
+	c.Log.Format = utils.Coalesce(overrides.Format, c.Log.Format).(string)
 	c.Log.SentryDsn = utils.Coalesce(overrides.SentryDsn, c.Log.SentryDsn).(string)
 	c.Log.SyslogProtocol = utils.Coalesce(overrides.SyslogProtocol, c.Log.SyslogProtocol).(string)
 	c.Log.SyslogEndpoint = utils.Coalesce(overrides.SyslogEndpoint, c.Log.SyslogEndpoint).(string)
