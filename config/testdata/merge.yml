@@ -1,0 +1,34 @@
+server:
+  upstream:
+    host: global.example
+cache:
+  eviction_policy: allkeys-lru
+  negative_ttl:
+    404: 30
+    502: 10
+circuit_breaker:
+  threshold: 9
+log:
+  format: "$host custom"
+domains:
+  inherits:
+    server:
+      upstream:
+        host: inherits.example
+  overrides:
+    server:
+      upstream:
+        host: overrides.example
+      tls:
+        hsts:
+          enabled: true
+    cache:
+      eviction_policy: volatile-ttl
+      negative_ttl:
+        404: 5
+  clears:
+    server:
+      upstream:
+        host: clears.example
+    cache:
+      negative_ttl: {}
