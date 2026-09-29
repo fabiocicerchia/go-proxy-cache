@@ -208,6 +208,20 @@ type Cache struct {
 	// its (often absent/wrong) Cache-Control headers. YAML-only: envconfig has no
 	// clean map[int]int support, unlike the slice fields above.
 	NegativeTTL map[int]int `yaml:"negative_ttl"`
+	// OverrideTTL - Forced TTL (in seconds) for storable responses, replacing
+	// the origin's Expires / max-age / s-maxage and the default TTL. It never
+	// makes a response storable, and NegativeTTL wins for its statuses.
+	// 0 = off (default); negative values are rejected.
+	OverrideTTL int `yaml:"override_ttl" envconfig:"OVERRIDE_TTL"`
+}
+
+// validate - Rejects cache settings that can't be meaningfully applied.
+func (c Cache) validate() error {
+	if c.OverrideTTL < 0 {
+		return fmt.Errorf("cache.override_ttl must be >= 0, got %d", c.OverrideTTL)
+	}
+
+	return nil
 }
 
 // EffectiveAllowedStatuses - AllowedStatuses plus any status codes that have a

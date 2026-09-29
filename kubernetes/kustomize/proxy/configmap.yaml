@@ -224,6 +224,23 @@ data:
       #    A heuristic freshness lifetime might be applicable.
       # Default: 0
       ttl: 0
+      # --- OVERRIDE TTL
+      # Forced storage TTL (seconds) for cacheable responses. When > 0 it replaces
+      # whatever the origin sent (s-maxage, max-age, Expires) and the `ttl`
+      # fallback above. `ttl` only applies when the origin sends no freshness
+      # information; `override_ttl` applies always. Precedence:
+      #  1. negative_ttl, for the statuses it lists;
+      #  2. override_ttl, when > 0;
+      #  3. s-maxage, then max-age, then Expires from the origin;
+      #  4. ttl.
+      # It never makes a response cacheable: no-store, private, no-cache and
+      # Authorization requests without public/s-maxage/must-revalidate are still
+      # not stored. max-age=0 / s-maxage=0 only say "stale now", not "don't store",
+      # so override_ttl applies to them (use no-store/no-cache to opt out).
+      # Negative values are rejected.
+      # Default: 0 (off). Commented out: images older than v1.4.0 parse the config
+      # strictly and would reject the key.
+      # override_ttl: 0
       # --- ALLOWED VALUES
       # Allows caching for different response codes.
       # Default: 200, 301, 302

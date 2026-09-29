@@ -74,6 +74,72 @@ func TestStoreGeneratedPageNegativeTTLDoesNotStorePrivate(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// --- StorageTTL (override_ttl)
+
+func TestStorageTTLOverride(t *testing.T) {
+	expires := time.Now().Add(time.Hour).UTC().Format(http.TimeFormat)
+
+	cases := []struct {
+		name    string
+		status  int
+		headers http.Header
+		cfg     config.Cache
+		want    time.Duration
+	}{
+		{"override replaces max-age", 200, http.Header{"Cache-Control": []string{"max-age=60"}}, config.Cache{TTL: 10, OverrideTTL: 300}, 300 * time.Second},
+		{"override replaces s-maxage", 200, http.Header{"Cache-Control": []string{"s-maxage=60"}}, config.Cache{OverrideTTL: 300}, 300 * time.Second},
+		{"override replaces Expires", 200, http.Header{"Expires": []string{expires}}, config.Cache{OverrideTTL: 300}, 300 * time.Second},
+		{"override applies when origin sends nothing", 200, http.Header{}, config.Cache{TTL: 10, OverrideTTL: 300}, 300 * time.Second},
+		{"override applies over max-age=0", 200, http.Header{"Cache-Control": []string{"max-age=0"}}, config.Cache{OverrideTTL: 300}, 300 * time.Second},
+		{"override off keeps max-age", 200, http.Header{"Cache-Control": []string{"max-age=60"}}, config.Cache{TTL: 10}, 60 * time.Second},
+		{"override off falls back to ttl", 200, http.Header{}, config.Cache{TTL: 10}, 10 * time.Second},
+		{"negative_ttl wins for its status", 404, http.Header{"Cache-Control": []string{"max-age=60"}}, config.Cache{OverrideTTL: 300, NegativeTTL: map[int]int{404: 30}}, 30 * time.Second},
+		{"override applies to statuses negative_ttl doesn't list", 502, http.Header{}, config.Cache{OverrideTTL: 300, NegativeTTL: map[int]int{404: 30}}, 300 * time.Second},
+	}
+
+	for _, tc := range cases {
+		uri := cache.URIObj{StatusCode: tc.status, ResponseHeaders: tc.headers}
+		assert.Equal(t, tc.want, storage.StorageTTL(uri, tc.cfg), tc.name)
+	}
+}
+
+func TestStoreGeneratedPageOverrideTTLDoesNotStoreForbidden(t *testing.T) {
+	cases := []struct {
+		name     string
+		request  http.Header
+		response http.Header
+	}{
+		{"private", http.Header{}, http.Header{"Cache-Control": []string{"private, max-age=60"}}},
+		{"no-store", http.Header{}, http.Header{"Cache-Control": []string{"no-store"}}},
+		{"no-cache", http.Header{}, http.Header{"Cache-Control": []string{"no-cache"}}},
+		{"authorization without public/s-maxage", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"max-age=60"}}},
+		{"authorization without any header", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{}},
+	}
+
+	for _, tc := range cases {
+		rc := storage.RequestCallDTO{
+			CacheObject: cache.Object{
+				AllowedStatuses: []int{http.StatusOK},
+				AllowedMethods:  []string{http.MethodGet},
+				CurrentURIObject: cache.URIObj{
+					Method:          http.MethodGet,
+					StatusCode:      http.StatusOK,
+					RequestHeaders:  tc.request,
+					ResponseHeaders: tc.response,
+					Content:         [][]byte{[]byte("hello")},
+				},
+			},
+		}
+
+		// No Redis connection is configured: had override_ttl made this
+		// storable, storing would fail on the engine instead of false/nil.
+		stored, err := storage.StoreGeneratedPage(context.Background(), rc, config.Cache{OverrideTTL: 300})
+
+		assert.False(t, stored, tc.name)
+		assert.NoError(t, err, tc.name)
+	}
+}
+
 // TestStoreGeneratedPageNegativeTTLFromYAML - negative_ttl set in the config
 // file reaches the domain config the handler stores with, so a 404 with no
 // cache headers gets its short TTL instead of being skipped.
