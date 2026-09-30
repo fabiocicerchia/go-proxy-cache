@@ -93,7 +93,21 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	rcDTO := ConvertToRequestCallDTO(rc)
 
 	status, err := storage.PurgeCachedContent(ctx, rc.DomainConfig.Server.Upstream, rcDTO)
-	if !status || err != nil {
+	if err != nil {
+		// Not a 404: that means "nothing was cached", and a caller that retries
+		// failures would drop this purge as done.
+		rc.Response.ForceWriteHeader(http.StatusInternalServerError)
+		_ = rc.Response.WriteBody("KO")
+
+		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", utils.EscapeLogValue(rc.Request.URL.String()), err)
+
+		telemetry.From(ctx).RegisterPurge(status, err)
+		telemetry.From(ctx).RegisterStatusCode(http.StatusInternalServerError)
+
+		return
+	}
+
+	if !status {
 		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")
 

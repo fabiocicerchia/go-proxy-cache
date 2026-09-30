@@ -27,8 +27,10 @@ func (rdb *RedisClient) DelWildcard(ctx context.Context, key string) (int, error
 			return keys, err
 		})
 
+		// An error here is Redis being unreachable, not an empty match: callers
+		// report nothing-to-purge as a success, so it must not look like one.
 		if err != nil {
-			return 0, nil
+			return 0, err
 		}
 
 		return rdb.deleteKeys(ctx, key, k.([]string))
@@ -43,6 +45,7 @@ func (rdb *RedisClient) deleteClusterKeys(ctx context.Context, key string) (int,
 			keys, err := client.Keys(ctx, key).Result()
 			if err != nil {
 				rdb.logger.Errorf("Error removing keys with pattern: %s on node: %s", key, client)
+				return nil, err
 			}
 			deletedKeysByNode, err := rdb.deleteKeysByShard(ctx, key, keys, client)
 			if err == nil {
@@ -54,7 +57,7 @@ func (rdb *RedisClient) deleteClusterKeys(ctx context.Context, key string) (int,
 	})
 
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	return deletedKeys.counter, nil

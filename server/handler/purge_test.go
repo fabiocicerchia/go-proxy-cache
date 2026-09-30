@@ -83,6 +83,49 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	assert.Equal(t, body, "KO")
 }
 
+// A purge that could not reach Redis must not answer 404, which means
+// "nothing was cached": a caller that retries failures would drop it as done.
+func TestEndToEndCallPurgeWithRedisDown(t *testing.T) {
+	initLogs()
+
+	config.Config = config.Configuration{
+		Server: config.Server{
+			Upstream: config.Upstream{
+				Host:      "purge-redis-down.example",
+				Scheme:    "https",
+				Endpoints: []string{"purge-redis-down.example"},
+			},
+		},
+		Cache: config.Cache{
+			Hosts:           []string{"localhost:1"},
+			AllowedStatuses: []int{200},
+			AllowedMethods:  []string{"HEAD", "GET"},
+		},
+		CircuitBreaker: circuit_breaker.CircuitBreaker{
+			Threshold:   2,
+			FailureRate: 0.5,
+			Interval:    time.Duration(1),
+			Timeout:     time.Duration(1),
+		},
+	}
+
+	domainID := config.Config.Server.Upstream.GetDomainID()
+	circuit_breaker.InitCircuitBreaker(domainID, config.Config.CircuitBreaker, logger.GetGlobal())
+	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
+
+	req, err := http.NewRequest("PURGE", "/", nil)
+	assert.Nil(t, err)
+	req.URL.Scheme = config.Config.Server.Upstream.Scheme
+	req.URL.Host = config.Config.Server.Upstream.Host
+	req.Host = config.Config.Server.Upstream.Host
+
+	rr := httptest.NewRecorder()
+	http.HandlerFunc(handler.HandleRequest).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, "KO", rr.Body.String())
+}
+
 func TestEndToEndCallPurge(t *testing.T) {
 	initLogs()
 
