@@ -23,6 +23,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/config"
+	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	circuit_breaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
@@ -39,10 +40,13 @@ func TestPurgeHostDeletesOnlyThatHost(t *testing.T) {
 	sep := utils.StringSeparatorOne
 	purged := []string{
 		"DATA" + sep + "GET" + sep + "https://a.example/" + sep + "sum",
-		"DATA" + sep + "HEAD" + sep + "http://a.example/x?y=1" + sep + "sum" + cache.FreshSuffix,
+		"DATA" + sep + "HEAD" + sep + "https://a.example/x?y=1" + sep + "sum" + cache.FreshSuffix,
 		"META" + sep + "GET" + sep + "https://a.example/x",
 	}
 	kept := []string{
+		// http can be a separate domain with its own Redis, so it is not this
+		// purge's to touch.
+		"DATA" + sep + "GET" + sep + "http://a.example/" + sep + "sum",
 		"DATA" + sep + "GET" + sep + "https://b.example/" + sep + "sum",
 		"META" + sep + "GET" + sep + "https://a.example.b.example/",
 		// A "*" in the method position would reach this one through its path.
@@ -53,12 +57,26 @@ func TestPurgeHostDeletesOnlyThatHost(t *testing.T) {
 		assert.Nil(t, err)
 	}
 
-	obj := cache.Object{
-		DomainID:         domainID,
-		AllowedMethods:   []string{"HEAD", "GET"},
-		CurrentURIObject: cache.URIObj{URL: url.URL{Scheme: "https", Host: "a.example", Path: cache.PurgeAllPath}},
+	// Parsed the way the server parses a request-target, which is what decides
+	// between Path and RawPath.
+	purge := func(target string) (bool, error) {
+		u, err := url.ParseRequestURI(target)
+		assert.Nil(t, err)
+		u.Scheme, u.Host = "https", "a.example"
+		obj := cache.Object{
+			DomainID:         domainID,
+			AllowedMethods:   []string{"HEAD", "GET"},
+			CurrentURIObject: cache.URIObj{URL: *u},
+		}
+		return storage.PurgeCachedContent(ctx, config.Upstream{}, storage.RequestCallDTO{CacheObject: obj})
 	}
-	done, err := obj.PurgeHost(ctx)
+
+	// /%2A decodes to /* but names a single resource, so it purges nothing here.
+	done, err := purge("/%2A")
+	assert.Nil(t, err)
+	assert.False(t, done, "PURGE /%2A must not purge the whole host")
+
+	done, err = purge(cache.PurgeAllPath)
 	assert.Nil(t, err)
 	assert.True(t, done)
 
@@ -71,7 +89,7 @@ func TestPurgeHostDeletesOnlyThatHost(t *testing.T) {
 		assert.Equal(t, "v", v, k)
 	}
 
-	done, err = obj.PurgeHost(ctx)
+	done, err = purge(cache.PurgeAllPath)
 	assert.Nil(t, err)
 	assert.False(t, done, "nothing left to purge reports not done, like a per-URL miss")
 }

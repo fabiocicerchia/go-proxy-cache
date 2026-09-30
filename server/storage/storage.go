@@ -101,7 +101,8 @@ func StoreGeneratedPage(ctx context.Context, rc RequestCallDTO, domainConfigCach
 // the host when the request-target is cache.PurgeAllPath.
 func PurgeCachedContent(ctx context.Context, upstream config.Upstream, rc RequestCallDTO) (bool, error) {
 	u := rc.CacheObject.CurrentURIObject.URL
-	if u.Path == cache.PurgeAllPath && u.RawQuery == "" {
+	// The escaped path, so a PURGE of the resource at /%2A stays a single URL.
+	if u.EscapedPath() == cache.PurgeAllPath && u.RawQuery == "" {
 		return rc.CacheObject.PurgeHost(ctx)
 	}
 

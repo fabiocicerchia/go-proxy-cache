@@ -113,9 +113,11 @@ $ curl -vX PURGE http://localhost/page/not/cached
 KO* Closing connection 0
 ```
 
-`PURGE /*` invalidates every cached response for the request's host, over
-both schemes and every method in `allowed_methods`, and answers `404` only when
-nothing was cached for it. Other hosts sharing the same Redis are untouched.
+`PURGE /*` invalidates every cached response for the request's host and scheme,
+over every method in `allowed_methods`, and answers `404` only when nothing was
+cached for it. Purge `https://` and `http://` separately: they can be separate
+domains with their own Redis. Other hosts sharing the same Redis are untouched,
+and `PURGE /%2A` still purges only the resource at that path.
 
 ```console
 $ curl -X PURGE 'http://localhost/*'
