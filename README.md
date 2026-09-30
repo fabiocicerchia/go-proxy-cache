@@ -89,7 +89,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 ### Caching
 
 - **Full Page Caching**, via Redis.
-- **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI.
+- **Cache Invalidation**, by calling HTTP Method `PURGE` on the resource URI, or on `/*` to invalidate everything cached for that host.
 - **Cache Bypass**, by using the HTTP Header `X-Go-Proxy-Cache-Force-Fresh` the request will always be fresh.
 - **Support Chunking**, by replicating exactly the same original amount.
 - **Selective HTTP Status Codes/Methods**, allows caching for different response codes or HTTP methods.
