@@ -318,6 +318,49 @@ func (c Object) PurgeFullPage(ctx context.Context) (bool, error) {
 	return done, nil
 }
 
+// PurgeAllPath - The PURGE request-target that invalidates every cached
+// response for the request's host instead of a single URL.
+const PurgeAllPath = "/*"
+
+// globEscaper - Escapes Redis glob metacharacters, so a hostname is matched
+// literally and cannot widen a pattern into another host's keys.
+var globEscaper = strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`, "]", `\]`)
+
+// PurgeHost - Deletes every cached response (data and metadata) for the host
+// and scheme of the current URL, over every cacheable method.
+//
+// Only the request's own scheme: http and https can be separate domains, with
+// their own Redis connection and allowed methods, and this Object carries only
+// the one the PURGE matched.
+//
+// The method and scheme are spelled out rather than globbed: a "*" there also
+// matches across the "@@" separator, so "DATA@@*@@http://host/*" would match
+// another host's key whose path happens to contain "@@http://host/".
+func (c Object) PurgeHost(ctx context.Context) (bool, error) {
+	conn := engine.GetConn(c.DomainID)
+	if conn == nil {
+		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
+	}
+
+	origin := c.CurrentURIObject.URL.Scheme + "://" + globEscaper.Replace(c.CurrentURIObject.URL.Host) + "/"
+	affected := 0
+
+	for _, kind := range []string{"DATA", "META"} {
+		for _, method := range c.AllowedMethods {
+			pattern := strings.Join([]string{kind, method, origin}, utils.StringSeparatorOne) + "*"
+
+			n, err := conn.DelWildcard(ctx, pattern)
+			if err != nil {
+				return false, err
+			}
+
+			affected += n
+		}
+	}
+
+	return affected > 0, nil
+}
+
 // StorageKey - Returns the cache key for the requested URL.
 func StorageKey(currentURIObject URIObj, meta []string) string {
 	key := []string{"DATA", currentURIObject.Method, currentURIObject.URL.String(), currentURIObject.GetHeadersChecksum(meta)}

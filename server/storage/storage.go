@@ -97,7 +97,14 @@ func StoreGeneratedPage(ctx context.Context, rc RequestCallDTO, domainConfigCach
 	return rc.CacheObject.StoreFullPage(ctx, currentTTL)
 }
 
-// PurgeCachedContent - Purges a content in the cache.
+// PurgeCachedContent - Purges a content in the cache, or everything cached for
+// the host when the request-target is cache.PurgeAllPath.
 func PurgeCachedContent(ctx context.Context, upstream config.Upstream, rc RequestCallDTO) (bool, error) {
+	u := rc.CacheObject.CurrentURIObject.URL
+	// The escaped path, so a PURGE of the resource at /%2A stays a single URL.
+	if u.EscapedPath() == cache.PurgeAllPath && u.RawQuery == "" {
+		return rc.CacheObject.PurgeHost(ctx)
+	}
+
 	return rc.CacheObject.PurgeFullPage(ctx)
 }
