@@ -15,9 +15,9 @@ import (
 	"sync"
 	"time"
 
-	goredislib "github.com/go-redis/redis/v8"
 	"github.com/go-redsync/redsync/v4"
-	goredis "github.com/go-redsync/redsync/v4/redis/goredis/v8"
+	goredis "github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	goredislib "github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
