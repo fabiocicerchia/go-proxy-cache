@@ -12,7 +12,7 @@ package client
 import (
 	"context"
 
-	goredislib "github.com/go-redis/redis/v8"
+	goredislib "github.com/redis/go-redis/v9"
 
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
