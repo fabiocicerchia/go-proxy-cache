@@ -119,6 +119,7 @@ you --->|---->----|--->---|---'     |       |     |   |
 - **Respecting HTTP Cache Headers**, `Vary`, `ETag`, `Cache-Control` and `Expires`.
 - **Fully Tested**, Unit, Functional & Linted & 0 Race Conditions Detected.
 - **Cache Circuit Breaker**, bypassing Redis when not available.
+- **Zero-downtime restarts**, `SIGHUP` re-executes in place keeping the listening sockets, and systemd socket activation is supported (see [Signals and restarts](#signals-and-restarts)).
 
 ### Scaling
 
@@ -204,6 +205,60 @@ Usage of go-proxy-cache:
 ```
 
 For examples check the relative documentation in [docs/EXAMPLES.md](https://github.com/fabiocicerchia/go-proxy-cache/blob/main/docs/EXAMPLES.md)
+
+## Signals and restarts
+
+The configuration is read at startup only, so applying a new one means a restart.
+Two ways to restart without refusing a single connection:
+
+| Signal | Effect |
+| --- | --- |
+| `SIGTERM`, `SIGINT` | Stop accepting, let in-flight requests finish (up to `timeout.shutdown`, default `5s`), exit. |
+| `SIGHUP` | The same drain, then the process re-executes its own binary in place (same pid, same arguments) and hands it the listening sockets. The new configuration and binary are picked up from disk. |
+
+During a `SIGHUP` restart the sockets never close: connections that arrive while the
+old requests drain and the new process starts wait in the kernel's accept queue and
+are served by the new process. Because the pid does not change, it works as PID 1 in
+a container and under a supervisor that restarts the process when it exits. Validate
+the configuration first (`go-proxy-cache -test -config config.yml`): if the new process
+cannot start, it exits like any failed start.
+
+```console
+go-proxy-cache -test -config config.yml && pkill -HUP -x go-proxy-cache
+```
+
+### Systemd socket activation
+
+go-proxy-cache also accepts listening sockets passed with the systemd convention
+(`LISTEN_FDS`, starting at fd 3, and `LISTEN_PID` when set). Each inherited TCP socket
+is used for the configured listener on the same port (HTTP, HTTPS or internals); any
+port without an inherited socket is bound as usual. With systemd holding the sockets,
+even a full stop and start of the service queues connections instead of refusing them.
+
+```ini
+# /etc/systemd/system/go-proxy-cache.socket
+[Socket]
+ListenStream=80
+ListenStream=443
+ListenStream=52021
+
+[Install]
+WantedBy=sockets.target
+```
+
+```ini
+# /etc/systemd/system/go-proxy-cache.service
+[Unit]
+Requires=go-proxy-cache.socket
+After=go-proxy-cache.socket
+
+[Service]
+ExecStart=/usr/local/bin/go-proxy-cache -config /etc/go-proxy-cache/config.yml
+ExecReload=/bin/kill -HUP $MAINPID
+```
+
+Any other supervisor can do the same: pass the sockets as fds 3, 4, ... and set
+`LISTEN_FDS` to their count.
 
 ## Release Cycle
 
