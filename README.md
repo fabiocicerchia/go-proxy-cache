@@ -5,12 +5,12 @@
 ![Logo](https://github.com/fabiocicerchia/go-proxy-cache/raw/main/docs/assets/logo_small.png)
 
 Simple Reverse Proxy with Caching, written in Go, using Redis.  
-    >>> **(semi) production-ready** <<<
+\>>> **(semi) production-ready** <<<
 
 [![MIT License](https://img.shields.io/badge/License-MIT-brightgreen.svg?longCache=true)](LICENSE.md)
 [![Pull Requests](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?longCache=true)](https://github.com/fabiocicerchia/go-proxy-cache/pulls)
-[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)  
-  
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
+
 ![Last Commit](https://img.shields.io/github/last-commit/fabiocicerchia/go-proxy-cache)
 ![Release Date](https://img.shields.io/github/release-date/fabiocicerchia/go-proxy-cache)
 ![GitHub all releases](https://img.shields.io/github/downloads/fabiocicerchia/go-proxy-cache/total)
@@ -35,9 +35,10 @@ It started as a simple caching service, now it has a lot of pro functionalities 
 Maintaining a project is a very time consuming activity, especially when done alone 💪
 I really want to make this project better and become super cool 🚀
 
-Two commercial versions have been planned: [PRO and PREMIUM](https://kodebeat.com/goproxycache.html).  
+Two commercial versions have been planned: [PRO and PREMIUM](https://kodebeat.com/goproxycache.html).
 
-The development of the COMMUNITY version will continue, but priority will be given to the [COMMERCIAL versions](https://kodebeat.com/goproxycache.html).  
+The development of the COMMUNITY version will continue, but priority will be given to the [COMMERCIAL versions](https://kodebeat.com/goproxycache.html).
+
 - If you'd like to support this open-source project I'll appreciate any kind of [contribution](https://github.com/sponsors/fabiocicerchia).
 - If you'd like to sponsor the commercial version, please [get in touch with me](mail:info@fabiocicerchia.it).
 
@@ -165,7 +166,7 @@ server:
     redirect_status_code: 301
 
 cache:
-  hosts: 
+  hosts:
     - localhost:6379
 
 domains:
@@ -211,10 +212,11 @@ For examples check the relative documentation in [docs/EXAMPLES.md](https://gith
 The configuration is read at startup only, so applying a new one means a restart.
 Two ways to restart without refusing a single connection:
 
-| Signal | Effect |
-| --- | --- |
-| `SIGTERM`, `SIGINT` | Stop accepting, let in-flight requests finish (up to `timeout.shutdown`, default `5s`), exit. |
-| `SIGHUP` | The same drain, then the process re-executes its own binary in place (same pid, same arguments) and hands it the listening sockets. The new configuration and binary are picked up from disk. |
+- `SIGTERM`, `SIGINT`: stop accepting, let in-flight requests finish (up to
+  `timeout.shutdown`, default `5s`), exit.
+- `SIGHUP`: the same drain, then the process re-executes its own binary in place
+  (same pid, same arguments) and hands it the listening sockets. The new
+  configuration and binary are picked up from disk.
 
 During a `SIGHUP` restart the sockets never close: connections that arrive while the
 old requests drain and the new process starts wait in the kernel's accept queue and
@@ -262,7 +264,7 @@ Any other supervisor can do the same: pass the sockets as fds 3, 4, ... and set
 
 ## Release Cycle
 
-- Bug-fixes (e.g. `1.1.1`, `1.1.2`, `1.2.1`, `1.2.3`) are released as needed (no additional features are delivered in those versions, bug-fixes only).
+- Bugfixes (e.g. `1.1.1`, `1.1.2`, `1.2.1`, `1.2.3`) are released as needed (no additional features are delivered in those versions, bugfixes only).
 - Each version is supported until the next one is released (e.g. `1.1.x` will be supported until `1.2.0` is out).
 - We use [Semantic Versioning](https://semver.org/).
 
@@ -277,14 +279,14 @@ Any other supervisor can do the same: pass the sockets as fds 3, 4, ... and set
   unknown domain the status `501` is returned.
 - WebSocket and TimeoutHandler are not working together, because TimeoutHandler doesn't support Hijacker, so in order to have WebSocket support the setting `TimeoutHandler` must be set to `-1`.
 - `context deadline exceeded`  
-  The reason is because the timeout on the context.Context of the client side of the request is shorter than the timeout
-  in the server side handler. This means that the client gives up before any response is written.
+  The reason is because the timeout on the context.Context of the client-side of the request is shorter than the timeout
+  in the server-side handler. This means that the client gives up before any response is written.
 
 ## References
 
 - [Proxy servers and tunneling](https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling)
 - [Make resilient Go net/http servers using timeouts, deadlines and context cancellation](https://ieftimov.com/post/make-resilient-golang-net-http-servers-using-timeouts-deadlines-context-cancellation/)
-- [So you want to expose Go on the Internet](https://blog.cloudflare.com/exposing-go-on-the-internet/)
+- [So you want to expose Go on the internet](https://blog.cloudflare.com/exposing-go-on-the-internet/)
 - [Writing a very fast cache service with millions of entries in Go](https://allegro.tech/2016/03/writing-fast-cache-service-in-go.html)
 - [RFC7234 - Hypertext Transfer Protocol (HTTP/1.1): Caching](https://tools.ietf.org/html/rfc7234#section-4.2.1)
 - [The complete guide to Go net/http timeouts](https://blog.cloudflare.com/the-complete-guide-to-golang-net-http-timeouts/)
