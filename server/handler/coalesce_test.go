@@ -47,6 +47,8 @@ func TestCoalescingKeepsPrivateAndCredentialedResponsesSeparate(t *testing.T) {
 		{"cookie", "Cookie", "Cache-Control", "public, max-age=60"},
 		{"authorization", "Authorization", "Cache-Control", "public, max-age=60"},
 		{"set-cookie", "", "Set-Cookie", "session=example"},
+		{"second vary wildcard", "", "Vary", "*"},
+		{"vary wildcard list member", "", "Vary", " X-Mode, * "},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			var hits atomic.Int32
@@ -54,6 +56,10 @@ func TestCoalescingKeepsPrivateAndCredentialedResponsesSeparate(t *testing.T) {
 				hits.Add(1)
 				if testCase.responseHeader != "" {
 					w.Header().Set(testCase.responseHeader, testCase.responseValue)
+				}
+				if testCase.responseHeader == "Vary" {
+					w.Header().Set("Cache-Control", "public, max-age=60")
+					w.Header()["Vary"] = []string{"Accept-Encoding", testCase.responseValue}
 				}
 				_, _ = io.WriteString(w, "example")
 			}))

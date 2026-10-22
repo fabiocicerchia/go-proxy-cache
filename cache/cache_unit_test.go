@@ -133,6 +133,9 @@ func TestIsStorableBySharedCache(t *testing.T) {
 		{"authorization with s-maxage", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"s-maxage=60"}}, false},
 		{"authorization with must-revalidate", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"must-revalidate, max-age=60"}}, false},
 		{"cookie", http.Header{"Cookie": []string{"session=example"}}, http.Header{}, false},
+		{"cookie after empty value", http.Header{"Cookie": []string{"", "session=example"}}, http.Header{}, false},
+		{"authorization after empty value", http.Header{"Authorization": []string{"", "Bearer example"}}, http.Header{}, false},
+		{"empty cookie header", http.Header{"Cookie": []string{""}}, http.Header{}, false},
 		{"set-cookie", http.Header{}, http.Header{"Set-Cookie": []string{"session=example"}}, false},
 		{"authorization with public but private", http.Header{"Authorization": []string{"Bearer x"}}, http.Header{"Cache-Control": []string{"public, private"}}, false},
 	}

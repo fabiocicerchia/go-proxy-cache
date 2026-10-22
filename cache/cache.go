@@ -110,7 +110,7 @@ func (u URIObj) IsStorableBySharedCache() bool {
 }
 
 func (u URIObj) BypassesSharedCache() bool {
-	if u.RequestHeaders.Get("Authorization") != "" || u.RequestHeaders.Get("Cookie") != "" {
+	if len(u.RequestHeaders.Values("Authorization")) > 0 || len(u.RequestHeaders.Values("Cookie")) > 0 {
 		return true
 	}
 	directives := ttl.ParseCacheControl(u.RequestHeaders)

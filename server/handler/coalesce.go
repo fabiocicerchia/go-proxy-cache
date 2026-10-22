@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
@@ -79,7 +80,7 @@ func (c coalescingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 		uri.ResponseHeaders = resp.Header
 		directives := ttl.ParseCacheControl(resp.Header)
 		_, public := directives["public"]
-		if !public || !uri.IsStorableBySharedCache() || resp.Header.Get("Vary") == "*" || resp.StatusCode != http.StatusOK {
+		if !public || !uri.IsStorableBySharedCache() || variesOnEverything(resp.Header) || resp.StatusCode != http.StatusOK {
 			return &coalescedResponse{resp: resp}, nil
 		}
 
@@ -123,4 +124,15 @@ func (c coalescingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 type prefixedBody struct {
 	io.Reader
 	io.Closer
+}
+
+func variesOnEverything(headers http.Header) bool {
+	for _, value := range headers.Values("Vary") {
+		for _, member := range strings.Split(value, ",") {
+			if strings.TrimSpace(member) == "*" {
+				return true
+			}
+		}
+	}
+	return false
 }
