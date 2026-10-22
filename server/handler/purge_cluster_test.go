@@ -93,9 +93,10 @@ func TestClusterEndToEndCallPurge(t *testing.T) {
 		Server: config.Server{
 			Purge: config.Purge{Secret: "test-only-purge-key"},
 			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
+				Host:           "www.w3.org",
+				Scheme:         "https",
+				Endpoints:      []string{cookieFreeW3Origin(t)},
+				InsecureBridge: true,
 			},
 		},
 		Cache: config.Cache{

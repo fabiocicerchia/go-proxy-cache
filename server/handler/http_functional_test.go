@@ -15,6 +15,7 @@ package handler_test
 import (
 	"context"
 	"crypto/tls"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -656,9 +657,10 @@ func TestHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
+				Host:           "www.w3.org",
+				Scheme:         "https",
+				Endpoints:      []string{cookieFreeW3Origin(t)},
+				InsecureBridge: true,
 			},
 		},
 		Cache: config.Cache{
@@ -768,4 +770,16 @@ func TestHTTPSEndToEndCallWithMissingDomain(t *testing.T) {
 
 func tearDownHTTPFunctional() {
 	config.Config = config.Configuration{}
+}
+
+// cookieFreeW3Origin - The live www.w3.org answers with Set-Cookie, which a
+// shared cache must not store, so cache-hit tests need an origin without it.
+func cookieFreeW3Origin(t *testing.T) string {
+	origin := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		_, _ = io.WriteString(w, "<!doctype html>\n<title>W3C</title>\n</body>\n\n</html>\n")
+	}))
+	t.Cleanup(origin.Close)
+
+	return origin.Listener.Addr().String()
 }
