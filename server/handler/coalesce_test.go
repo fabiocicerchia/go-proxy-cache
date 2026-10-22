@@ -20,6 +20,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -172,4 +173,51 @@ func TestCoalescingRoundTripperDoesNotCollapsePOST(t *testing.T) {
 	wg.Wait()
 
 	assert.EqualValues(t, n, hits, "POST requests must never be coalesced")
+}
+
+func countCoalescedHits(t *testing.T, header func(i int) http.Header) int32 {
+	var hits atomic.Int32
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hits.Add(1)
+		time.Sleep(200 * time.Millisecond)
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		_, _ = io.WriteString(w, "example")
+	}))
+	defer upstream.Close()
+	transport := coalescingRoundTripper{RoundTripper: http.DefaultTransport}
+	var requests sync.WaitGroup
+	for i := range 10 {
+		requests.Go(func() {
+			request, err := http.NewRequest(http.MethodGet, upstream.URL, nil)
+			assert.NoError(t, err)
+			request.Header = header(i)
+			response, err := transport.RoundTrip(request)
+			if !assert.NoError(t, err) {
+				return
+			}
+			_, _ = io.Copy(io.Discard, response.Body)
+			_ = response.Body.Close()
+		})
+	}
+	requests.Wait()
+	return hits.Load()
+}
+
+func TestCoalescingIgnoresPerRequestProxyHeaders(t *testing.T) {
+	hits := countCoalescedHits(t, func(i int) http.Header {
+		id := strings.Repeat("a", i+1)
+		header := http.Header{"Accept-Language": {"en"}}
+		for _, name := range []string{RequestIDHeader, "X-Forwarded-For", "traceparent", "tracestate"} {
+			header.Set(name, id)
+		}
+		return header
+	})
+	assert.Less(t, hits, int32(10))
+}
+
+func TestCoalescingKeepsDifferentClientHeadersSeparate(t *testing.T) {
+	hits := countCoalescedHits(t, func(i int) http.Header {
+		return http.Header{"Accept-Language": {strings.Repeat("a", i+1)}}
+	})
+	assert.EqualValues(t, 10, hits)
 }

@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/fabiocicerchia/go-proxy-cache/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
@@ -64,7 +63,11 @@ func (c coalescingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 		return c.RoundTripper.RoundTrip(req)
 	}
 
-	headers, err := json.Marshal(req.Header)
+	keyHeaders := req.Header.Clone()
+	for _, name := range perRequestHeaders {
+		keyHeaders.Del(name)
+	}
+	headers, err := json.Marshal(keyHeaders)
 	if err != nil {
 		return c.RoundTripper.RoundTrip(req)
 	}
@@ -126,13 +129,11 @@ type prefixedBody struct {
 	io.Closer
 }
 
+// perRequestHeaders - Set by ProxyDirector with a fresh value on every request;
+// keying on them would mean no two requests ever coalesce.
+var perRequestHeaders = []string{RequestIDHeader, "X-Forwarded-For", "Traceparent", "Tracestate"}
+
 func variesOnEverything(headers http.Header) bool {
-	for _, value := range headers.Values("Vary") {
-		for _, member := range strings.Split(value, ",") {
-			if strings.TrimSpace(member) == "*" {
-				return true
-			}
-		}
-	}
-	return false
+	_, err := cache.GetVary(headers)
+	return err != nil
 }
