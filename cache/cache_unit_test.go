@@ -182,3 +182,18 @@ func TestStoreFullPageBypassesCacheForAuthorizedRequest(t *testing.T) {
 	assert.False(t, stored)
 	assert.NoError(t, err)
 }
+
+func TestGetVaryReadsEveryHeaderValue(t *testing.T) {
+	vary, err := cache.GetVary(http.Header{"Vary": {"Accept-Encoding", " X-Tenant ,Origin"}})
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"Accept-Encoding", "X-Tenant", "Origin"}, vary)
+
+	vary, err = cache.GetVary(http.Header{})
+	assert.NoError(t, err)
+	assert.Empty(t, vary)
+
+	for _, values := range [][]string{{"*"}, {"Accept-Encoding, *"}, {"Accept-Encoding", "*"}} {
+		_, err = cache.GetVary(http.Header{"Vary": values})
+		assert.Error(t, err, values)
+	}
+}

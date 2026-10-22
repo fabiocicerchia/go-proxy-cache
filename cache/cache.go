@@ -409,24 +409,20 @@ func StoreMetadata(ctx context.Context, domainID string, method string, url url.
 	return true, nil
 }
 
-// GetVary - Returns the content from the Vary HTTP header.
+// GetVary - Returns the members of every Vary header; a "*" member anywhere
+// means the response can never be matched, so errVaryWildcard is returned.
 func GetVary(headers http.Header) ([]string, error) {
-	vary := headers.Get("Vary")
-
-	if vary == "*" {
-		return []string{}, errVaryWildcard
-	}
-
-	// An absent Vary header must yield an empty slice; strings.Split("", ",")
-	// returns [""], which forced a needless header-checksum computation on every
-	// cacheable response without a Vary header.
-	if vary == "" {
-		return []string{}, nil
-	}
-
-	varyList := strings.Split(vary, ",")
-	for k, v := range varyList {
-		varyList[k] = strings.Trim(v, " ")
+	varyList := []string{}
+	for _, value := range headers.Values("Vary") {
+		for _, member := range strings.Split(value, ",") {
+			member = strings.TrimSpace(member)
+			if member == "*" {
+				return []string{}, errVaryWildcard
+			}
+			if member != "" {
+				varyList = append(varyList, member)
+			}
+		}
 	}
 
 	return varyList, nil
