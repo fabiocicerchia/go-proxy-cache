@@ -29,7 +29,7 @@ var verboseFlag bool
 var testFlag bool
 
 // AppVersion - The go-proxy-cache's version.
-const AppVersion = "1.5.0"
+const AppVersion = "1.6.0"
 
 // GitCommit - The go-proxy-cache's git commit reference.
 const GitCommit = "NA"
