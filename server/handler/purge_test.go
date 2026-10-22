@@ -36,6 +36,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
+			Purge: config.Purge{Secret: "test-only-purge-key"},
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
 				Scheme:    "https",
@@ -63,6 +64,7 @@ func TestEndToEndCallPurgeDoNothing(t *testing.T) {
 	// --- PURGE
 
 	req, err := http.NewRequest("PURGE", "/", nil)
+	req.Header.Set(config.DefaultPurgeSecretHeader, "test-only-purge-key")
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
@@ -90,6 +92,7 @@ func TestEndToEndCallPurgeWithRedisDown(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
+			Purge: config.Purge{Secret: "test-only-purge-key"},
 			Upstream: config.Upstream{
 				Host:      "purge-redis-down.example",
 				Scheme:    "https",
@@ -114,6 +117,7 @@ func TestEndToEndCallPurgeWithRedisDown(t *testing.T) {
 	engine.InitConn(domainID, config.Config.Cache, log.StandardLogger())
 
 	req, err := http.NewRequest("PURGE", "/", nil)
+	req.Header.Set(config.DefaultPurgeSecretHeader, "test-only-purge-key")
 	assert.Nil(t, err)
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
@@ -131,6 +135,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
+			Purge: config.Purge{Secret: "test-only-purge-key"},
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
 				Scheme:    "https",
@@ -209,6 +214,7 @@ func TestEndToEndCallPurge(t *testing.T) {
 	// --- PURGE
 
 	req, err = http.NewRequest("PURGE", "/", nil)
+	req.Header.Set(config.DefaultPurgeSecretHeader, "test-only-purge-key")
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
