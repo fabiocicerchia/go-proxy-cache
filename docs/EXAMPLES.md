@@ -7,7 +7,7 @@ In the folder `test/full-setup` there is complete working environment in Docker:
 - GoProxyCache
 - Redis
 - Nginx (for upstream)
-- NodeJS (for ws/wss server)
+- Node.js (for ws/wss server)
 - Jaeger (for OpenTelemetry)
 - Prometheus (for pulling metrics)
 - Grafana (for visualising metrics)
