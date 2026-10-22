@@ -14,6 +14,8 @@ server:
     write: 5s
     idle: 20s
     handler: -1
+  purge:
+    secret: test-only-purge-key
 
   upstream:
     health_check:

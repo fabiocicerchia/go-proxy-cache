@@ -101,31 +101,22 @@ func (u URIObj) IsPartialContent() bool {
 	return u.StatusCode == http.StatusPartialContent || u.ResponseHeaders.Get("Content-Range") != ""
 }
 
-// IsStorableBySharedCache - Checks whether a shared cache may store the
-// response at all (RFC 9111 §3), whatever TTL it would otherwise get (this
-// also covers the negative TTL override):
-//   - no-store, private (incl. private="...") and no-cache forbid it, see
-//     ttl.ForbidsStoring;
-//   - a response to a request carrying Authorization is only storable when
-//     the response explicitly allows it with public, s-maxage or
-//     must-revalidate (RFC 9111 §3.5).
 func (u URIObj) IsStorableBySharedCache() bool {
-	directives := ttl.ParseCacheControl(u.ResponseHeaders)
-	if ttl.ForbidsStoring(directives) {
+	if u.BypassesSharedCache() || len(u.ResponseHeaders.Values("Set-Cookie")) > 0 {
 		return false
 	}
+	directives := ttl.ParseCacheControl(u.ResponseHeaders)
+	return !ttl.ForbidsStoring(directives)
+}
 
-	if u.RequestHeaders.Get("Authorization") == "" {
+func (u URIObj) BypassesSharedCache() bool {
+	if len(u.RequestHeaders.Values("Authorization")) > 0 || len(u.RequestHeaders.Values("Cookie")) > 0 {
 		return true
 	}
-
-	for _, name := range []string{"public", "s-maxage", "must-revalidate"} {
-		if _, ok := directives[name]; ok {
-			return true
-		}
-	}
-
-	return false
+	directives := ttl.ParseCacheControl(u.RequestHeaders)
+	_, noCache := directives["no-cache"]
+	_, noStore := directives["no-store"]
+	return noCache || noStore || u.HasRangeRequest()
 }
 
 func getRandomSoftExpirationTTL() time.Duration {
@@ -146,9 +137,7 @@ func (u URIObj) GetHeadersChecksum(meta []string) string {
 	}
 
 	for _, k := range meta {
-		if val, ok := u.RequestHeaders[k]; ok {
-			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
-		}
+		key = append(key, http.CanonicalHeaderKey(k)+"="+strings.Join(u.RequestHeaders.Values(k), utils.StringSeparatorTwo))
 	}
 
 	data, err := json.Marshal(key)
@@ -244,7 +233,7 @@ func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bo
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
 func (c *Object) RetrieveFullPage() error {
-	if c.CurrentURIObject.HasRangeRequest() {
+	if c.CurrentURIObject.BypassesSharedCache() {
 		return ErrEmptyValue
 	}
 
@@ -420,24 +409,20 @@ func StoreMetadata(ctx context.Context, domainID string, method string, url url.
 	return true, nil
 }
 
-// GetVary - Returns the content from the Vary HTTP header.
+// GetVary - Returns the members of every Vary header; a "*" member anywhere
+// means the response can never be matched, so errVaryWildcard is returned.
 func GetVary(headers http.Header) ([]string, error) {
-	vary := headers.Get("Vary")
-
-	if vary == "*" {
-		return []string{}, errVaryWildcard
-	}
-
-	// An absent Vary header must yield an empty slice; strings.Split("", ",")
-	// returns [""], which forced a needless header-checksum computation on every
-	// cacheable response without a Vary header.
-	if vary == "" {
-		return []string{}, nil
-	}
-
-	varyList := strings.Split(vary, ",")
-	for k, v := range varyList {
-		varyList[k] = strings.Trim(v, " ")
+	varyList := []string{}
+	for _, value := range headers.Values("Vary") {
+		for _, member := range strings.Split(value, ",") {
+			member = strings.TrimSpace(member)
+			if member == "*" {
+				return []string{}, errVaryWildcard
+			}
+			if member != "" {
+				varyList = append(varyList, member)
+			}
+		}
 	}
 
 	return varyList, nil
