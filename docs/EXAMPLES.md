@@ -75,6 +75,9 @@ curl -H"Host: www.google.com" -v http://127.0.0.1:8080/
 
 ## PURGE
 
+PURGE is denied unless `server.purge.allowed_ips` or `server.purge.secret` is
+configured; send the secret in `X-Go-Proxy-Cache-Purge-Key`.
+
 ```concole
 $ curl -vX PURGE http://localhost/cached/page
 *   Trying 127.0.0.1...
