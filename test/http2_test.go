@@ -92,6 +92,7 @@ func TestHTTP2ClientCallToMissingDomain(t *testing.T) {
 func tearDownHttp2() {
 	req, _ := http.NewRequest("PURGE", "https://testing.local:50443/", nil)
 	req.Host = "www.w3.org"
+	req.Header.Set("X-Go-Proxy-Cache-Purge-Key", "test-only-purge-key")
 	client := &http.Client{
 		Transport: &http2.Transport{
 			TLSClientConfig: &tls.Config{
