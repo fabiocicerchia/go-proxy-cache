@@ -101,31 +101,22 @@ func (u URIObj) IsPartialContent() bool {
 	return u.StatusCode == http.StatusPartialContent || u.ResponseHeaders.Get("Content-Range") != ""
 }
 
-// IsStorableBySharedCache - Checks whether a shared cache may store the
-// response at all (RFC 9111 §3), whatever TTL it would otherwise get (this
-// also covers the negative TTL override):
-//   - no-store, private (incl. private="...") and no-cache forbid it, see
-//     ttl.ForbidsStoring;
-//   - a response to a request carrying Authorization is only storable when
-//     the response explicitly allows it with public, s-maxage or
-//     must-revalidate (RFC 9111 §3.5).
 func (u URIObj) IsStorableBySharedCache() bool {
-	directives := ttl.ParseCacheControl(u.ResponseHeaders)
-	if ttl.ForbidsStoring(directives) {
+	if u.BypassesSharedCache() || len(u.ResponseHeaders.Values("Set-Cookie")) > 0 {
 		return false
 	}
+	directives := ttl.ParseCacheControl(u.ResponseHeaders)
+	return !ttl.ForbidsStoring(directives)
+}
 
-	if u.RequestHeaders.Get("Authorization") == "" {
+func (u URIObj) BypassesSharedCache() bool {
+	if u.RequestHeaders.Get("Authorization") != "" || u.RequestHeaders.Get("Cookie") != "" {
 		return true
 	}
-
-	for _, name := range []string{"public", "s-maxage", "must-revalidate"} {
-		if _, ok := directives[name]; ok {
-			return true
-		}
-	}
-
-	return false
+	directives := ttl.ParseCacheControl(u.RequestHeaders)
+	_, noCache := directives["no-cache"]
+	_, noStore := directives["no-store"]
+	return noCache || noStore || u.HasRangeRequest()
 }
 
 func getRandomSoftExpirationTTL() time.Duration {
@@ -146,9 +137,7 @@ func (u URIObj) GetHeadersChecksum(meta []string) string {
 	}
 
 	for _, k := range meta {
-		if val, ok := u.RequestHeaders[k]; ok {
-			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
-		}
+		key = append(key, http.CanonicalHeaderKey(k)+"="+strings.Join(u.RequestHeaders.Values(k), utils.StringSeparatorTwo))
 	}
 
 	data, err := json.Marshal(key)
@@ -244,7 +233,7 @@ func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bo
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
 func (c *Object) RetrieveFullPage() error {
-	if c.CurrentURIObject.HasRangeRequest() {
+	if c.CurrentURIObject.BypassesSharedCache() {
 		return ErrEmptyValue
 	}
 

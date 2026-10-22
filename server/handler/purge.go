@@ -26,9 +26,12 @@ import (
 
 // isPurgeAuthorized - Checks whether a PURGE request is allowed based on the
 // configured access controls (IP allowlist and/or shared secret). When neither is
-// configured PURGE is unrestricted; when both are configured both must pass.
+// configured PURGE is denied; when both are configured both must pass.
 func (rc RequestCall) isPurgeAuthorized() bool {
 	purge := rc.DomainConfig.Server.Purge
+	if purge.Secret == "" && len(purge.AllowedIPs) == 0 {
+		return false
+	}
 
 	if purge.Secret != "" {
 		header := purge.SecretHeader

@@ -11,9 +11,14 @@ package handler
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/fabiocicerchia/go-proxy-cache/cache"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 	"golang.org/x/sync/singleflight"
 )
 
@@ -25,21 +30,17 @@ var reverseProxyGroup singleflight.Group
 // coalescedResponse - Buffered upstream response shared across all callers
 // waiting on the same singleflight key.
 type coalescedResponse struct {
-	resp *http.Response
-	body []byte
+	resp  *http.Response
+	body  []byte
+	share bool
 }
 
 // coalescingRoundTripper - http.RoundTripper decorator that collapses
 // concurrent GET/HEAD requests for the same URL into a single upstream
-// round-trip. Only GET/HEAD are coalesced: they're safe to share across
-// callers, unlike POST/PURGE which carry per-caller semantics/bodies.
-//
-// ponytail: keyed on method+URL only, not Vary-aware (matches how the
-// upstream response's Vary headers aren't known until after the fetch).
-// Upgrade to a Vary-aware key if a coalesced backend actually varies
-// per-request in a way that matters.
+// round-trip.
 type coalescingRoundTripper struct {
 	http.RoundTripper
+	scope string
 }
 
 // proxyTransport - Returns the transport for the reverse proxy, wrapped in the
@@ -47,7 +48,7 @@ type coalescingRoundTripper struct {
 // (feature flag, off by default).
 func (rc RequestCall) proxyTransport() http.RoundTripper {
 	if rc.DomainConfig.Server.Upstream.CollapsedForwarding {
-		return coalescingRoundTripper{rc.patchProxyTransport()}
+		return coalescingRoundTripper{RoundTripper: rc.patchProxyTransport(), scope: rc.DomainConfig.Server.Upstream.GetDomainID()}
 	}
 
 	return rc.patchProxyTransport()
@@ -57,28 +58,55 @@ func (c coalescingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	if req.Method != http.MethodGet && req.Method != http.MethodHead {
 		return c.RoundTripper.RoundTrip(req)
 	}
+	uri := cache.URIObj{RequestHeaders: req.Header}
+	if uri.BypassesSharedCache() {
+		return c.RoundTripper.RoundTrip(req)
+	}
 
-	key := req.Method + " " + req.URL.String()
+	headers, err := json.Marshal(req.Header)
+	if err != nil {
+		return c.RoundTripper.RoundTrip(req)
+	}
+	key := fmt.Sprintf("%s %p %s %s %s %x", c.scope, c.RoundTripper, req.Method, req.URL.String(), req.Host, sha256.Sum256(headers))
+	leader := false
 
 	v, err, _ := reverseProxyGroup.Do(key, func() (interface{}, error) {
+		leader = true
 		resp, err := c.RoundTripper.RoundTrip(req)
 		if err != nil {
 			return nil, err
 		}
-
-		body, err := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		if err != nil {
-			return nil, err
+		uri.ResponseHeaders = resp.Header
+		directives := ttl.ParseCacheControl(resp.Header)
+		_, public := directives["public"]
+		if !public || !uri.IsStorableBySharedCache() || resp.Header.Get("Vary") == "*" || resp.StatusCode != http.StatusOK {
+			return &coalescedResponse{resp: resp}, nil
 		}
 
-		return &coalescedResponse{resp: resp, body: body}, nil
+		body, err := io.ReadAll(io.LimitReader(resp.Body, (1<<20)+1))
+		if err != nil {
+			_ = resp.Body.Close()
+			return nil, err
+		}
+		if len(body) > 1<<20 {
+			resp.Body = &prefixedBody{Reader: io.MultiReader(bytes.NewReader(body), resp.Body), Closer: resp.Body}
+			return &coalescedResponse{resp: resp}, nil
+		}
+		_ = resp.Body.Close()
+
+		return &coalescedResponse{resp: resp, body: body, share: true}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	cr := v.(*coalescedResponse)
+	if !cr.share {
+		if leader {
+			return cr.resp, nil
+		}
+		return c.RoundTripper.RoundTrip(req)
+	}
 
 	// Each waiter gets its own *http.Response/body/header, so downstream
 	// per-request logic (ETag, gzip, cache storage) can freely read/mutate
@@ -90,4 +118,9 @@ func (c coalescingRoundTripper) RoundTrip(req *http.Request) (*http.Response, er
 	respCopy.ContentLength = int64(len(cr.body))
 
 	return &respCopy, nil
+}
+
+type prefixedBody struct {
+	io.Reader
+	io.Closer
 }

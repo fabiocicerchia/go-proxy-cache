@@ -82,7 +82,7 @@ type Server struct {
 }
 
 // Purge - Defines access control for PURGE requests.
-// When both AllowedIPs and Secret are empty, PURGE is unrestricted (backward
+// When both AllowedIPs and Secret are empty, PURGE is denied (secure
 // compatible). When either is set, a PURGE request must satisfy every configured
 // check to be authorized.
 type Purge struct {
