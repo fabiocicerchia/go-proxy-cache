@@ -296,9 +296,8 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 }
 
 func (s *Servers) startListeners() {
-	for port, srvHTTP := range s.HTTP {
-		srvHTTP.HttpSrv.Addr = ":" + port
-		srvHTTP.Listener = s.listen(port)
+	for _, srvHTTP := range s.HTTP {
+		srvHTTP.Listener = s.listen(srvHTTP.HttpSrv.Addr)
 		srvHTTP.HttpSrv.ConnState = s.conns.track
 
 		go func(srv *http.Server, ln net.Listener) {
@@ -310,9 +309,8 @@ func (s *Servers) startListeners() {
 		}(srvHTTP.HttpSrv, srvHTTP.Listener)
 	}
 
-	for port, srvHTTPS := range s.HTTPS {
-		srvHTTPS.HttpSrv.Addr = ":" + port
-		srvHTTPS.Listener = s.listen(port)
+	for _, srvHTTPS := range s.HTTPS {
+		srvHTTPS.Listener = s.listen(srvHTTPS.HttpSrv.Addr)
 		srvHTTPS.HttpSrv.ConnState = s.conns.track
 
 		go func(srv *http.Server, ln net.Listener) {
@@ -329,8 +327,13 @@ func (s *Servers) startListeners() {
 	s.inherited = nil
 }
 
-// listen - Returns the inherited listener for the port, or binds a new one.
-func (s *Servers) listen(port string) net.Listener {
+// listen - Returns the inherited listener for the address's port, or binds the address.
+func (s *Servers) listen(addr string) net.Listener {
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		logger.GetGlobal().Fatal(err)
+	}
+
 	if ln, ok := s.inherited[port]; ok {
 		delete(s.inherited, port)
 		logger.GetGlobal().Infof("Using the inherited listener on port %s", port)
@@ -338,7 +341,7 @@ func (s *Servers) listen(port string) net.Listener {
 		return ln
 	}
 
-	ln, err := net.Listen("tcp", ":"+port)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		logger.GetGlobal().Fatal(err)
 	}

@@ -76,7 +76,7 @@ func TestHelperProcess(t *testing.T) {
 	})
 
 	port := os.Getenv("GPC_TEST_PORT")
-	s := &Servers{HTTP: map[string]*Server{port: {HttpSrv: &http.Server{Handler: mux}}}, inherited: inherited}
+	s := &Servers{HTTP: map[string]*Server{port: {HttpSrv: &http.Server{Addr: "127.0.0.1:" + port, Handler: mux}}}, inherited: inherited}
 	s.startListeners()
 	s.waitForSignal(context.Background(), 5*time.Second)
 }
@@ -133,7 +133,7 @@ func TestShutdownDrainsInFlightRequests(t *testing.T) {
 	})
 
 	s := &Servers{
-		HTTP:      map[string]*Server{port: {HttpSrv: &http.Server{Handler: handler}}},
+		HTTP:      map[string]*Server{port: {HttpSrv: &http.Server{Addr: "127.0.0.1:" + port, Handler: handler}}},
 		inherited: map[string]net.Listener{port: ln},
 	}
 	s.startListeners()
@@ -159,4 +159,30 @@ func TestShutdownDrainsInFlightRequests(t *testing.T) {
 	close(release)
 	assert.Equal(t, "done", <-res)
 	<-done
+}
+
+func TestInternalsListenOnTheConfiguredAddress(t *testing.T) {
+	ln, port := listenLocal(t)
+	_ = ln.Close()
+
+	s := &Servers{HTTP: map[string]*Server{}}
+	require.NoError(t, s.AttachInternals("127.0.0.1", port, &http.Server{}))
+	s.startListeners()
+	defer s.shutdownServers(context.Background())
+
+	assert.Equal(t, "127.0.0.1:"+port, s.HTTP["127.0.0.1:"+port].Listener.Addr().String())
+}
+
+func TestInternalsReuseTheInheritedListener(t *testing.T) {
+	ln, port := listenLocal(t)
+
+	s := &Servers{HTTP: map[string]*Server{}, inherited: map[string]net.Listener{port: ln}}
+	require.NoError(t, s.AttachInternals("127.0.0.1", port, &http.Server{Handler: http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) { _, _ = io.WriteString(w, "internals") },
+	)}))
+	s.startListeners()
+	defer s.shutdownServers(context.Background())
+
+	assert.Same(t, ln, s.HTTP["127.0.0.1:"+port].Listener)
+	assert.Equal(t, "internals", get(t, "http://"+ln.Addr().String()+"/"))
 }
