@@ -63,6 +63,10 @@ func DomainConf(domain string, scheme string) (Configuration, bool) {
 // domains). Access is guarded by domainsCacheMu since DomainConf runs on the
 // request path and is invoked concurrently.
 func (c *Configuration) DomainConf(domain string, scheme string) (Configuration, bool) {
+	// Key on the same port-stripped host used for the lookup: domain is the
+	// client-supplied Host header, and keying on it raw let every distinct
+	// "host:<anything>" add a new entry (unbounded memory growth).
+	domain = utils.StripPort(domain)
 	keyCache := fmt.Sprintf("%s%s%s", domain, utils.StringSeparatorOne, scheme)
 
 	domainsCacheMu.RLock()
@@ -75,7 +79,7 @@ func (c *Configuration) DomainConf(domain string, scheme string) (Configuration,
 	}
 	domainsCacheMu.RUnlock()
 
-	conf, found := c.domainConfLookup(utils.StripPort(domain), scheme)
+	conf, found := c.domainConfLookup(domain, scheme)
 
 	// Only cache positive lookups. Caching a miss would store a zero-value
 	// Configuration that a later call would return as a hit (found == true).
