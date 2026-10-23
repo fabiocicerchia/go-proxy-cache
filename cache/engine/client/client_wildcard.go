@@ -94,13 +94,14 @@ func (rdb *RedisClient) deleteKeys(ctx context.Context, keyID string, keys []str
 
 func (rdb *RedisClient) doDeleteKeys(ctx context.Context, keyID string, keys []string) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, keyID); errLock != nil {
+		mutex, errLock := rdb.lock(ctx, keyID)
+		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Del(ctx, keys...).Err()
 
-		if errUnlock := rdb.unlock(ctx, keyID); errUnlock != nil {
+		if errUnlock := rdb.unlock(ctx, keyID, mutex); errUnlock != nil {
 			return nil, errUnlock
 		}
 
@@ -113,11 +114,12 @@ func (rdb *RedisClient) doDeleteNodeKeys(ctx context.Context, keys []string) fun
 		var removingError error
 
 		for _, currentKey := range keys {
-			if errLock := rdb.lock(ctx, currentKey); errLock != nil {
+			mutex, errLock := rdb.lock(ctx, currentKey)
+			if errLock != nil {
 				return nil, errLock
 			}
 			removingError = rdb.Client.Del(ctx, currentKey).Err()
-			if errUnlock := rdb.unlock(ctx, currentKey); errUnlock != nil {
+			if errUnlock := rdb.unlock(ctx, currentKey, mutex); errUnlock != nil {
 				return nil, errUnlock
 			}
 		}

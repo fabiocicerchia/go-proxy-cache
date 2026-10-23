@@ -49,7 +49,6 @@ type RedisClient struct {
 	Client  goredislib.UniversalClient
 	Redsync *redsync.Redsync
 	Name    string
-	Mutex   map[string]*redsync.Mutex
 	logger  *log.Logger
 }
 
@@ -68,7 +67,6 @@ func Connect(connName string, config config.Cache, logger *log.Logger) *RedisCli
 		Name:    connName,
 		Client:  client,
 		Redsync: rs,
-		Mutex:   make(map[string]*redsync.Mutex),
 		logger:  logger,
 	}
 
@@ -100,31 +98,30 @@ func (rdb *RedisClient) Close() error {
 	return rdb.Client.Close()
 }
 
-func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
-	mutexname := fmt.Sprintf("mutex-%s-%s", rdb.Name, key)
-	if _, ok := rdb.Mutex[mutexname]; !ok {
-		rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
-	}
-
-	return rdb.Mutex[mutexname]
-}
-
-func (rdb *RedisClient) lock(ctx context.Context, key string) error {
-	if err := rdb.getMutex(key).Lock(); err != nil {
+// lock - Acquires the distributed lock for a key. Each call gets its own
+// redsync.Mutex: it carries the lock token, so it must not be shared between
+// concurrent operations. Release it with unlock.
+func (rdb *RedisClient) lock(ctx context.Context, key string) (*redsync.Mutex, error) {
+	mutex := rdb.Redsync.NewMutex(fmt.Sprintf("mutex-%s-%s", rdb.Name, key))
+	if err := mutex.LockContext(ctx); err != nil {
 		escapedKey := utils.EscapeLogValue(key)
 		rdb.logger.Errorf("Lock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
 			"error": err.Error(),
 		})
-		return err
+		return nil, err
 	}
 
-	return nil
+	return mutex, nil
 }
 
-func (rdb *RedisClient) unlock(ctx context.Context, key string) error {
-	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
+func (rdb *RedisClient) unlock(ctx context.Context, key string, mutex *redsync.Mutex) error {
+	// Release even if the request was cancelled meanwhile, so the lock does not linger until expiry.
+	if ok, err := mutex.UnlockContext(context.WithoutCancel(ctx)); !ok || err != nil {
+		if err == nil {
+			err = redsync.ErrFailed
+		}
 		escapedKey := utils.EscapeLogValue(key)
 		rdb.logger.Errorf("Unlock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
@@ -180,13 +177,14 @@ func (rdb *RedisClient) Set(ctx context.Context, key string, value string, expir
 
 func (rdb *RedisClient) doSet(ctx context.Context, key string, value string, expiration time.Duration) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, key); errLock != nil {
+		mutex, errLock := rdb.lock(ctx, key)
+		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Set(ctx, key, value, expiration).Err()
 
-		if errUnlock := rdb.unlock(ctx, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(ctx, key, mutex); errUnlock != nil {
 			return nil, errUnlock
 		}
 
@@ -278,13 +276,14 @@ func (rdb *RedisClient) Push(ctx context.Context, key string, values []string) e
 
 func (rdb *RedisClient) doPushKey(ctx context.Context, key string, values []string) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, key); errLock != nil {
+		mutex, errLock := rdb.lock(ctx, key)
+		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.RPush(ctx, key, values).Err()
 
-		if errUnlock := rdb.unlock(ctx, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(ctx, key, mutex); errUnlock != nil {
 			return nil, errUnlock
 		}
 
