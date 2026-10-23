@@ -33,8 +33,8 @@ Name | Type | Description | Labels
 
 Name | Type | Description | Labels
 ----|----|----|----|
-`gpcee_http_request` | Counter | Distribution by Request. | `env`, `hostname`, `req_id`, `url`, `host`, `scheme`, `method`, `protocol`, `content_length` |
-`gpcee_http_response` | Counter | Distribution by Response. | `env`, `hostname`, `req_id`, `url`, `host`, `scheme`, `method`, `protocol`, `content_length` |
+`gpcee_http_request` | Counter | Distribution by Request. | `env`, `hostname`, `host`, `scheme`, `method`, `protocol` |
+`gpcee_http_response` | Counter | Distribution by Response. | `env`, `hostname`, `host`, `scheme`, `method`, `protocol`, `code`, `cached`, `stale` |
 `gpcee_http_requests_total` | Counter | Total http requests. | `env`, `hostname` |
 
 #### HTTP Upstreams

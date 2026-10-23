@@ -162,7 +162,7 @@ var (
 			Name:      "request",
 			Help:      "Distribution by Request",
 		},
-		[]string{"env", "hostname", "req_id", "url", "host", "scheme", "method", "protocol", "content_length"},
+		[]string{"env", "hostname", "host", "scheme", "method", "protocol"},
 	)
 	wholeResponse = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -171,7 +171,7 @@ var (
 			Name:      "response",
 			Help:      "Distribution by Response",
 		},
-		[]string{"env", "hostname", "req_id", "url", "host", "scheme", "method", "protocol", "code", "cached", "stale", "size", "duration"},
+		[]string{"env", "hostname", "host", "scheme", "method", "protocol", "code", "cached", "stale"},
 	)
 	gpceeHttpRequestsTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
