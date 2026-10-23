@@ -5,43 +5,60 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
+
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // EE Metrics ------------------------------------------------------------------
 
 // IncWholeRequest - Increments metrics for gpcee_http_request_total.
-func IncWholeRequest(reqID string, req http.Request, scheme string) {
+//
+// Labels are limited to values with a small, fixed set: anything per request
+// (request ID, URL, sizes, durations) would create a new series on every call
+// and leak the requested URLs through /metrics. The port is stripped from the
+// client-supplied Host header for the same reason.
+func IncWholeRequest(req http.Request, scheme string) {
+	host := utils.StripPort(req.Host)
+	method := boundedMethod(req.Method)
+
 	wholeRequest.With(baseLabels(prometheus.Labels{
-		"req_id":         reqID,
-		"url":            req.URL.String(),
-		"host":           req.Host,
-		"scheme":         scheme,
-		"method":         req.Method,
-		"protocol":       req.Proto,
-		"content_length": fmt.Sprintf("%d", req.ContentLength),
+		"host":     host,
+		"scheme":   scheme,
+		"method":   method,
+		"protocol": req.Proto,
 	})).Inc()
 
-	IncRequestHost(req.Host)
-	IncHttpMethod(req.Method)
+	IncRequestHost(host)
+	IncHttpMethod(method)
 	IncUrlScheme(scheme)
 	IncHttpRequestsTotal()
 }
 
 // IncWholeResponse - Increments metrics for gpcee_http_response_total.
-func IncWholeResponse(reqID string, req http.Request, statusCode int, size int, duration int64, scheme string, cached bool, stale bool) {
+// See IncWholeRequest for why the label set is kept bounded.
+func IncWholeResponse(req http.Request, statusCode int, scheme string, cached bool, stale bool) {
 	wholeResponse.With(baseLabels(prometheus.Labels{
-		"host":     req.Host,
-		"req_id":   reqID,
-		"url":      req.URL.String(),
+		"host":     utils.StripPort(req.Host),
 		"scheme":   scheme,
-		"method":   req.Method,
+		"method":   boundedMethod(req.Method),
 		"protocol": req.Proto,
 		"code":     fmt.Sprintf("%d", statusCode),
 		"cached":   fmt.Sprintf("%v", cached),
 		"stale":    fmt.Sprintf("%v", stale),
-		"size":     fmt.Sprintf("%d", size),
-		"duration": fmt.Sprintf("%d", duration),
 	})).Inc()
+}
+
+// boundedMethod - net/http accepts any token as a method, so anything outside
+// the standard set (plus PURGE) is folded into "OTHER" before it becomes a
+// label value.
+func boundedMethod(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,
+		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace, "PURGE":
+		return method
+	}
+
+	return "OTHER"
 }
 
 // SetBuildInfo - Set metrics for gpcee_build_info.
