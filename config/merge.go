@@ -140,6 +140,8 @@ func (c *Configuration) copyOverWithLog(overrides Log) {
 func (c *Configuration) copyOverWithJwt(overrides Jwt) {
 	c.Jwt.ExcludedPaths = utils.Coalesce(overrides.ExcludedPaths, c.Jwt.ExcludedPaths).([]string)
 	c.Jwt.AllowedScopes = utils.Coalesce(overrides.AllowedScopes, c.Jwt.AllowedScopes).([]string)
+	c.Jwt.Issuer = utils.Coalesce(overrides.Issuer, c.Jwt.Issuer).(string)
+	c.Jwt.Audience = utils.Coalesce(overrides.Audience, c.Jwt.Audience).(string)
 	c.Jwt.JwksUrl = utils.Coalesce(overrides.JwksUrl, c.Jwt.JwksUrl).(string)
 	c.Jwt.JwksRefreshInterval = utils.Coalesce(overrides.JwksRefreshInterval, c.Jwt.JwksRefreshInterval).(int)
 	c.Jwt.Context = context.Background()
