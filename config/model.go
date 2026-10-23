@@ -275,10 +275,16 @@ type DomainSet struct {
 
 // Jwt - Defines the config for the jwt validation.
 type Jwt struct {
-	ExcludedPaths       []string `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
-	AllowedScopes       []string `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
-	JwksUrl             string   `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
-	JwksRefreshInterval int      `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
+	ExcludedPaths []string `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
+	AllowedScopes []string `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
+	// Issuer - Expected value of the "iss" claim. When empty, the issuer is
+	// not verified and any token signed by a key in the JWKS is accepted.
+	Issuer string `yaml:"issuer" envconfig:"JWT_ISSUER"`
+	// Audience - Expected value of the "aud" claim. When empty, the audience
+	// is not verified and any token signed by a key in the JWKS is accepted.
+	Audience            string `yaml:"audience" envconfig:"JWT_AUDIENCE"`
+	JwksUrl             string `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
+	JwksRefreshInterval int    `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
 	JwkCache            *jwk.Cache
 	Context             context.Context
 	Logger              *logrus.Logger

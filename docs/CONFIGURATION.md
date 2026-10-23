@@ -409,6 +409,10 @@ tracing:
 #   allowed_scopes:
 #     - scope1
 #     - scope2
+#   # The expected issuer ("iss" claim). Empty disables the issuer check.
+#   issuer: ~
+#   # The expected audience ("aud" claim). Empty disables the audience check.
+#   audience: ~
 #   # The JSON Web Key Set (JWKS) URL where it is stored the the public keys used to verify the JSON Web Token (JWT).
 #   jwks_url: ~
 #   # Time in minutes that takes for JWKS to refresh automatically
