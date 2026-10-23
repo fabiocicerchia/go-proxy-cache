@@ -37,6 +37,9 @@ var DefaultTimeoutIdle time.Duration = 20 * time.Second
 // DefaultTimeoutHandler - Default value used for http.TimeoutHandler
 var DefaultTimeoutHandler time.Duration = 5 * time.Second
 
+// DefaultTimeoutShutdown - Default value for how long in-flight requests get to finish on SIGTERM/SIGHUP
+var DefaultTimeoutShutdown time.Duration = 5 * time.Second
+
 // DefaultCBThreshold - Default value used for circuitbreaker.CircuitBreaker.Threshold
 var DefaultCBThreshold uint32 = 2
 
@@ -188,6 +191,7 @@ type Timeout struct {
 	Write      time.Duration `yaml:"write" envconfig:"TIMEOUT_WRITE"`
 	Idle       time.Duration `yaml:"idle" envconfig:"TIMEOUT_IDLE"`
 	Handler    time.Duration `yaml:"handler" envconfig:"TIMEOUT_HANDLER"`
+	Shutdown   time.Duration `yaml:"shutdown" envconfig:"TIMEOUT_SHUTDOWN"`
 }
 
 // Cache - Defines the config for the cache backend.
@@ -332,6 +336,7 @@ var Config Configuration = Configuration{
 			Write:      DefaultTimeoutWrite,
 			Idle:       DefaultTimeoutIdle,
 			Handler:    DefaultTimeoutHandler,
+			Shutdown:   DefaultTimeoutShutdown,
 		},
 		Upstream: Upstream{
 			HTTP2HTTPS:         false,

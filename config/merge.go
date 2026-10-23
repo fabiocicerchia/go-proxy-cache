@@ -70,6 +70,7 @@ func (c *Configuration) copyOverWithTimeout(overrides Server) {
 	c.Server.Timeout.Write = utils.Coalesce(overrides.Timeout.Write, c.Server.Timeout.Write).(time.Duration)
 	c.Server.Timeout.Idle = utils.Coalesce(overrides.Timeout.Idle, c.Server.Timeout.Idle).(time.Duration)
 	c.Server.Timeout.Handler = utils.Coalesce(overrides.Timeout.Handler, c.Server.Timeout.Handler).(time.Duration)
+	c.Server.Timeout.Shutdown = utils.Coalesce(overrides.Timeout.Shutdown, c.Server.Timeout.Shutdown).(time.Duration)
 }
 
 // --- UPSTREAM.

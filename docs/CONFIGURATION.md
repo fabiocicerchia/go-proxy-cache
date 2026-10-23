@@ -37,6 +37,7 @@
 - `TIMEOUT_IDLE`
 - `TIMEOUT_READ_HEADER`
 - `TIMEOUT_READ`
+- `TIMEOUT_SHUTDOWN`
 - `TIMEOUT_WRITE`
 - `TLS_AUTO_CERT`
 - `TLS_CERT_FILE`
@@ -204,6 +205,9 @@ server:
     idle: 20s
     # It runs the handler with the given time limit.
     handler: 5s
+    # How long in-flight requests get to finish on SIGTERM or SIGHUP before the
+    # process exits (SIGTERM) or re-executes itself (SIGHUP).
+    shutdown: 5s
   # --- FORWARDING
   upstream:
     # Hostname to be used for requests forwarding.

@@ -11,6 +11,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -38,9 +39,6 @@ import (
 
 const enableTimeoutHandler = true
 
-// DefaultTimeoutShutdown - Default Timeout for shutting down a context.
-const DefaultTimeoutShutdown time.Duration = 5 * time.Second
-
 // normalizeTimeout - Returns a timeout ready to be used on an http.Server.
 // Timeout values are time.Durations (e.g. TIMEOUT_READ=5s, as documented in
 // .env.dist and config.yml.dist), so they must NOT be multiplied by
@@ -60,14 +58,19 @@ func normalizeTimeout(d time.Duration) time.Duration {
 
 // Server - Contains the core info about an HTTP server.
 type Server struct {
-	Domain  string
-	HttpSrv *http.Server
+	Domain   string
+	HttpSrv  *http.Server
+	Listener net.Listener
 }
 
 // Servers - Contains the HTTP/HTTPS servers.
 type Servers struct {
 	HTTP  map[string]*Server
 	HTTPS map[string]*Server
+
+	// inherited - Listening sockets handed to the process, by port (see listeners.go).
+	inherited map[string]net.Listener
+	conns     connStates
 }
 
 var servers *Servers
@@ -103,16 +106,22 @@ func Run(appVersion string, configFile string) {
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	}
 
+	inherited, err := inheritedListeners()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	// init servers
 	servers = &Servers{
-		HTTP:  make(map[string]*Server),
-		HTTPS: make(map[string]*Server),
+		HTTP:      make(map[string]*Server),
+		HTTPS:     make(map[string]*Server),
+		inherited: inherited,
 	}
 
 	for _, domain := range config.GetDomains() {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
-	err := servers.AttachInternals(
+	err = servers.AttachInternals(
 		config.Config.Server.Internals.ListeningAddress,
 		config.Config.Server.Internals.ListeningPort,
 		InitInternals(),
@@ -126,21 +135,38 @@ func Run(appVersion string, configFile string) {
 
 	log.Infof("Waiting for incoming connections...\n")
 
-	// Wait for an interrupt
+	servers.waitForSignal(ctx, normalizeTimeout(config.Config.Server.Timeout.Shutdown))
+}
+
+// waitForSignal - Blocks until SIGINT/SIGTERM (drain, then return) or SIGHUP
+// (drain, then re-execute in place, keeping the listening sockets).
+func (s *Servers) waitForSignal(ctx context.Context, drain time.Duration) {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
+	sig := <-c
 
-	log.Error("SIGTERM or SIGINT caught, shutting down...")
+	// Taken before the drain, which closes the listeners: these copies keep the
+	// sockets open, so connections queue in the kernel instead of being refused.
+	var files []*os.File
+	if sig == syscall.SIGHUP {
+		var err error
+		if files, err = s.listenerFiles(); err != nil {
+			logger.GetGlobal().Errorf("Cannot hand the listeners over, exiting instead: %s", err)
+		}
+	}
 
-	// Attempt a graceful shutdown
-	ctxDown, cancel := context.WithTimeout(ctx, DefaultTimeoutShutdown)
+	logger.GetGlobal().Errorf("%s caught, draining in-flight requests for up to %s...", sig, drain)
+
+	ctxDown, cancel := context.WithTimeout(ctx, drain)
 	defer cancel()
 
-	log.Error("Shutting down servers...")
-	servers.shutdownServers(ctxDown)
+	s.shutdownServers(ctxDown)
 
-	log.Error("All listeners shut down. Exiting.")
+	if files != nil {
+		logger.GetGlobal().Fatalf("Cannot re-execute: %s", reexec(files))
+	}
+
+	logger.GetGlobal().Error("All listeners shut down. Exiting.")
 }
 
 // InitInternals - Generates the internals endpoints (not exposed on public ports :80 :443).
@@ -269,40 +295,86 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 	balancer.Init(domainID, domainConfig.Server.Upstream)
 }
 
-func (s Servers) startListeners() {
+func (s *Servers) startListeners() {
 	for _, srvHTTP := range s.HTTP {
-		go func(srv *http.Server) {
-			// ErrServerClosed is returned on graceful Shutdown and must not
-			// kill the process (Fatal calls os.Exit and skips the drain).
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		srvHTTP.Listener = s.listen(srvHTTP.HttpSrv.Addr)
+		srvHTTP.HttpSrv.ConnState = s.conns.track
+
+		go func(srv *http.Server, ln net.Listener) {
+			// ErrServerClosed/ErrClosed are returned on graceful shutdown and must
+			// not kill the process (Fatal calls os.Exit and skips the drain).
+			if err := srv.Serve(ln); !isClosed(err) {
 				logger.GetGlobal().Fatal(err)
 			}
-		}(srvHTTP.HttpSrv)
+		}(srvHTTP.HttpSrv, srvHTTP.Listener)
 	}
 
 	for _, srvHTTPS := range s.HTTPS {
-		go func(srv *http.Server) {
-			if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+		srvHTTPS.Listener = s.listen(srvHTTPS.HttpSrv.Addr)
+		srvHTTPS.HttpSrv.ConnState = s.conns.track
+
+		go func(srv *http.Server, ln net.Listener) {
+			if err := srv.ServeTLS(ln, "", ""); !isClosed(err) {
 				logger.GetGlobal().Fatal(err)
 			}
-		}(srvHTTPS.HttpSrv)
+		}(srvHTTPS.HttpSrv, srvHTTPS.Listener)
 	}
+
+	for port, ln := range s.inherited {
+		logger.GetGlobal().Warnf("Closing the inherited listener on port %s: no server is configured on it", port)
+		_ = ln.Close()
+	}
+	s.inherited = nil
 }
 
-func (s Servers) shutdownServers(ctx context.Context) {
-	// Log-and-continue: a Fatalf here would os.Exit on the first failing
-	// server and skip draining all the remaining listeners.
-	for k, v := range s.HTTP {
-		err := v.HttpSrv.Shutdown(ctx)
-		if err != nil {
-			logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
+// listen - Returns the inherited listener for the address's port, or binds the address.
+func (s *Servers) listen(addr string) net.Listener {
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		logger.GetGlobal().Fatal(err)
+	}
+
+	if ln, ok := s.inherited[port]; ok {
+		delete(s.inherited, port)
+		logger.GetGlobal().Infof("Using the inherited listener on port %s", port)
+
+		return ln
+	}
+
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		logger.GetGlobal().Fatal(err)
+	}
+
+	return ln
+}
+
+func isClosed(err error) bool {
+	return err == nil || errors.Is(err, http.ErrServerClosed) || errors.Is(err, net.ErrClosed)
+}
+
+// shutdownServers - Stops accepting, lets every request already accepted finish,
+// then shuts the servers down. Shutdown alone would drop a request on a
+// just-accepted connection that it reads after starting (net/http conn.serve).
+func (s *Servers) shutdownServers(ctx context.Context) {
+	for _, group := range []map[string]*Server{s.HTTP, s.HTTPS} {
+		for _, v := range group {
+			_ = v.Listener.Close()
+			v.HttpSrv.SetKeepAlivesEnabled(false) // closes idle conns, and the rest after their response
 		}
 	}
 
-	for k, v := range s.HTTPS {
-		err := v.HttpSrv.Shutdown(ctx)
-		if err != nil {
-			logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
+	for s.conns.busy() && ctx.Err() == nil {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	// Log-and-continue: a Fatalf here would os.Exit on the first failing
+	// server and skip draining all the remaining listeners.
+	for _, group := range []map[string]*Server{s.HTTP, s.HTTPS} {
+		for k, v := range group {
+			if err := v.HttpSrv.Shutdown(ctx); !isClosed(err) {
+				logger.GetGlobal().Errorf("Cannot shutdown server %s: %s", k, err)
+			}
 		}
 	}
 }
