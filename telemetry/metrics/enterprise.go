@@ -19,16 +19,17 @@ import (
 // client-supplied Host header for the same reason.
 func IncWholeRequest(req http.Request, scheme string) {
 	host := utils.StripPort(req.Host)
+	method := boundedMethod(req.Method)
 
 	wholeRequest.With(baseLabels(prometheus.Labels{
 		"host":     host,
 		"scheme":   scheme,
-		"method":   req.Method,
+		"method":   method,
 		"protocol": req.Proto,
 	})).Inc()
 
 	IncRequestHost(host)
-	IncHttpMethod(req.Method)
+	IncHttpMethod(method)
 	IncUrlScheme(scheme)
 	IncHttpRequestsTotal()
 }
@@ -39,12 +40,25 @@ func IncWholeResponse(req http.Request, statusCode int, scheme string, cached bo
 	wholeResponse.With(baseLabels(prometheus.Labels{
 		"host":     utils.StripPort(req.Host),
 		"scheme":   scheme,
-		"method":   req.Method,
+		"method":   boundedMethod(req.Method),
 		"protocol": req.Proto,
 		"code":     fmt.Sprintf("%d", statusCode),
 		"cached":   fmt.Sprintf("%v", cached),
 		"stale":    fmt.Sprintf("%v", stale),
 	})).Inc()
+}
+
+// boundedMethod - net/http accepts any token as a method, so anything outside
+// the standard set (plus PURGE) is folded into "OTHER" before it becomes a
+// label value.
+func boundedMethod(method string) string {
+	switch method {
+	case http.MethodGet, http.MethodHead, http.MethodPost, http.MethodPut, http.MethodPatch,
+		http.MethodDelete, http.MethodConnect, http.MethodOptions, http.MethodTrace, "PURGE":
+		return method
+	}
+
+	return "OTHER"
 }
 
 // SetBuildInfo - Set metrics for gpcee_build_info.

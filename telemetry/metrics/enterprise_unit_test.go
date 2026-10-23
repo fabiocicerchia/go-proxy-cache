@@ -22,7 +22,7 @@ func TestWholeRequestResponseSeriesAreBounded(t *testing.T) {
 
 	for i := 0; i < 50; i++ {
 		u, _ := url.Parse(fmt.Sprintf("/page/%d?token=secret%d", i, i))
-		req := http.Request{Method: "GET", URL: u, Host: fmt.Sprintf("example.com:%d", 1000+i), Proto: "HTTP/1.1", ContentLength: int64(i)}
+		req := http.Request{Method: fmt.Sprintf("FOO%d", i), URL: u, Host: fmt.Sprintf("example.com:%d", 1000+i), Proto: "HTTP/1.1", ContentLength: int64(i)}
 
 		IncWholeRequest(req, "https")
 		IncWholeResponse(req, 200, "https", true, false)
@@ -40,8 +40,11 @@ func TestWholeRequestResponseSeriesAreBounded(t *testing.T) {
 		for _, m := range mf.GetMetric() {
 			for _, l := range m.GetLabel() {
 				assert.NotContains(t, l.GetValue(), "secret", "%s{%s}", mf.GetName(), l.GetName())
-				if l.GetName() == "host" {
+				switch l.GetName() {
+				case "host":
 					assert.Equal(t, "example.com", l.GetValue())
+				case "method":
+					assert.Equal(t, "OTHER", l.GetValue())
 				}
 			}
 		}
