@@ -11,6 +11,8 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -110,11 +112,14 @@ func Run(appVersion string, configFile string) {
 	for _, domain := range config.GetDomains() {
 		servers.StartDomainServer(domain.Host, domain.Scheme)
 	}
-	servers.AttachPlain(
+	err := servers.AttachInternals(
 		config.Config.Server.Internals.ListeningAddress,
 		config.Config.Server.Internals.ListeningPort,
 		InitInternals(),
 	)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	// start server http & https
 	servers.startListeners()
@@ -190,7 +195,26 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 //	This means the last processed will override all the previous shared
 //	settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 func (s *Servers) AttachPlain(domain string, port string, server *http.Server) {
+	server.Addr = ":" + port
 	s.HTTP[port] = &Server{Domain: domain, HttpSrv: server}
+}
+
+// AttachInternals - Adds the internal (healthcheck/metrics) server, bound to
+// the configured address only. It is keyed by host:port so it can never
+// replace a public listener, and sharing a public port is rejected because
+// the internal endpoints would be either lost or exposed publicly.
+func (s *Servers) AttachInternals(address string, port string, server *http.Server) error {
+	if _, ok := s.HTTP[port]; ok {
+		return fmt.Errorf("internal listening port %s is already used by a public HTTP listener", port)
+	}
+	if _, ok := s.HTTPS[port]; ok {
+		return fmt.Errorf("internal listening port %s is already used by a public HTTPS listener", port)
+	}
+
+	server.Addr = net.JoinHostPort(address, port)
+	s.HTTP[server.Addr] = &Server{Domain: address, HttpSrv: server}
+
+	return nil
 }
 
 // AttachSecure - Adds a new HTTPS server in the listener container.
@@ -199,6 +223,7 @@ func (s *Servers) AttachPlain(domain string, port string, server *http.Server) {
 //	This means the last processed will override all the previous shared
 //	settings. THIS COULD LEAD TO CONFLICTS WHEN SHARING THE SAME PORT.
 func (s *Servers) AttachSecure(domain string, port string, server *http.Server) {
+	server.Addr = ":" + port
 	s.HTTPS[port] = &Server{Domain: domain, HttpSrv: server}
 }
 
@@ -245,9 +270,7 @@ func (s *Servers) StartDomainServer(domain string, scheme string) {
 }
 
 func (s Servers) startListeners() {
-	for port, srvHTTP := range s.HTTP {
-		srvHTTP.HttpSrv.Addr = ":" + port
-
+	for _, srvHTTP := range s.HTTP {
 		go func(srv *http.Server) {
 			// ErrServerClosed is returned on graceful Shutdown and must not
 			// kill the process (Fatal calls os.Exit and skips the drain).
@@ -257,9 +280,7 @@ func (s Servers) startListeners() {
 		}(srvHTTP.HttpSrv)
 	}
 
-	for port, srvHTTPS := range s.HTTPS {
-		srvHTTPS.HttpSrv.Addr = ":" + port
-
+	for _, srvHTTPS := range s.HTTPS {
 		go func(srv *http.Server) {
 			if err := srv.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
 				logger.GetGlobal().Fatal(err)

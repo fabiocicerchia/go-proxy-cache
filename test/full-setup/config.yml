@@ -5,6 +5,10 @@ server:
   port:
     http: "50080"
     https: "50443"
+  # Prometheus scrapes go-proxy-cache:52021 from another container and the
+  # port is published to the host, so the internals must not be loopback-only.
+  internals:
+    listening_address: "0.0.0.0"
   tls:
     cert_file: certs/default/server.pem
     key_file: certs/default/server.key

@@ -66,6 +66,8 @@ server:
   # --- INTERNALS
   internals:
     # Internal listening Address for metrics and healthchecks.
+    # Only this address is bound; use "0.0.0.0" to reach /metrics or
+    # /healthcheck from other hosts (e.g. Prometheus, pod-IP probes).
     # Default: 127.0.0.1
     listening_address: "127.0.0.1"
     # Internal listening port for metrics and healthchecks.
