@@ -128,7 +128,7 @@ services:
   # UPSTREAM 2 - NODEJS
   ##############################################################################
   node:
-    image: node:24-alpine3.24
+    image: node:26-alpine3.24
     restart: always
     command: "npm start"
     user: "1000:1000"
