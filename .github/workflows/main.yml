@@ -25,7 +25,7 @@ jobs:
     container: golang:alpine
     services:
       redis:
-        image: redis:6.2.5-alpine3.14
+        image: redis:8-alpine3.24
         ports:
           - 6379/tcp
         options: >-
