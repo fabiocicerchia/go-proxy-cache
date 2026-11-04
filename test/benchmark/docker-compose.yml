@@ -15,7 +15,7 @@ services:
       - ./server.key:/app/server.key
       - ./server.pem:/app/server.pem
   redis:
-    image: redis:6.0.8-alpine3.12
+    image: redis:8-alpine3.24
     ports:
       - 6379:6379
     sysctls:
