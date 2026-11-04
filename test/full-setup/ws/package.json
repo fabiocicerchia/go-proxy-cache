@@ -19,5 +19,8 @@
     "@opentelemetry/sdk-trace-base": "^2.9.0",
     "@opentelemetry/sdk-trace-web": "^2.9.0",
     "ws": "^8.21.0"
+  },
+  "overrides": {
+    "glob": "^14.0.2"
   }
 }
