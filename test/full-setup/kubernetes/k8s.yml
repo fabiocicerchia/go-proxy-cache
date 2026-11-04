@@ -120,7 +120,7 @@ spec:
         meta.service: nginx
     spec:
       containers:
-      - image: nginx:1.19.5-alpine
+      - image: nginx:1.31-alpine
         name: nginx
         ports:
         - containerPort: 40080
@@ -301,7 +301,7 @@ data:
 #       - name: redis
 #         image: redis:6.0.8-alpine3.12
 #       - name: nginx
-#         image: nginx:1.19.5-alpine
+#         image: nginx:1.31-alpine
 #         volumeMounts:
 #           - name: certs-files
 #             mountPath: /certs/server.key

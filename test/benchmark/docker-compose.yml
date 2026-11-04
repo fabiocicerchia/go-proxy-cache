@@ -21,7 +21,7 @@ services:
     sysctls:
       net.core.somaxconn: 1024
   nginx:
-    image: nginx:1.19.5-alpine
+    image: nginx:1.31-alpine
     restart: always
     ports:
       - "81:80"
