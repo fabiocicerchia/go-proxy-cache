@@ -43,6 +43,10 @@ jobs:
           github-token: ${{ github.token }}
 
       - name: Post to boneyard
+        # Telemetry, not a check: the scan itself ran in the depwatch step, and
+        # boneyard (an external service) being down or BONEYARD_TOKEN being
+        # unset is not this repository's problem. Drop this once a failed
+        # record should block the scheduled run.
         continue-on-error: true
         env:
           TOKEN: ${{ secrets.BONEYARD_TOKEN }}
