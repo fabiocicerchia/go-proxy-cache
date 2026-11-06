@@ -40,7 +40,7 @@ Two commercial versions have been planned: [PRO and PREMIUM](https://kodebeat.co
 The development of the COMMUNITY version will continue, but priority will be given to the [COMMERCIAL versions](https://kodebeat.com/goproxycache.html).
 
 - If you'd like to support this open-source project I'll appreciate any kind of [contribution](https://github.com/sponsors/fabiocicerchia).
-- If you'd like to sponsor the commercial version, please [get in touch with me](mail:info@fabiocicerchia.it).
+- If you'd like to sponsor the commercial version, please [get in touch with me](mailto:info@fabiocicerchia.it).
 
 Need help implementing this? [Get in touch](https://fabiocicerchia.it/contact).
 

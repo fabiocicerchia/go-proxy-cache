@@ -2,7 +2,7 @@
 
 ## Helm Chart
 
-Create a `values.yaml` from the [default one](kuberneters/helm/values.yaml).
+Create a `values.yaml` from the [default one](../kubernetes/helm/values.yaml).
 
 ```console
 $ helm install --create-namespace -n gpc-test gpc-test -f values.yaml ./kubernetes/helm/
