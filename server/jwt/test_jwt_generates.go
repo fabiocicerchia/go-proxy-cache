@@ -18,6 +18,13 @@ import (
 )
 
 func GenerateTestJWT(key jwk.Key, scope string, isExpired bool) (string, error) {
+	return GenerateTestJWTWithIssuerAndAudience(key, scope, "issuer", "audience", isExpired)
+}
+
+// GenerateTestJWTWithIssuerAndAudience - Same as GenerateTestJWT, but the
+// "iss" and "aud" claims can be overridden. An empty string leaves the
+// corresponding claim unset.
+func GenerateTestJWTWithIssuerAndAudience(key jwk.Key, scope string, issuer string, audience string, isExpired bool) (string, error) {
 	claims := jwt.New()
 	claims.Set(scope, []string{"scope1", "scope2", "scope3"})
 	if isExpired {
@@ -25,8 +32,12 @@ func GenerateTestJWT(key jwk.Key, scope string, isExpired bool) (string, error) 
 	} else {
 		claims.Set(jwt.ExpirationKey, time.Now().Add(1*time.Hour))
 	}
-	claims.Set(jwt.IssuerKey, "issuer")
-	claims.Set(jwt.AudienceKey, "audience")
+	if issuer != "" {
+		claims.Set(jwt.IssuerKey, issuer)
+	}
+	if audience != "" {
+		claims.Set(jwt.AudienceKey, audience)
+	}
 	claims.Set(jwt.NotBeforeKey, time.Now().Add(-1*time.Minute))
 	claims.Set(jwt.IssuedAtKey, time.Now())
 	claims.Set(jwt.JwtIDKey, "jti")

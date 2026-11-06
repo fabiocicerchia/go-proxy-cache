@@ -41,12 +41,27 @@ func logJWTErrorAndAbort(w http.ResponseWriter, err error, jwtConfig *config.Jwt
 }
 
 func ValidateJWT(w http.ResponseWriter, r *http.Request, keySet jwk.Set, jwtConfig *config.Jwt) error {
-	token, err := jwt.ParseRequest(r,
+	parseOptions := []jwt.ParseOption{
 		jwt.WithKeySet(keySet),
 		jwt.WithValidate(true),
 		jwt.WithTypedClaim("scope", json.RawMessage{}),
 		jwt.WithTypedClaim("scp", json.RawMessage{}),
-	)
+	}
+
+	// Issuer and audience are enforced only when configured: the options
+	// below add validators that reject a token whose "iss"/"aud" claim does
+	// not match (or is missing). When unset, validation keeps its previous
+	// behaviour and only the signature, the time claims and the scope are
+	// checked. jwt.WithIssuer and jwt.WithAudience return ValidateOptions,
+	// which also implement ParseOption and can be passed to ParseRequest.
+	if jwtConfig.Issuer != "" {
+		parseOptions = append(parseOptions, jwt.WithIssuer(jwtConfig.Issuer))
+	}
+	if jwtConfig.Audience != "" {
+		parseOptions = append(parseOptions, jwt.WithAudience(jwtConfig.Audience))
+	}
+
+	token, err := jwt.ParseRequest(r, parseOptions...)
 	if err != nil {
 		return logJWTErrorAndAbort(w, err, jwtConfig)
 	}

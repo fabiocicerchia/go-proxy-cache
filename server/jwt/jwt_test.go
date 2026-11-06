@@ -280,3 +280,215 @@ func TestRefreshKeySet(t *testing.T) {
 	assert.NotEqualValues(t, keySet2, keySet3)
 	ts.Close()
 }
+
+func TestValidateJWTWithIssuerConfiguredAndMatchingIssuer(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "issuer", "audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = "issuer"
+	jwtConfig.Audience = ""
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.Nil(t, err)
+	assert.Equal(t, w.Code, 200, "Status OK")
+}
+
+func TestValidateJWTWithIssuerConfiguredAndDifferentIssuer(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "another-issuer", "audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = "expected-issuer"
+	jwtConfig.Audience = ""
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, w.Code, 401, "Different issuer should be rejected")
+	assert.Containsf(t, w.Body.String(), `iss\" not satisfied`, "Different issuer should be rejected")
+}
+
+func TestValidateJWTWithIssuerConfiguredAndMissingIssuerClaim(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "", "audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = "expected-issuer"
+	jwtConfig.Audience = ""
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, w.Code, 401, "Missing issuer claim should be rejected")
+	assert.Containsf(t, w.Body.String(), `iss\" not satisfied`, "Missing issuer claim should be rejected")
+}
+
+func TestValidateJWTWithAudienceConfiguredAndMatchingAudience(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "issuer", "audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = ""
+	jwtConfig.Audience = "audience"
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.Nil(t, err)
+	assert.Equal(t, w.Code, 200, "Status OK")
+}
+
+func TestValidateJWTWithAudienceConfiguredAndDifferentAudience(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "issuer", "another-audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = ""
+	jwtConfig.Audience = "expected-audience"
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, w.Code, 401, "Different audience should be rejected")
+	assert.Containsf(t, w.Body.String(), `aud\" not satisfied`, "Different audience should be rejected")
+}
+
+func TestValidateJWTWithAudienceConfiguredAndMissingAudienceClaim(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "issuer", "", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = ""
+	jwtConfig.Audience = "expected-audience"
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, w.Code, 401, "Missing audience claim should be rejected")
+	assert.Containsf(t, w.Body.String(), `aud\" not found`, "Missing audience claim should be rejected")
+}
+
+func TestValidateJWTWithIssuerAndAudienceConfiguredAndMatchingToken(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "issuer", "audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = "issuer"
+	jwtConfig.Audience = "audience"
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.Nil(t, err)
+	assert.Equal(t, w.Code, 200, "Status OK")
+}
+
+func TestValidateJWTWithoutIssuerAndAudienceConfigAcceptsAnyIssuerAndAudience(t *testing.T) {
+	privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+	publicKey := &privateKey.PublicKey
+	key, keySet, _ := generateTestJWKMultipleKeys(privateKey, publicKey, "key-id-multiple", 1)
+	scopeGoodToken, _ := GenerateTestJWTWithIssuerAndAudience(key, "scope", "another-issuer", "another-audience", false)
+
+	originalIssuer, originalAudience, originalAllowedScopes := jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes
+	defer func() {
+		jwtConfig.Issuer, jwtConfig.Audience, jwtConfig.AllowedScopes = originalIssuer, originalAudience, originalAllowedScopes
+	}()
+
+	jwtConfig.Issuer = ""
+	jwtConfig.Audience = ""
+	jwtConfig.AllowedScopes = []string{"scope1"}
+
+	req := httptest.NewRequest("GET", "http://example.com/foo", nil)
+	config.InitJWT(&jwtConfig)
+	w := httptest.NewRecorder()
+	req.Header.Add("Authorization", "Bearer "+scopeGoodToken)
+
+	err := ValidateJWT(w, req, keySet, &jwtConfig)
+
+	assert.Nil(t, err)
+	assert.Equal(t, w.Code, 200, "Backward compatibility: without issuer/audience config any issuer/audience is accepted")
+}

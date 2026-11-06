@@ -132,6 +132,19 @@ func InitJWT(jwtConfig *Jwt) {
 	}
 
 	jwtConfig.JwkCache = jwtKeyFetcher
+
+	// Issuer and audience validation is opt-in. When JWT validation is
+	// enabled but neither claim is configured, every token signed by a key
+	// in the JWKS is accepted, including tokens the same identity provider
+	// issued for a different API. Warn instead of failing, so existing
+	// deployments keep working.
+	if jwtConfig.JwksUrl != "" && (jwtConfig.Issuer == "" || jwtConfig.Audience == "") {
+		logger := jwtConfig.Logger
+		if logger == nil {
+			logger = log.New()
+		}
+		logger.Warn("JWT: 'issuer' and/or 'audience' is not configured: any token signed by a key in the JWKS is accepted. Set jwt.issuer and jwt.audience to restrict validation to the expected issuer and audience.")
+	}
 }
 
 func copyGlobalOverDomainConfig(file string) {
