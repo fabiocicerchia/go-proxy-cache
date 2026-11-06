@@ -50,7 +50,6 @@ const server = https.createServer({
   key: fs.readFileSync("./certs/default/server.key"),
   ca: fs.readFileSync("./certs/default/ca-crt.pem"),
   requestCert: false,
-  rejectUnauthorized: false,
 });
 
 const wss = new WebSocket.Server({ server });
