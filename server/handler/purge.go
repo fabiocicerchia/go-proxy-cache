@@ -95,7 +95,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	status, err := storage.PurgeCachedContent(ctx, rc.DomainConfig.Server.Upstream, rcDTO)
+	status, err := storage.PurgeCachedContent(ctx, rc.upstream(), rcDTO)
 	if err != nil {
 		// Not a 404: that means "nothing was cached", and a caller that retries
 		// failures would drop this purge as done.

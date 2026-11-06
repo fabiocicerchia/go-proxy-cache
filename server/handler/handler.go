@@ -58,7 +58,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if rc.GetScheme() == SchemeHTTP && rc.DomainConfig.Server.Upstream.HTTP2HTTPS {
+	if rc.GetScheme() == SchemeHTTP && rc.upstream().HTTP2HTTPS {
 		rc.RedirectToHTTPS(ctx)
 		return
 	}
@@ -117,11 +117,11 @@ func rejectionReason(rc RequestCall, configFound bool, listeningPort string) str
 		return fmt.Sprintf("no domain in the config matches host %q with scheme %q", rc.GetHostname(), rc.GetScheme())
 	}
 
-	if rc.DomainConfig.Server.Upstream.Host != rc.GetHostname() {
+	if rc.upstream().Host != rc.GetHostname() {
 		return fmt.Sprintf(
 			"request Host %q does not match server.upstream.host %q for this domain -- the two have to be equal; to send that hostname to a different address, keep it as upstream.host and list the address in server.upstream.endpoints",
 			rc.GetHostname(),
-			rc.DomainConfig.Server.Upstream.Host,
+			rc.upstream().Host,
 		)
 	}
 

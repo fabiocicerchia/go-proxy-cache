@@ -54,7 +54,7 @@ func ConvertToRequestCallDTO(rc RequestCall) storage.RequestCallDTO {
 			ReqID:           rc.ReqID,
 			AllowedStatuses: rc.DomainConfig.Cache.EffectiveAllowedStatuses(),
 			AllowedMethods:  rc.DomainConfig.Cache.AllowedMethods,
-			DomainID:        rc.DomainConfig.Server.Upstream.GetDomainID(),
+			DomainID:        rc.upstream().GetDomainID(),
 			CurrentURIObject: cache.URIObj{
 				URL:             rc.GetRequestURL(),
 				Method:          rc.Request.Method,
@@ -99,7 +99,7 @@ var upstreamTransports sync.Map // bool -> *http.Transport
 var DefaultTransportIdleConnTimeout time.Duration = 90 * time.Second
 
 func (rc RequestCall) patchProxyTransport() *http.Transport {
-	insecure := rc.DomainConfig.Server.Upstream.InsecureBridge
+	insecure := rc.upstream().InsecureBridge
 	if t, ok := upstreamTransports.Load(insecure); ok {
 		return t.(*http.Transport)
 	}
@@ -171,7 +171,7 @@ func getOverridePort(host string, port string, scheme string) string {
 
 // GetUpstreamURL - Get the URL based on the upstream.
 func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
-	upstream := rc.DomainConfig.Server.Upstream
+	upstream := rc.upstream()
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 
 	// Override Hostname with Destination Hostname.
@@ -226,7 +226,7 @@ func (rc RequestCall) GetUpstreamURL() (url.URL, error) {
 
 // GetUpstreamHost - Retrieve the real upstream host
 func (rc RequestCall) GetUpstreamHost() string {
-	upstream := rc.DomainConfig.Server.Upstream
+	upstream := rc.upstream()
 	overridePort := getOverridePort(upstream.Host, upstream.Port, rc.GetScheme())
 	host := utils.IfEmpty(upstream.Host, upstream.Host+overridePort)
 
