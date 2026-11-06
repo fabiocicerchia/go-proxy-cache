@@ -289,7 +289,7 @@ data:
       # Ref: https://golang.org/src/time/format.go
       time_format: "2006/01/02 15:04:05"
       # Available variables:
-      # - $host                = request host # nosemgrep
+      # - $host                = request host
       # - $remote_addr         = request remote addr
       # - $remote_user         = -
       # - $time_local          = local time with format of `time_format`
@@ -302,7 +302,7 @@ data:
       # - $http_user_agent     = user agent
       # - $cached_status       = cache flag
       # - $cached_status_label = cached flag label (HIT/MISS/STALE)
-      format: $host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status # nosemgrep
+      format: $host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status
       # Sentry DSN
       # All errors will be tracked and sent to Sentry.
       # Logged levels: warning, error, fatal, panic.
