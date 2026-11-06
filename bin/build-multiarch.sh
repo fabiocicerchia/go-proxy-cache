@@ -8,17 +8,15 @@ platforms=("freebsd/amd64" "linux/amd64" "linux/arm64" "darwin/amd64" "darwin/ar
 export CGO_CFLAGS="-O3"
 
 for platform in "${platforms[@]}"; do
-  declare -a "platform_split=(${platform//\// })"
-  GOOS=${platform_split[0]}
-  GOARCH=${platform_split[1]}
+  GOOS=${platform%/*}
+  GOARCH=${platform#*/}
   output_name=$package_name'-'$GOOS'-'$GOARCH
   echo -n "Building $output_name..."
   if [ "$GOOS" = "windows" ]; then
     output_name+='.exe'
   fi
 
-  env GOOS="$GOOS" GOARCH="$GOARCH" go build -o dist/$output_name main.go
-  if [ $? -ne 0 ]; then
+  if ! env GOOS="$GOOS" GOARCH="$GOARCH" go build -o "dist/$output_name" main.go; then
     echo "An error has occurred! Aborting..."
     exit 1
   fi
