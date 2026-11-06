@@ -35,7 +35,7 @@ services:
   # STORAGE - REDIS
   ##############################################################################
   redis:
-    image: redis:8-alpine3.24
+    image: redis:8-alpine
     ports:
       - "6379:6379" # Redis
     sysctls:
@@ -51,7 +51,7 @@ services:
   # STORAGE - REDIS CLUSTER
   ##############################################################################
   redis-cluster:
-      image: 'redis:8-alpine3.24'
+      image: 'redis:8-alpine'
       command: redis-cli --cluster create 172.20.0.36:6379 172.20.0.37:6379 172.20.0.38:6379 --cluster-replicas 0 --cluster-yes
       networks:
         app_subnet:
@@ -62,7 +62,7 @@ services:
         - redisCluster3
 
   redisCluster1:
-    image: redis:8-alpine3.24
+    image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
     ports:
       - "6380:6379"
@@ -76,7 +76,7 @@ services:
       retries: 30
 
   redisCluster2:
-    image: redis:8-alpine3.24
+    image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
     ports:
       - "6381:6379"
@@ -90,7 +90,7 @@ services:
       retries: 30
 
   redisCluster3:
-    image: redis:8-alpine3.24
+    image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
     ports:
       - "6382:6379"

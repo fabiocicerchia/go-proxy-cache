@@ -17,7 +17,7 @@ spec:
         meta.service: redis
     spec:
       containers:
-      - image: redis:8-alpine3.24
+      - image: redis:8-alpine
         name: redis
         ports:
         - containerPort: 6379
