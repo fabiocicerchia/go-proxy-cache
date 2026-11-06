@@ -148,6 +148,9 @@ jobs:
         run: make codecov
 
       - name: CodeClimate
+        # Still fails: on Linux `make codeclimate` downloads staticcheck instead of
+        # ./test-reporter, no CC_TEST_REPORTER_ID is passed, and Code Climate's
+        # reporter has been retired. Drop this once the target uploads to a live service.
         continue-on-error: true
         run: make codeclimate
 
@@ -161,5 +164,8 @@ jobs:
           persist-credentials: false
 
       - name: SCA
+        # Still fails: `make sca` pins golangci-lint v1.51.0 and staticcheck 2021.1.1,
+        # which can't load this go 1.26 module, and tlsfuzzer needs a configured proxy
+        # on :443. Drop this once those tools are bumped and their findings are fixed.
         continue-on-error: true
         run: make sca
