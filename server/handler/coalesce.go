@@ -47,8 +47,8 @@ type coalescingRoundTripper struct {
 // coalescing decorator only when collapsed forwarding is enabled for the domain
 // (feature flag, off by default).
 func (rc RequestCall) proxyTransport() http.RoundTripper {
-	if rc.DomainConfig.Server.Upstream.CollapsedForwarding {
-		return coalescingRoundTripper{RoundTripper: rc.patchProxyTransport(), scope: rc.DomainConfig.Server.Upstream.GetDomainID()}
+	if rc.upstream().CollapsedForwarding {
+		return coalescingRoundTripper{RoundTripper: rc.patchProxyTransport(), scope: rc.upstream().GetDomainID()}
 	}
 
 	return rc.patchProxyTransport()

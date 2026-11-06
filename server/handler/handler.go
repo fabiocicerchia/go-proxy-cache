@@ -19,10 +19,10 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/cachestatus"
 )
 
 // HttpMethodPurge - PURGE method.
@@ -50,7 +50,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 
 	if rc.Request.Method == http.MethodConnect {
 		if enableLoggingRequest {
-			logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusNA)
+			logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cachestatus.StatusNA)
 		}
 
 		rc.SendMethodNotAllowed(ctx)
@@ -58,7 +58,7 @@ func HandleRequest(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if rc.GetScheme() == SchemeHTTP && rc.DomainConfig.Server.Upstream.HTTP2HTTPS {
+	if rc.GetScheme() == SchemeHTTP && rc.upstream().HTTP2HTTPS {
 		rc.RedirectToHTTPS(ctx)
 		return
 	}
@@ -97,7 +97,7 @@ func initRequestParams(ctx context.Context, res http.ResponseWriter, req *http.R
 	if !configFound || !rc.IsLegitRequest(ctx, listeningPort) {
 		rc.SendNotImplemented(ctx)
 
-		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusMiss)
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cachestatus.StatusMiss)
 
 		return RequestCall{}, fmt.Errorf("Request for %s (listening on :%s) is not allowed: %s", rc.Request.Host, listeningPort, rejectionReason(rc, configFound, listeningPort))
 	}
@@ -117,11 +117,11 @@ func rejectionReason(rc RequestCall, configFound bool, listeningPort string) str
 		return fmt.Sprintf("no domain in the config matches host %q with scheme %q", rc.GetHostname(), rc.GetScheme())
 	}
 
-	if rc.DomainConfig.Server.Upstream.Host != rc.GetHostname() {
+	if rc.upstream().Host != rc.GetHostname() {
 		return fmt.Sprintf(
 			"request Host %q does not match server.upstream.host %q for this domain -- the two have to be equal; to send that hostname to a different address, keep it as upstream.host and list the address in server.upstream.endpoints",
 			rc.GetHostname(),
-			rc.DomainConfig.Server.Upstream.Host,
+			rc.upstream().Host,
 		)
 	}
 

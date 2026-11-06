@@ -18,10 +18,10 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/cachestatus"
 )
 
 // isPurgeAuthorized - Checks whether a PURGE request is allowed based on the
@@ -95,7 +95,7 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	status, err := storage.PurgeCachedContent(ctx, rc.DomainConfig.Server.Upstream, rcDTO)
+	status, err := storage.PurgeCachedContent(ctx, rc.upstream(), rcDTO)
 	if err != nil {
 		// Not a 404: that means "nothing was cached", and a caller that retries
 		// failures would drop this purge as done.
@@ -131,6 +131,6 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	telemetry.From(ctx).RegisterStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {
-		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusNA)
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cachestatus.StatusNA)
 	}
 }

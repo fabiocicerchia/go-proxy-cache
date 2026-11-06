@@ -1,4 +1,4 @@
-package cache
+package cachestatus
 
 // StatusHit - Value for HIT.
 const StatusHit = 1
