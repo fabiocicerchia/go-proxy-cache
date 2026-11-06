@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
+	"github.com/fabiocicerchia/go-proxy-cache/cache/engine"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/random"
@@ -203,7 +204,7 @@ func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bo
 		return false, err
 	}
 
-	conn := GetStore(c.DomainID)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
@@ -243,7 +244,7 @@ func (c *Object) RetrieveFullPage() error {
 		return errors.Wrap(errCannotFetchMetadata, err.Error())
 	}
 
-	conn := GetStore(c.DomainID)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
@@ -285,7 +286,7 @@ func (c Object) PurgeFullPage(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	conn := GetStore(c.DomainID)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
@@ -325,7 +326,7 @@ var globEscaper = strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`
 // matches across the "@@" separator, so "DATA@@*@@http://host/*" would match
 // another host's key whose path happens to contain "@@http://host/".
 func (c Object) PurgeHost(ctx context.Context) (bool, error) {
-	conn := GetStore(c.DomainID)
+	conn := engine.GetConn(c.DomainID)
 	if conn == nil {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
 	}
@@ -361,7 +362,7 @@ func StorageKey(currentURIObject URIObj, meta []string) string {
 func FetchMetadata(domainID string, method string, url url.URL) ([]string, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := GetStore(domainID)
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return []string{}, errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
@@ -373,7 +374,7 @@ func FetchMetadata(domainID string, method string, url url.URL) ([]string, error
 func PurgeMetadata(ctx context.Context, domainID string, url url.URL) error {
 	keyPattern := "META" + utils.StringSeparatorOne + "*" + utils.StringSeparatorOne + url.String()
 
-	conn := GetStore(domainID)
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
@@ -387,7 +388,7 @@ func PurgeMetadata(ctx context.Context, domainID string, url url.URL) error {
 func StoreMetadata(ctx context.Context, domainID string, method string, url url.URL, meta []string, expiration time.Duration) (bool, error) {
 	key := "META" + utils.StringSeparatorOne + method + utils.StringSeparatorOne + url.String()
 
-	conn := GetStore(domainID)
+	conn := engine.GetConn(domainID)
 	if conn == nil {
 		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", domainID)
 	}
