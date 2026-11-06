@@ -26,7 +26,7 @@ redis:
   image:
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
-    tag: 8-alpine3.24
+    tag: 8-alpine
 
   imagePullSecrets: []
 
