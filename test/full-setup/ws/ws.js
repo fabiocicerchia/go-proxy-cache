@@ -51,8 +51,7 @@ const server = https.createServer({
   cert: fs.readFileSync('./certs/default/server.pem'),
   key: fs.readFileSync('./certs/default/server.key'),
   ca: fs.readFileSync('./certs/default/ca-crt.pem'),
-  requestCert: false,
-  rejectUnauthorized: false
+  requestCert: false
 })
 
 const wss = new WebSocket.Server({ server })
