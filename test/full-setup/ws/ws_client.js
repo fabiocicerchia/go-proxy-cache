@@ -1,6 +1,4 @@
 'use strict'
-const fs = require('fs')
-const path = require('path')
 const WebSocket = require('ws')
 
 // WS --------------------------------------------------------------------------
@@ -25,7 +23,7 @@ socket.on('error', function (err) {
 // WSS -------------------------------------------------------------------------
 
 const opts = {
-  ca: fs.readFileSync(path.join(__dirname, '../certs/default/ca-crt.pem'))
+  rejectUnauthorized: false
 }
 
 // const socket2 = new WebSocket('wss://testing.local:9002', opts) // direct
