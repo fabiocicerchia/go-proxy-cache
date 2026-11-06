@@ -42,5 +42,5 @@ spec:
         configMap:
           name: prod-gpc-config
           items:
-            - key: config.yml
-              path: config.yml
+          - key: config.yml
+            path: config.yml

@@ -1,0 +1,14 @@
+---
+extends: relaxed
+
+# Helm templates are Go templates that happen to end in .yaml: `{{- if }}`
+# is not YAML and cannot be parsed until `helm template` renders it.
+# Same exclusion as super-linter's FILTER_REGEX_EXCLUDE in linter.yml.
+ignore: |
+  kubernetes/helm/templates/
+
+rules:
+  # Actions are pinned by SHA with the version in a trailing comment, which
+  # Dependabot rewrites in place; those lines cannot fit in 80 columns.
+  # Neither can the upstream Helm/CodeQL boilerplate or the log formats.
+  line-length: disable

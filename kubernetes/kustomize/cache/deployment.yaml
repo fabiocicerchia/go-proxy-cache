@@ -27,6 +27,6 @@ spec:
           allowPrivilegeEscalation: false
           capabilities:
             drop:
-              - NET_RAW
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""
