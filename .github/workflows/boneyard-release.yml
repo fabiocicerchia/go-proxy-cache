@@ -39,6 +39,10 @@ jobs:
           skip-unchanged: "false"
 
       - name: Post to boneyard
+        # Telemetry, not a check: on fork and Dependabot pull requests
+        # BONEYARD_TOKEN is empty and the POST gets a 401, and boneyard being
+        # down is not this repository's problem. Drop this once the post is
+        # skipped when the token is absent and a failed record should block.
         continue-on-error: true
         env:
           TOKEN: ${{ secrets.BONEYARD_TOKEN }}
