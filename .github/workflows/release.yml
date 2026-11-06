@@ -47,10 +47,17 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           body: ${{ steps.changelogs.outputs.changelogs }}
-          draft: false
+          # Immutable releases reject assets once published: upload to a draft, then publish.
+          draft: true
           prerelease: ${{ steps.changelogs.outputs.release_type == 'prerelease' }}
           files: |
             dist/*
+
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_ID: ${{ steps.create_release.outputs.id }}
+        run: gh api -X PATCH "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID" -F draft=false
 
       - uses: ethomson/send-tweet-action@288f9339e0412e3038dce350e0da5ecdf12133a6  # v1
         with:
