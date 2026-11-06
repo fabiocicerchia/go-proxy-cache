@@ -144,6 +144,14 @@ jobs:
           NGINX_HOST_WS: nginx:40081
           NGINX_HOST_WSS: nginx:40082
 
+      - name: Publish Coverage Report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: coverage
+          path: |
+            c.out
+            cover.html
+
       - name: CodeCov
         run: make codecov
 
