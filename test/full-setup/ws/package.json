@@ -4,7 +4,8 @@
   "description": "",
   "main": "ws.js",
   "scripts": {
-    "start": "npm cache clean --force && npm install && node ws.js"
+    "start": "npm cache clean --force && npm install && node ws.js",
+    "test": "node --test"
   },
   "author": "",
   "license": "ISC",
