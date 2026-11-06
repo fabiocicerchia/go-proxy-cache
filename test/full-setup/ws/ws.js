@@ -9,6 +9,7 @@ const { WebTracerProvider } = require('@opentelemetry/sdk-trace-web');
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 const { JaegerExporter } = require('@opentelemetry/exporter-jaeger');
 const api = require('@opentelemetry/api');
+const { createOnConnection } = require('./ws_handler');
 
 const tracerProvider = new WebTracerProvider({
   resource: new Resource({
@@ -25,19 +26,7 @@ const propagator = new W3CTraceContextPropagator()
 tracerProvider.register();
 const tracer = tracerProvider.getTracer('ws-server');
 
-function onConnection (ws, request) {
-  ws.on('message', function (message) {
-    console.log(request.headers);
-    const currentContext = propagator.extract(api.context.active(), request.headers, api.defaultTextMapGetter);
-    const span = tracer.startSpan('http_request', {}, currentContext);
-
-    span.addEvent('data_received')
-    console.log('Received from client: %s', message)
-    ws.send('Server received from client: ' + message)
-
-    span.end()
-  })
-}
+const onConnection = createOnConnection({ tracer, propagator, api })
 
 console.log('Server started')
 
