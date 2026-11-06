@@ -21,5 +21,10 @@ spec:
         name: redis
         ports:
         - containerPort: 6379
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""

@@ -59,6 +59,11 @@ spec:
           name: go-proxy-cache-config-yml
         - mountPath: /app/certs
           name: go-proxy-cache-certs
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""
       volumes:
@@ -130,8 +135,15 @@ spec:
         volumeMounts:
         - mountPath: /etc/nginx/conf.d/default.conf
           name: nginx-default-conf
+          readOnly: true
         - mountPath: /certs
           name: nginx-certs
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""
       volumes:
@@ -196,6 +208,11 @@ spec:
         - mountPath: /home/node/app
           name: node-app
         workingDir: /home/node/app
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""
       volumes:
@@ -248,6 +265,11 @@ spec:
         name: redis
         ports:
         - containerPort: 6379
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""
 status: {}
