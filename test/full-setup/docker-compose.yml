@@ -198,6 +198,7 @@ services:
     image: pbertera/syslogserver:latest
     environment:
       SYSLOG_USERNAME: admin
+      # kics-scan ignore-line (dummy credential for the local test stack)
       SYSLOG_PASSWORD: 1234
     ports:
       - "8080:80" # pimpmylogs
@@ -215,6 +216,7 @@ services:
       SENTRY_REDIS_HOST: redis
       SENTRY_POSTGRES_HOST: postgres
       SENTRY_DB_USER: sentry
+      # kics-scan ignore-line (dummy credential for the local test stack)
       SENTRY_DB_PASSWORD: secret
     ports:
       - "9000:9000" # sentry
@@ -222,6 +224,7 @@ services:
     image: postgres:15-alpine3.24
     environment:
       POSTGRES_USER: sentry
+      # kics-scan ignore-line (dummy credential for the local test stack)
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432" # postgres

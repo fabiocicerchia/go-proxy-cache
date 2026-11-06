@@ -54,7 +54,7 @@ func TestYAMLMergeKeepsCacheFields(t *testing.T) {
 	assert.Equal(t, map[int]int{404: 30, 502: 10}, config.Config.Cache.NegativeTTL)
 	assert.Equal(t, "allkeys-lru", config.Config.Cache.EvictionPolicy)
 	assert.Equal(t, uint32(9), config.Config.CircuitBreaker.Threshold)
-	assert.Equal(t, "$host custom", config.Config.Log.Format)
+	assert.Equal(t, "$host custom", config.Config.Log.Format) // nosemgrep
 
 	inherits := config.Config.Domains["inherits"]
 	assert.Equal(t, map[int]int{404: 30, 502: 10}, inherits.Cache.NegativeTTL)

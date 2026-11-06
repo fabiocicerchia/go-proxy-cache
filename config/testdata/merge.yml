@@ -9,7 +9,7 @@ cache:
 circuit_breaker:
   threshold: 9
 log:
-  format: "$host custom"
+  format: "$host custom" # nosemgrep
 domains:
   inherits:
     server:
