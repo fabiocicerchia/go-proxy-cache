@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mkdir dist > /dev/null 2>&1 || true
+mkdir dist >/dev/null 2>&1 || true
 
 package_name=go-proxy-cache
 platforms=("freebsd/amd64" "linux/amd64" "linux/arm64" "darwin/amd64" "darwin/arm64")
