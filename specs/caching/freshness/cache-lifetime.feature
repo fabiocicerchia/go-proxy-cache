@@ -10,7 +10,7 @@ Feature: Choosing how long a response stays cached
     Given the domain's default ttl is <ttl> seconds, override_ttl is <override_ttl> and negative_ttl is <negative_ttl>
     And the origin answers with status <status> and freshness headers "<origin_headers>"
     When a visitor requests the page
-    Then the response is kept for <lifetime> seconds
+    Then the response's cache lifetime is <lifetime> seconds
 
     Examples:
       | ttl | override_ttl | negative_ttl | status | origin_headers             | lifetime |

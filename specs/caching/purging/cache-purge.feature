@@ -15,7 +15,7 @@ Feature: Purging cached pages
 
     Examples:
       | controls                                     | caller_ip    | credentials                            |
-      | none configured                              | 203.0.113.7  | the correct X-Go-Proxy-Cache-Purge-Key |
+      | none configured                              | 203.0.113.7  | X-Go-Proxy-Cache-Purge-Key "s3cr3t"    |
       | secret "s3cr3t"                              | 203.0.113.7  | no purge key header                    |
       | secret "s3cr3t"                              | 203.0.113.7  | X-Go-Proxy-Cache-Purge-Key "nope"      |
       | secret "s3cr3t" in header X-Custom-Purge     | 203.0.113.7  | X-Go-Proxy-Cache-Purge-Key "s3cr3t"    |

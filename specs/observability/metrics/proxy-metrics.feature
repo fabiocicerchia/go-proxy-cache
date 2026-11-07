@@ -22,17 +22,17 @@ Feature: Monitoring the proxy through its metrics
   @id:observability.metrics.002 @rule:observability.metrics.responses-counted-by-status-class @inferred @source:telemetry/metrics/metrics.go#IncStatusCode
   Scenario Outline: Every response is counted by its exact status and its status class
     When the proxy answers a request with status <status>
-    Then gpc_status_codes_total for code "<status>" goes up by 1
-    And gpc_request_<class>_total goes up by 1
-    And gpc_request_sum_total goes up by 1
+    Then gpc_status_codes_total for code "<status>" <change>
+    And gpc_request_<class>_total <change>
+    And gpc_request_sum_total <change>
 
     Examples:
-      | status | class |
-      | 101    | 1xx   |
-      | 204    | 2xx   |
-      | 301    | 3xx   |
-      | 404    | 4xx   |
-      | 503    | 5xx   |
+      | status                     | class | change          |
+      | 101 (WebSocket upgrade)    | 1xx   | does not change |
+      | 204                        | 2xx   | goes up by 1    |
+      | 301                        | 3xx   | goes up by 1    |
+      | 404                        | 4xx   | goes up by 1    |
+      | 503                        | 5xx   | goes up by 1    |
 
   @id:observability.metrics.003 @rule:observability.metrics.upstream-health-status @inferred @source:telemetry/metrics/enterprise.go#SetUpstreamServerHealthChecksHealthy @questionable
   Scenario Outline: Each upstream's latest health check result is published
@@ -67,6 +67,6 @@ Feature: Monitoring the proxy through its metrics
   @id:observability.metrics.006 @rule:observability.metrics.instance-and-env-labels @inferred @source:telemetry/metrics/metrics.go#baseLabels
   Scenario: Every metric identifies the reporting machine and environment
     Given the proxy runs on machine "edge-01" with TRACING_ENV set to "production"
-    When the operator reads any series on /metrics
+    When the operator reads any gpc_ or gpcee_ series on /metrics
     Then the series carries label hostname "edge-01"
     And the series carries label env "production"

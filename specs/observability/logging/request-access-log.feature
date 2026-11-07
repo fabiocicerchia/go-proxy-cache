@@ -52,4 +52,4 @@ Feature: Request access logging
       | hit                                                       | true          | HIT   |
       | miss                                                      | false         | MISS  |
       | stale                                                     | true          | STALE |
-      | not applicable (purge, refused method, WebSocket refusal) | true          | -     |
+      | not applicable (purge, refused CONNECT method)            | true          | -     |

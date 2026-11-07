@@ -28,9 +28,9 @@ Feature: Accepting and forwarding requests for configured domains
   Scenario: The upstream learns the original client, host, scheme and request id
     Given the client at 203.0.113.7 already carries X-Forwarded-For "198.51.100.4"
     When the client sends GET /cart over HTTPS to shop.example.com
-    Then the upstream receives X-Forwarded-For "198.51.100.4, 203.0.113.7"
+    Then the upstream receives X-Forwarded-For "198.51.100.4, 203.0.113.7, 203.0.113.7", with the client address appended twice
     And the upstream receives X-Forwarded-Proto "https"
-    And the upstream receives X-Forwarded-Host with the client's Host header
+    And the upstream receives an empty X-Forwarded-Host header, not the client's Host
     And the upstream receives an X-Go-Proxy-Cache-Request-ID header that is unique to the request
 
   @id:proxying.request-forwarding.004 @rule:proxying.forwarding.upstream-scheme-follows-client @verified @source:server/handler/utils.go#GetUpstreamURL @test:server/handler/utils_test.go#TestGetUpstreamURLWithWildcard

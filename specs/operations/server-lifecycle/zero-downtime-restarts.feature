@@ -44,13 +44,13 @@ Feature: Restarting without refusing connections
     Given systemd passes the proxy a listening socket on port 80
     And LISTEN_PID is <listen_pid>
     When the operator starts the proxy
-    Then port 80 is served from <source>
+    Then the socket systemd passed <outcome>
 
     Examples:
-      | listen_pid                 | source                          |
-      | the proxy's own process id | the socket systemd passed       |
-      | not set                    | the socket systemd passed       |
-      | another process id         | a socket the proxy opens itself |
+      | listen_pid                 | outcome                         |
+      | the proxy's own process id | is used to serve port 80        |
+      | not set                    | is used to serve port 80        |
+      | another process id         | is ignored                      |
 
   @id:operations.server-lifecycle.011 @rule:operations.socket-activation.invalid-socket-refuses-start @inferred @source:server/listeners.go#inheritedListeners
   Scenario Outline: The proxy refuses to start when a passed descriptor is not a TCP listening socket

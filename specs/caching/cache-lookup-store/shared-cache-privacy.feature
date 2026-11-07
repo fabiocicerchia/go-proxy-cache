@@ -4,7 +4,7 @@ Feature: Keeping private responses out of the shared cache
 
   Background:
     Given the operator has configured a domain that proxies to an origin
-    And the domain allows <status> responses to be kept
+    And the domain allows 200 and 404 responses to be kept
 
   @id:caching.cache-lookup-store.002 @rule:caching.store.private-responses-never-shared @verified @source:server/storage/storage.go#StoreGeneratedPage @test:server/storage/storage_test.go#TestStoreGeneratedPageOverrideTTLDoesNotStoreForbidden @test:server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLDoesNotStorePrivate
   Scenario Outline: Configured lifetimes never make a private or personalised response shareable

@@ -10,7 +10,7 @@ Feature: Running the proxy from its container image
     Given no user override is set for the container
     When the operator starts the container
     Then the proxy process runs as user "gpc" with uid 10001, not as root
-    And the proxy accepts HTTP traffic on port 80 and HTTPS traffic on port 443
+    And the proxy can still bind the privileged ports 80 (HTTP) and 443 (HTTPS, once a certificate or auto TLS is configured)
 
   @id:operations.container-image.002 @rule:operations.container-image.health-follows-healthcheck-endpoint @inferred @source:docker/Dockerfile#HEALTHCHECK
   Scenario Outline: The container is reported unhealthy when the proxy's health check stops answering

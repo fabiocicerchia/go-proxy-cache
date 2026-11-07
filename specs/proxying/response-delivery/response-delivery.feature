@@ -3,7 +3,7 @@ Feature: Delivering proxied responses
   Ensures clients of a hosted domain receive the upstream's answer intact and in the encoding they were promised.
 
   Background:
-    Given Given the proxy serves the domain www.example.com from an upstream
+    Given the proxy serves the domain www.example.com from an upstream
 
   @id:proxying.response-delivery.002 @rule:proxying.delivery.gzip-label-matches-body @inferred @source:server/handler/gzip.go#WrapResponseForGZip @questionable
   Scenario: A gzip-enabled domain labels responses as gzip but sends them uncompressed

@@ -21,13 +21,12 @@ Feature: Serving HTTPS for hosted domains
   Scenario Outline: A connection for a server name with no configured certificate is refused
     Given only "www.example.com" has a certificate configured
     When a client opens a TLS connection asking for <requested name>
-    Then the TLS handshake fails
-    And no certificate is presented to the client
+    Then <outcome>
 
     Examples:
-      | requested name                                         |
-      | the server name "unknown.example.net"                  |
-      | no server name (connecting by IP address 203.0.113.10) |
+      | requested name                                         | outcome                                                                 |
+      | the server name "unknown.example.net"                  | the TLS handshake fails and no certificate is presented to the client  |
+      | no server name (connecting by IP address 203.0.113.10) | the handshake succeeds and the "www.example.com" certificate is presented |
 
   @id:security.tls-certificates.004 @rule:security.tls.https-requires-certificate-pair @inferred @source:server/tls/tls.go#Config
   Scenario Outline: A domain without a usable certificate and key gets no HTTPS listener

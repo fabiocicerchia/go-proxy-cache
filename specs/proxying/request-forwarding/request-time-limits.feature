@@ -8,14 +8,14 @@ Feature: Limiting how long a request may take
     And the upstream for www.example.com takes 10 seconds to answer
     When a client requests https://www.example.com/report
     Then the client receives status 503 after about 5 seconds
-    And the response body is "Timed Out"
+    And the response body is "Timed Out" followed by a newline
 
   @id:proxying.request-forwarding.006 @rule:proxying.timeouts.global-for-all-domains @gap @source:server/server.go#InitServer @questionable
   Scenario: Server timeouts are the same for every domain, whatever a domain sets
     Given the global handler timeout is 5s
     And the domain api.example.com sets its own handler timeout of 30s
     When a client request to api.example.com takes 10 seconds upstream
-    Then the client receives status 503 with body "Timed Out" after about 5 seconds
+    Then the client receives status 503 with body "Timed Out" (plus a newline) after about 5 seconds
 
   @id:proxying.request-forwarding.007 @rule:configuration.timeouts.bare-numbers-are-seconds @gap @source:server/server.go#normalizeTimeout @questionable
   Scenario Outline: Server timeouts written as bare numbers are read as seconds

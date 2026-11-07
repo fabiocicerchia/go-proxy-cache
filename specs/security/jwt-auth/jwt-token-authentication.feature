@@ -23,7 +23,7 @@ Feature: Authenticating requests with JWT bearer tokens
   Scenario Outline: A request without a valid token is refused with 401
     Given the client <token_state>
     When the client sends GET https://example.com/foo
-    Then the client receives status 401 with Content-Type application/json
+    Then the client receives status 401 with Content-Type "application/json; charset=utf-8"
     And the body has errorCode "JsonWebTokenError"
     And the body's errorDescription contains "<reason>"
     And the request is not forwarded to the upstream
@@ -82,9 +82,9 @@ Feature: Authenticating requests with JWT bearer tokens
   Scenario Outline: Domains without a JWKS URL are not token-protected
     Given the request's host <host_state>
     When a client without any token sends GET to that host
-    Then the request is forwarded to the upstream without any token check
+    Then no token check is applied and <outcome>
 
     Examples:
-      | host_state                              |
-      | is a configured domain with no JWKS URL |
-      | matches no configured domain            |
+      | host_state                              | outcome                                             |
+      | is a configured domain with no JWKS URL | the request is forwarded to the upstream            |
+      | matches no configured domain            | the client receives status 501 instead of a 401     |

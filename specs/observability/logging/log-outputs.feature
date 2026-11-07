@@ -7,14 +7,14 @@ Feature: Choosing log destinations and verbosity
     Given the file /var/log/proxy.log already holds earlier log lines
     When the operator starts the proxy with --log /var/log/proxy.log
     Then new log lines are appended after the existing ones in /var/log/proxy.log
-    And nothing is logged to stdout
+    And those log lines are no longer written to stdout
     And a missing file is created, readable and writable only by its owner (mode 0600)
     And the proxy stops at start-up if the file cannot be opened
 
   @id:observability.logging.006 @rule:observability.log-output.debug-flag-enables-debug-logs @inferred @source:logger/log.go#SetDebugLevel
   Scenario Outline: The debug flag turns on debug-level logs
     When the operator starts the proxy <with_debug>
-    Then debug messages such as the start-up banner are <shown>
+    Then per-request debug messages such as the upstream URL a request is proxied to are <shown>
     And info and higher messages are logged
 
     Examples:
