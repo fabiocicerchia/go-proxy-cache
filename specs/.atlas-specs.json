@@ -1,0 +1,3566 @@
+{
+ "excluded": {
+  "bin/build-multiarch": [
+   {
+    "candidate": "Creates dist/ directory silently if missing",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "bin/build-multiarch.sh#platforms"
+   },
+   {
+    "candidate": "Exports CGO_CFLAGS=-O3 for builds",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "bin/build-multiarch.sh#platforms"
+   },
+   {
+    "candidate": "Prints 'Building <name>...done' progress per platform",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "bin/build-multiarch.sh#platforms"
+   },
+   {
+    "candidate": "Appends .exe to the output name for Windows targets (unreachable: windows not in platform list)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "bin/build-multiarch.sh#platforms"
+   },
+   {
+    "candidate": "CI main workflow runs make build-multiarch as a build check",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": ".github/workflows/main.yml"
+   }
+  ],
+  "bin/tls-tests": [
+   {
+    "candidate": "Open a raw TLS handshake to localhost:443 with openssl s_client to inspect the served certificate",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "bin/tls-tests.sh:6"
+   },
+   {
+    "candidate": "Send OPTIONS requests over HTTP and HTTPS and nmap http-methods scans on ports 80/443 to list allowed methods",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "bin/tls-tests.sh:9-14"
+   },
+   {
+    "candidate": "Print the negotiated HTTP protocol version for HTTP and HTTPS (HTTP/1.1 vs HTTP/2)",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "bin/tls-tests.sh:17-23"
+   },
+   {
+    "candidate": "Use the running instance as a forward proxy (HTTP and HTTPS) to reach testing.local",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "bin/tls-tests.sh:26-27"
+   },
+   {
+    "candidate": "Send WebSocket upgrade requests over ws and wss to testing.local",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "bin/tls-tests.sh:30-49"
+   }
+  ],
+  "cache/cache": [
+   {
+    "candidate": "Fresh copy and soft copy stored under two keys (/fresh suffix)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/cache.go#Object.StoreFullPage"
+   },
+   {
+    "candidate": "Storage key layout DATA@@method@@url@@checksum and META keys",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/cache.go#StorageKey"
+   },
+   {
+    "candidate": "Vary header names are case-insensitive and names are part of the checksum",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/cache.go#URIObj.GetHeadersChecksum"
+   },
+   {
+    "candidate": "Vary values are read from every Vary header and comma-split",
+    "covered_by": "caching.lookup.vary-separates-variants",
+    "reason": "DUPLICATE_OF",
+    "source": "cache/cache.go#GetVary"
+   },
+   {
+    "candidate": "Missing Redis connection returns an error on store/lookup/purge",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/cache.go#Object.PurgeFullPage"
+   },
+   {
+    "candidate": "Metadata list deleted and rewritten with jittered expiry",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/cache.go#StoreMetadata"
+   },
+   {
+    "candidate": "Decode failure on lookup treated as a miss",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/cache.go#Object.RetrieveFullPage"
+   },
+   {
+    "candidate": "Debug log listing why a page was not stored",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/cache.go#Object.StoreFullPage"
+   },
+   {
+    "candidate": "Purge error answered 500 KO",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/purge.go"
+   },
+   {
+    "candidate": "A repeated request is answered from the stored page",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.RetrieveFullPage"
+   },
+   {
+    "candidate": "Responses a shared cache must not keep are never stored",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.StoreFullPage"
+   },
+   {
+    "candidate": "Requests with credentials or a no-cache demand always reach the origin",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#URIObj.BypassesSharedCache"
+   },
+   {
+    "candidate": "A page just past its lifetime is still served, marked stale",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.StoreFullPage"
+   },
+   {
+    "candidate": "A page with an empty body is never served from storage",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.IsValid"
+   },
+   {
+    "candidate": "Purging a page removes every stored variant of it",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.PurgeFullPage"
+   },
+   {
+    "candidate": "Purging /* clears one host on one scheme only",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.PurgeHost"
+   },
+   {
+    "candidate": "Purging one page can also remove other pages whose address matches it as a pattern",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/cache.go#Object.PurgeFullPage"
+   }
+  ],
+  "cache/engine": [
+   {
+    "candidate": "Connecting to Redis standalone or cluster through hosts, password and DB settings",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/engine/client/client.go#Connect"
+   },
+   {
+    "candidate": "Per-domain Redis connection registry and the error log when a connection is missing",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/engine/redis.go#GetConn"
+   },
+   {
+    "candidate": "Distributed redsync lock around set, push and delete, and its release after the request is cancelled",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/engine/client/client.go#lock"
+   },
+   {
+    "candidate": "Circuit breaker wrapping every Redis call (Ping goes half-open after the connection closes)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/engine/client/client.go#Ping"
+   },
+   {
+    "candidate": "Get returns empty for a missing key instead of an error, and empty when the breaker is open",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/engine/client/client.go#Get"
+   },
+   {
+    "candidate": "Set, Get, Del, Expire, List round-trips and TTL expiry",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/engine/client/client.go#Set"
+   },
+   {
+    "candidate": "Wildcard delete across every cluster shard and the count of deleted keys",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/engine/client/client_wildcard.go#deleteClusterKeys"
+   },
+   {
+    "candidate": "PurgeAll flushes the whole DB on every shard",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "cache/engine/client/client.go#PurgeAll"
+   },
+   {
+    "candidate": "msgpack and base64 encoding of stored objects",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/engine/client/client.go#Encode"
+   },
+   {
+    "candidate": "A wildcard purge that matches nothing deletes nothing and reports zero",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/engine/client/client_wildcard.go#deleteKeys"
+   }
+  ],
+  "config/config": [
+   {
+    "candidate": "Global JWKS URL initialises key fetching for the global config",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/config.go#InitConfigFromFileOrEnv"
+   },
+   {
+    "candidate": "JWK auto-refresh window set from jwks_refresh_interval minutes; empty URL not registered",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/config.go#InitJWT"
+   },
+   {
+    "candidate": "Upstream scheme normalised after YAML load",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "config/config.go#getFromYaml"
+   },
+   {
+    "candidate": "Password masking constant and scheme wildcard label",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "config/config.go#PasswordOmittedValue"
+   },
+   {
+    "candidate": "Validate returns an inverted bool (true when invalid)",
+    "covered_by": "configuration.loading.test-flag-reports-validity",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/config.go#Validate"
+   }
+  ],
+  "config/domain": [
+   {
+    "candidate": "Domain lookups are memoised per host and scheme and guarded by a lock",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/domain.go#Configuration.DomainConf"
+   },
+   {
+    "candidate": "Only found lookups are memoised, so a miss is never returned later as a hit",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/domain.go#Configuration.DomainConf"
+   },
+   {
+    "candidate": "Memo size bounded regardless of Host port variants (memory growth)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/domain.go#Configuration.DomainConf"
+   },
+   {
+    "candidate": "Package-level DomainConf delegates to the global configuration",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/domain.go#DomainConf"
+   },
+   {
+    "candidate": "getSliceFromMap converts the deduplicated map to a list",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/domain.go#getSliceFromMap"
+   },
+   {
+    "candidate": "The port in the requested host does not change which domain serves it",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "config/domain.go#Configuration.DomainConf"
+   }
+  ],
+  "config/merge": [
+   {
+    "candidate": "Upstream scheme defaults to the wildcard \"*\" when neither the global nor the domain settings set it",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/merge.go#copyOverWithUpstream"
+   },
+   {
+    "candidate": "A list whose first entry is empty counts as not set and is inherited",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "utils/utils.go#IsEmpty"
+   },
+   {
+    "candidate": "The JWT context and logger are reset on every merge",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/merge.go#copyOverWithJwt"
+   },
+   {
+    "candidate": "The TLS override settings survive the merge, which prevents a nil dereference at startup",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/merge.go#copyOverWithTLS"
+   },
+   {
+    "candidate": "Domains cannot nest further domains, because the domain list is cleared on each merged domain",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/config.go#copyGlobalOverDomainConfig"
+   },
+   {
+    "candidate": "Precedence: env vars apply first, then the YAML file overrides them",
+    "covered_by": "configuration/config-loading (owned by the config loading module)",
+    "reason": "DUPLICATE_OF",
+    "source": "config/config.go#InitConfigFromFileOrEnv"
+   },
+   {
+    "candidate": "Every config field is carried by the merge (totality guard)",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "config/merge_test.go#TestCopyOverWithIsTotal"
+   }
+  ],
+  "config/model": [
+   {
+    "candidate": "PURGE is denied when neither allowed IPs nor a secret is configured; secret header defaults to X-Go-Proxy-Cache-Purge-Key",
+    "covered_by": "caching.purging.denied-without-access-control (enforced in server/handler/purge.go#isPurgeAuthorized)",
+    "reason": "DUPLICATE_OF",
+    "source": "config/model.go#Purge"
+   },
+   {
+    "candidate": "JWT error body uses errorCode and errorDescription fields",
+    "covered_by": "security.jwt-auth error response (server/jwt)",
+    "reason": "DUPLICATE_OF",
+    "source": "config/model.go#JwtError"
+   },
+   {
+    "candidate": "Individual timeout defaults (read 5s, read header 2s, write 5s, idle 20s)",
+    "covered_by": "configuration.defaults.built-in-values",
+    "reason": "TRIVIAL",
+    "source": "config/model.go#Timeout"
+   },
+   {
+    "candidate": "Circuit breaker defaults (threshold 2, failure rate 0.5, timeout 60s, max requests 1)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#Config"
+   },
+   {
+    "candidate": "Default access log line format and time format",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#Log"
+   },
+   {
+    "candidate": "Domain identity built from host and scheme",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#Upstream.GetDomainID"
+   },
+   {
+    "candidate": "YAML keys and environment variable names for each setting",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "config/model.go#Configuration"
+   },
+   {
+    "candidate": "Redis eviction policy, DB and hosts settings",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "config/model.go#Cache"
+   },
+   {
+    "candidate": "ACME certificate cache directory must be persistent",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#TLS"
+   },
+   {
+    "candidate": "Tracing sampling ratio default 1.0",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#Tracing"
+   },
+   {
+    "candidate": "JWKS refresh interval default 15",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#Jwt"
+   },
+   {
+    "candidate": "A negative forced cache lifetime stops the proxy from starting",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "config/model.go#Cache.validate"
+   },
+   {
+    "candidate": "A status with its own short lifetime is cacheable without being listed as cacheable",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "config/model.go#Cache.EffectiveAllowedStatuses"
+   },
+   {
+    "candidate": "The strict transport header carries the configured lifetime and directives",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "config/model.go#HSTS.Header"
+   }
+  ],
+  "config/print": [
+   {
+    "candidate": "If copying the configuration fails, \"Couldn't print configuration\" is logged and start-up continues",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/print.go#Print"
+   },
+   {
+    "candidate": "Masking works on a deep copy, so the running proxy keeps the real Redis password and purge secret",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/print.go#Print"
+   },
+   {
+    "candidate": "The printout uses Go's %+v struct format",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/print.go#Print"
+   },
+   {
+    "candidate": "An empty Redis password is still shown as omitted, while an empty purge secret is shown as empty",
+    "covered_by": "configuration.config-display.secrets-masked",
+    "reason": "TRIVIAL",
+    "source": "config/print.go#Print"
+   }
+  ],
+  "docker/dockerfile": [
+   {
+    "candidate": "Multi-stage build: compile in golang:1.26-alpine3.23 builder, run on alpine:3.23.3",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "docker/Dockerfile#FROM golang:1.26-alpine3.23 AS builder"
+   },
+   {
+    "candidate": "BUILD_CMD build argument selects the make target (default build)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "docker/Dockerfile#ARG BUILD_CMD"
+   },
+   {
+    "candidate": "CGO_CFLAGS -O3 and gcc/libc-dev/make toolchain installed in builder",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "docker/Dockerfile#ENV CGO_CFLAGS"
+   },
+   {
+    "candidate": "apk upgrade of runtime packages and libcap install",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "docker/Dockerfile#RUN apk upgrade"
+   },
+   {
+    "candidate": "Image build fails if the bundled config does not validate (go-proxy-cache --version && --test at build time)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "docker/Dockerfile#RUN go-proxy-cache --version"
+   },
+   {
+    "candidate": "Binary installed at /usr/local/bin/go-proxy-cache",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "docker/Dockerfile#COPY --from=builder"
+   },
+   {
+    "candidate": "/app/config.yml owned by gpc so the unprivileged user can write it",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "docker/Dockerfile#RUN apk upgrade"
+   },
+   {
+    "candidate": "Without a supplied configuration the container starts with the bundled default settings",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "docker/Dockerfile#COPY config.yml.dist"
+   }
+  ],
+  "go-proxy-cache/go-proxy-cache": [
+   {
+    "candidate": "Support/sponsorship notice printed to stdout on every start",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "main.go#printSupport"
+   },
+   {
+    "candidate": "-verbose flag adds caller file/line to log lines",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "main.go#initFlags"
+   },
+   {
+    "candidate": "-version takes precedence over -test when both are given",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "main.go#initFlags"
+   },
+   {
+    "candidate": "GOMAXPROCS set to the CPU count",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "main.go#main"
+   },
+   {
+    "candidate": "Build info (commit, version) published as a metric",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "main.go#main"
+   },
+   {
+    "candidate": "GitCommit constant hard-coded to NA",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "main.go#GitCommit"
+   },
+   {
+    "candidate": "Serving traffic after start-up (server.Run)",
+    "covered_by": "server module (operations/server-lifecycle, security/listeners)",
+    "reason": "DUPLICATE_OF",
+    "source": "main.go#main"
+   },
+   {
+    "candidate": "config.Validate returns an inverted boolean",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/config.go#Validate"
+   }
+  ],
+  "go-proxy-cache/makefile": [
+   {
+    "candidate": "`make help` (the default target) prints the banner and lists every documented target, grouped by section",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#help"
+   },
+   {
+    "candidate": "`make build` / `make build-race` compile the go-proxy-cache binary from main.go, with or without the race detector",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#build"
+   },
+   {
+    "candidate": "`make build-multiarch` hands off to bin/build-multiarch.sh",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#build-multiarch"
+   },
+   {
+    "candidate": "`make sca` runs lint, the gosec security scan, gofmt, staticcheck and tlsfuzzer (staticcheck is downloaded for Linux or Darwin depending on whether /etc/issue exists)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#sca"
+   },
+   {
+    "candidate": "`make tlsfuzzer` starts the proxy, maps www.w3.org to localhost and runs the Bleichenbacher TLS probe against port 443",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "Makefile#tlsfuzzer"
+   },
+   {
+    "candidate": "`make test` runs the unit, functional, end-to-end, WebSocket and HTTP/2 suites; functional and cover start a local python http.server as an upstream",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "Makefile#test"
+   },
+   {
+    "candidate": "`make cover` / `make codeclimate` / `make codecov` produce coverage reports and upload them",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#cover"
+   },
+   {
+    "candidate": "`make changelog` regenerates CHANGELOG.md from git history with gitchangelog",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#changelog"
+   },
+   {
+    "candidate": "`make release` stamps AppVersion=$VER and GitCommit=<short HEAD> into main.go, regenerates the changelog, commits it and tags v$VER",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#release"
+   },
+   {
+    "candidate": "`make docker-push-all` / `docker-push-arch` push images tagged fabiocicerchia/go-proxy-cache:<VER>-<distro>-<arch> and :<distro>-<arch> for alpine, amazonlinux, debian, fedora and ubuntu on amd64 and arm64",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#docker-push-arch"
+   },
+   {
+    "candidate": "`make helm-create-package` / `helm-update-repo` / `helm-deploy-chart` package the Helm chart and rebuild the chart repo index",
+    "covered_by": "",
+    "reason": "TECH_INFRA",
+    "source": "Makefile#helm-create-package"
+   }
+  ],
+  "logger/log": [
+   {
+    "candidate": "--verbose adds caller file/line to every log line",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "logger/log.go#InitLogs"
+   },
+   {
+    "candidate": "Coloured text formatter with full timestamp 2006/01/02 15:04:05",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "logger/log.go#InitLogs"
+   },
+   {
+    "candidate": "Log() writes '<proto> <method> <url> - <message>' tagged with ReqID",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "logger/log.go#Log"
+   },
+   {
+    "candidate": "Log() escapes CR/LF in message and URL",
+    "covered_by": "observability.access-log.client-values-cannot-forge-lines",
+    "reason": "DUPLICATE_OF",
+    "source": "logger/log.go#Log"
+   },
+   {
+    "candidate": "GetGlobal lazily creates a single shared logger",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "logger/log.go#GetGlobal"
+   },
+   {
+    "candidate": "Log file closed through the logrus exit handler",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "logger/log.go#closeLogFile"
+   },
+   {
+    "candidate": "Invalid Sentry DSN or unreachable syslog panics at start-up",
+    "covered_by": "observability.log-output.sentry-receives-warnings-and-above",
+    "reason": "DUPLICATE_OF",
+    "source": "logger/log.go#HookSentry"
+   }
+  ],
+  "server/balancer": [
+   {
+    "candidate": "Health-check outcomes are recorded as healthy/unhealthy/failed metrics and host-health telemetry",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/balancer.go#DoHealthCheck"
+   },
+   {
+    "candidate": "Failed or unhealthy probes are written to the error log",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/balancer.go#DoHealthCheck"
+   },
+   {
+    "candidate": "Endpoint's own http/https scheme or port in its address overrides the health-check scheme/port",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/balancer/balancer.go#DoHealthCheck"
+   },
+   {
+    "candidate": "IP-hash re-picks when the remembered position exceeds the shrunken healthy set (stickiness is by position, not endpoint)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/ip_hash.go#IpHashBalancer.Pick"
+   },
+   {
+    "candidate": "Round-robin index clamps when healthy set shrinks",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/roundrobin.go#RoundRobinBalancer.Pick"
+   },
+   {
+    "candidate": "Probe snapshot / locking against concurrent picks; closing probe response bodies",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/balancer.go#CheckHealth"
+   },
+   {
+    "candidate": "Each domain gets its own balancer keyed by domain id",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/balancer.go#initBalancer"
+   },
+   {
+    "candidate": "Single configured endpoint is used for every request",
+    "covered_by": "load-balancing.strategies.round-robin-rotates-in-order",
+    "reason": "DUPLICATE_OF",
+    "source": "server/balancer/balancer.go#GetUpstreamNode"
+   },
+   {
+    "candidate": "Balancer returns 'no item is available' when no healthy endpoint",
+    "covered_by": "load-balancing.strategies.no-endpoint-falls-back-to-upstream-host",
+    "reason": "DUPLICATE_OF",
+    "source": "server/balancer/roundrobin.go#ErrNoAvailableItem"
+   },
+   {
+    "candidate": "Round-robin sends consecutive requests to the endpoints in turn",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/balancer/roundrobin.go#RoundRobinBalancer.Pick"
+   },
+   {
+    "candidate": "Random sends each request to any one of the healthy endpoints",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/balancer/random.go#RandomBalancer.Pick"
+   },
+   {
+    "candidate": "IP-hash keeps requests for the same URL on the same endpoint, whichever client sends them",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/balancer/ip_hash.go#IpHashBalancer.Pick"
+   },
+   {
+    "candidate": "Least-connections sends each request to the endpoint that has received the fewest requests in the last five minutes",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/balancer/least_connections.go#LeastConnectionsBalancer.Pick"
+   }
+  ],
+  "server/handler": [
+   {
+    "candidate": "One shared upstream transport per InsecureBridge value (connection pooling)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/utils.go#RequestCall.patchProxyTransport"
+   },
+   {
+    "candidate": "DNS caching and per-IP dial fallback with 15s timeout",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/utils.go#newUpstreamTransport"
+   },
+   {
+    "candidate": "Prometheus counters for upstream requests, bytes and response time",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/http.go#RequestCall.serveReverseProxyHTTP"
+   },
+   {
+    "candidate": "Tracing spans and trace header injection",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/handler.go#HandleRequest"
+   },
+   {
+    "candidate": "Per-request access log line with cache status",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/http.go#RequestCall.HandleHTTPRequestAndProxy"
+   },
+   {
+    "candidate": "Storing the proxied response after delivery",
+    "covered_by": "caching.status.reported-per-response",
+    "reason": "DUPLICATE_OF",
+    "source": "server/handler/http.go#RequestCall.storeResponse"
+   },
+   {
+    "candidate": "Coalesced bodies over 1 MiB are streamed, not shared",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/coalesce.go#coalescingRoundTripper.RoundTrip"
+   },
+   {
+    "candidate": "Upstream ETag is preserved untouched",
+    "covered_by": "caching.conditional.etag-generated-when-missing",
+    "reason": "DUPLICATE_OF",
+    "source": "server/handler/etag.go#RequestCall.GetResponseWithETag"
+   },
+   {
+    "candidate": "Endpoint with explicit scheme/port overrides upstream scheme/port; unformatted host:port endpoints parse",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/handler/utils.go#RequestCall.GetUpstreamURL"
+   },
+   {
+    "candidate": "Request length computation for metrics",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/model.go#RequestCall.GetRequestLength"
+   },
+   {
+    "candidate": "IPv6-safe hostname stripping",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/handler/model.go#RequestCall.GetHostname"
+   },
+   {
+    "candidate": "TESTING=1 environment bypass of the port check",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "server/handler/utils.go#isLegitPort"
+   },
+   {
+    "candidate": "Upstream URL error leaves the client response unwritten",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/http.go#RequestCall.serveReverseProxyHTTP"
+   },
+   {
+    "candidate": "Successful pages without an upstream ETag get one from the proxy",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/etag.go#RequestCall.GetResponseWithETag"
+   },
+   {
+    "candidate": "A client holding the current version gets 304 with no body",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/http.go#RequestCall.serveReverseProxyHTTP"
+   },
+   {
+    "candidate": "HTTP/2 clients get no proxy-generated ETag and no 304",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/etag.go#RequestCall.GetResponseWithETag"
+   },
+   {
+    "candidate": "The HSTS header is sent only on HTTPS responses of domains that enable it",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/hsts.go#RequestCall.SetHSTSHeader"
+   },
+   {
+    "candidate": "Concurrent identical public GETs reach the origin fewer times than they were sent",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/coalesce.go#coalescingRoundTripper.RoundTrip"
+   },
+   {
+    "candidate": "Private, credentialed or unsafe requests are never shared between clients",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/coalesce.go#coalescingRoundTripper.RoundTrip"
+   },
+   {
+    "candidate": "WebSocket messages pass through the proxy in both directions",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/ws.go#RequestCall.HandleWSRequestAndProxy"
+   }
+  ],
+  "server/jwt": [
+   {
+    "candidate": "Compiled excluded-path regexes are reused across requests",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/jwt/jwt_utils.go#getCompiledPattern"
+   },
+   {
+    "candidate": "JWT errors are written to the domain's logger",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/jwt/jwt.go#logJWTErrorAndAbort"
+   },
+   {
+    "candidate": "Test JWT/JWKS generators and stub JWKS server",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "server/jwt/test_jwt_generates.go#GenerateTestJWT"
+   },
+   {
+    "candidate": "JWKS key set refreshes on the configured interval",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/config.go#InitJWT"
+   },
+   {
+    "candidate": "JWKS URL read from YAML or per-domain environment variable",
+    "covered_by": "configuration/config-loading (config module)",
+    "reason": "DUPLICATE_OF",
+    "source": "server/jwt/jwt_test.go#TestJWKSUrlFromEnv"
+   },
+   {
+    "candidate": "slice.ContainsString permutations",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/jwt/jwt_utils_test.go#TestContains"
+   }
+  ],
+  "server/listeners": [
+   {
+    "candidate": "Inherited descriptor environment variables are cleared so spawned processes do not see them",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/listeners.go#inheritedFDs"
+   },
+   {
+    "candidate": "Re-exec descriptors keep their numbers instead of moving to fd 3",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/listeners.go#reexec"
+   },
+   {
+    "candidate": "Malformed GO_PROXY_CACHE_LISTEN_FDS value refuses start",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/listeners.go#inheritedFDs"
+   },
+   {
+    "candidate": "SIGHUP falls back to exiting when a listener is not TCP and cannot be handed over",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/listeners.go#Servers.listenerFiles"
+   },
+   {
+    "candidate": "Close-on-exec cleared and KeepAlive on files before exec",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/listeners.go#reexec"
+   },
+   {
+    "candidate": "Hijacked and closed connections are dropped from drain tracking",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/listeners.go#connStates.track"
+   },
+   {
+    "candidate": "Internals listener binds the configured address when no socket is inherited",
+    "covered_by": "operations.socket-activation.inherited-sockets-used-by-port",
+    "reason": "DUPLICATE_OF",
+    "source": "server/listeners_test.go#TestInternalsListenOnTheConfiguredAddress"
+   },
+   {
+    "candidate": "A passed socket on a port with no configured listener is closed with a warning",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/server.go#Servers.startListeners"
+   }
+  ],
+  "server/response": [
+   {
+    "candidate": "Weak ETag rendered as \"W/<len>-<hash>\" (W/ inside the quotes, not RFC form)",
+    "covered_by": "Unreachable: production only calls SetETag(false); latent format bug if weak ETags are ever enabled",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.GetETag"
+   },
+   {
+    "candidate": "Status defaults to 200 with a warning when the body is written before a status",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.Write"
+   },
+   {
+    "candidate": "Content-Type sniffed from the uncompressed body when gzipping",
+    "covered_by": "Gzip writer is never initialised in production",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.Write"
+   },
+   {
+    "candidate": "Gzip trailer finalisation error is logged; no gzip body for 204/304",
+    "covered_by": "Gzip writer is never initialised in production",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.SendResponse"
+   },
+   {
+    "candidate": "ForceWriteHeader / ForceWrite / WriteBody send status or text immediately (used by healthcheck and purge)",
+    "covered_by": "Observable results belong to the health-endpoint and purging features",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.WriteBody"
+   },
+   {
+    "candidate": "Connection hijack passthrough for WebSocket upgrades",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.Hijack"
+   },
+   {
+    "candidate": "CopyHeaders replays stored headers onto the response",
+    "covered_by": "caching.status.reported-in-response-header",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.CopyHeaders"
+   },
+   {
+    "candidate": "Request-ID tagged logger",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/utils.go#LoggedResponseWriter.GetLogger"
+   },
+   {
+    "candidate": "Body chunk buffer flattening and length",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/model.go#DataChunks"
+   },
+   {
+    "candidate": "Telemetry attributes recorded when deciding to skip the ETag",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.MustServeOriginalResponse"
+   },
+   {
+    "candidate": "Reset clears buffered status and body",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/response/response.go#LoggedResponseWriter.Reset"
+   },
+   {
+    "candidate": "A successful response without an upstream ETag gets a strong ETag derived from its body",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.GetETag"
+   },
+   {
+    "candidate": "No ETag is added when the response cannot be safely tagged",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.MustServeOriginalResponse"
+   },
+   {
+    "candidate": "A client holding the current ETag gets 304 Not Modified with no body",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.SendNotModifiedResponse"
+   },
+   {
+    "candidate": "The client receives the upstream's status and complete body",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.SendResponse"
+   },
+   {
+    "candidate": "A request for a host the proxy does not serve is refused with 501",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/response/response.go#LoggedResponseWriter.SendNotImplemented"
+   },
+   {
+    "candidate": "A client can force a fresh fetch from the upstream",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/http.go#RequestCall.HandleHTTPRequestAndProxy"
+   }
+  ],
+  "server/server": [
+   {
+    "candidate": "Healthcheck response content and status",
+    "covered_by": "server/handler module (HandleHealthcheck) \u2013 observability/health-endpoint",
+    "reason": "DUPLICATE_OF",
+    "source": "server/server.go#InitInternals"
+   },
+   {
+    "candidate": "Metrics registration and Prometheus exposition format",
+    "covered_by": "telemetry/metrics module",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#InitInternals"
+   },
+   {
+    "candidate": "Catch-all route forwards every request to the request handler with a tracing span",
+    "covered_by": "server/handler and telemetry/tracing modules",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#InitServer"
+   },
+   {
+    "candidate": "JWT validation wraps every public request",
+    "covered_by": "server/jwt module (security/jwt-auth)",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#InitServer"
+   },
+   {
+    "candidate": "Only one server per port; when domains share a port, the last domain processed sets its settings",
+    "covered_by": "no observable difference found here; routing by Host happens in the handler",
+    "reason": "UNVERIFIABLE",
+    "source": "server/server.go#AttachPlain"
+   },
+   {
+    "candidate": "Domain with no matching configuration is skipped with an error log",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/server.go#StartDomainServer"
+   },
+   {
+    "candidate": "Per-domain init of circuit breaker, Redis connection and balancer at startup",
+    "covered_by": "circuit-breaker, cache/engine and balancer modules",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#StartDomainServer"
+   },
+   {
+    "candidate": "Tracing provider and log hooks (Sentry, syslog) set up at start; a tracing init failure is fatal",
+    "covered_by": "observability/telemetry-setup modules",
+    "reason": "DUPLICATE_OF",
+    "source": "server/server.go#Run"
+   },
+   {
+    "candidate": "Config is loaded from file or env and printed at start",
+    "covered_by": "config module (configuration/config-loading, config-display)",
+    "reason": "DUPLICATE_OF",
+    "source": "server/server.go#Run"
+   },
+   {
+    "candidate": "Inherited sockets with no configured server are closed with a warning; internals reuse inherited sockets",
+    "covered_by": "server/listeners module",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#startListeners"
+   },
+   {
+    "candidate": "A listener bind failure or serve error is fatal; a graceful close is not",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#listen"
+   },
+   {
+    "candidate": "Read-header timeout on the internal server",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/server.go#InitInternals"
+   }
+  ],
+  "server/storage": [
+   {
+    "candidate": "Cached content retrieval logs Info for empty value and Warn otherwise, and emits a telemetry event",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/storage/storage.go#RetrieveCachedContent"
+   },
+   {
+    "candidate": "A cached entry with a disallowed status or empty body is not served (treated as miss)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/storage/storage.go#RetrieveCachedContent"
+   },
+   {
+    "candidate": "RequestCallDTO bundles request, response and cache object",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/storage/storage.go#RequestCallDTO"
+   },
+   {
+    "candidate": "Storage errors (missing Redis connection) surface from StoreGeneratedPage",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "server/storage/storage.go#StoreGeneratedPage"
+   },
+   {
+    "candidate": "Purge backend failure answers 500 KO",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/storage/storage.go#PurgeCachedContent"
+   }
+  ],
+  "server/tls": [
+   {
+    "candidate": "ClientHello details are written to the debug log on every handshake",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/tls/tls.go#returnCert"
+   },
+   {
+    "candidate": "PreferServerCipherSuites is set on the TLS config",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/tls/tls.go#newDefaultTLSConfig"
+   },
+   {
+    "candidate": "A fresh TLS config is built per domain instead of mutating a shared one (no duplicate certificates)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/tls/tls.go#Config"
+   },
+   {
+    "candidate": "The proxy exits at start-up when the certificate cache directory cannot be created",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/tls/tls.go#InitCertManager"
+   },
+   {
+    "candidate": "Package-level tlsConfig variable is overwritten by each domain",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/tls/tls.go#ServerOverrides"
+   }
+  ],
+  "server/transport": [
+   {
+    "candidate": "Stored body is written chunk by chunk, flushing after each chunk",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/transport/http.go#copyResponse"
+   },
+   {
+    "candidate": "Response trailers announced via a Trailer header and copied after the body",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/transport/http.go#handleTrailer"
+   },
+   {
+    "candidate": "Context cancellation goroutine in ServeCachedResponse (cancel is never used to stop writing)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/transport/http.go#ServeCachedResponse"
+   },
+   {
+    "candidate": "A failed HTTP/2 push is logged and stops further pushes, and the page is still served",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/transport/http2.go#PushProxiedResources"
+   },
+   {
+    "candidate": "Link header parsing permutations (multiple headers, comma-separated items, quoted params)",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "server/transport/http2.go#ParseMultiple"
+   },
+   {
+    "candidate": "Upstream connections are reused across requests and kept separate per insecure-bridge setting",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/handler/transport_test.go#TestUpstreamConnectionsAreReusedAcrossRequests"
+   },
+   {
+    "candidate": "Requests for an unconfigured domain get 501 over HTTP/1.1 and HTTP/2",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "test/http2_test.go#TestHTTP2ClientCallToMissingDomain"
+   },
+   {
+    "candidate": "End-to-end proxying of www.w3.org over HTTP/1.1 and HTTP/2",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "test/http2_test.go#TestHTTP2ClientCall"
+   }
+  ],
+  "telemetry/metrics": [
+   {
+    "candidate": "Per-upstream traffic series: requests, bytes sent/received, responses by status class (gpcee_upstream_server_*)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/metrics/enterprise.go#IncUpstreamServerRequests"
+   },
+   {
+    "candidate": "gpcee_upstream_server_response_time is a gauge that accumulates milliseconds across requests rather than reporting the latest latency",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/metrics/enterprise.go#IncUpstreamServerResponseTime"
+   },
+   {
+    "candidate": "gpc_host_healthy / gpc_host_unhealthy gauges counting healthy and unhealthy upstream nodes",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/metrics/metrics.go#SetHostHealthy"
+   },
+   {
+    "candidate": "Per-host, per-method, per-scheme request counters and gpcee_http_requests_total",
+    "covered_by": "observability.metrics.request-labels-bounded-and-private",
+    "reason": "DUPLICATE_OF",
+    "source": "telemetry/metrics/enterprise.go#IncWholeRequest"
+   },
+   {
+    "candidate": "gpcee_http_response labelled with code, cached and stale flags",
+    "covered_by": "observability.metrics.request-labels-bounded-and-private",
+    "reason": "DUPLICATE_OF",
+    "source": "telemetry/metrics/enterprise.go#IncWholeResponse"
+   },
+   {
+    "candidate": "Status codes of 600 or above are counted only in the exact-code and sum counters",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "telemetry/metrics/metrics.go#IncStatusCode"
+   },
+   {
+    "candidate": "Registration of all collectors with the default Prometheus registry and namespace/subsystem constants",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/metrics/collectors.go#Register"
+   },
+   {
+    "candidate": "Cache hits, stale hits and misses are counted per domain",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterCacheStaleOrHit"
+   }
+  ],
+  "telemetry/telemetry": [
+   {
+    "candidate": "Incoming request host, URL and method are recorded as attributes on the request's trace span",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterRequest"
+   },
+   {
+    "candidate": "Request ID, full URL, scheme and WebSocket flag are recorded on the span, and the whole-request counter is incremented per scheme",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterRequestCall"
+   },
+   {
+    "candidate": "Redirect target is recorded as the response location span attribute",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterRedirect"
+   },
+   {
+    "candidate": "Named application events, with or without extra data, are added to the current span",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterEventWithData"
+   },
+   {
+    "candidate": "Response status code is recorded on the span and counted in the status-code metric",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterStatusCode"
+   },
+   {
+    "candidate": "A response served from storage is counted as a cache hit or, when stale, as a cache stale for the domain (port stripped), plus the whole-response counter. Only caller is handler.serveCachedContent, which runs this before ServeCachedResponse writes the stored response, so the status code it records may not be the one served. That is a metric-format detail, and it is worth checking in observability/metrics",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterWholeResponse"
+   },
+   {
+    "candidate": "Cache status span attributes (forced fresh, cacheable, cached label, stale derived from the literal \"STALE\" label)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterRequestCacheStatus"
+   },
+   {
+    "candidate": "Upstream endpoint and cache flags recorded on the span when proxying upstream",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterRequestUpstream"
+   },
+   {
+    "candidate": "Hostname/port match debug details for request legitimacy recorded on the span (enforcement lives elsewhere)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterLegitRequest"
+   },
+   {
+    "candidate": "Purge outcome recorded on the span; a purge error marks the span failed with 'internal error'",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterPurge"
+   },
+   {
+    "candidate": "ETag/serve-original-response debug attributes (no hash, ETag present, non-2xx, 204, empty body)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#TelemetryContext.RegisterServeOriginal"
+   },
+   {
+    "candidate": "Healthy and unhealthy upstream counts published as gauges by the balancer's health loop",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#RegisterHostHealth"
+   },
+   {
+    "candidate": "Telemetry context is built from the request context's current span",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/telemetry.go#From"
+   }
+  ],
+  "telemetry/tracing": [
+   {
+    "candidate": "Span names and tag keys (server.handle_request, request.id, cache.cached, purge.status, ...) recorded on spans",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/tracing/span.go#TagRequestId"
+   },
+   {
+    "candidate": "Helper functions NewSpan, NewChildSpan, SpanFromContext, AddBoolTag, AddEventsToSpan",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/tracing/span.go#NewSpan"
+   },
+   {
+    "candidate": "Failed requests mark the span as an error with a message (Fail, AddErrorToSpan, SetErrorAndFail)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/tracing/span.go#SetErrorAndFail"
+   },
+   {
+    "candidate": "Spans exported in batches rather than one by one",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "telemetry/tracing/provider.go#NewJaegerProvider"
+   },
+   {
+    "candidate": "Proxy refuses to start when the Jaeger exporter cannot be created",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/server.go#Run"
+   },
+   {
+    "candidate": "Tracing settings (enabled, jaeger_endpoint, sampling_ratio) read from file/env and merged per domain",
+    "covered_by": "configuration/config-loading",
+    "reason": "DUPLICATE_OF",
+    "source": "config/model.go#Tracing"
+   }
+  ],
+  "utils/base64": [
+   {
+    "candidate": "Encode turns bytes into standard (padded) base64 text",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/base64/base64.go#Encode"
+   },
+   {
+    "candidate": "Decode turns standard base64 text back into the original bytes and returns an error on malformed input",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/base64/base64.go#Decode"
+   },
+   {
+    "candidate": "Cached values are base64-encoded before being written to Redis and decoded when read back (encode/decode round-trip)",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "cache/engine/client/client.go"
+   }
+  ],
+  "utils/cachestatus": [
+   {
+    "candidate": "Cache status codes HIT=1, MISS=0, STALE=-1, NA=-2 as integer constants",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/cachestatus/model.go#StatusHit"
+   },
+   {
+    "candidate": "Cache status labels shown to operators: HIT, MISS, STALE, and '-' for not applicable (rendered via $cached_status_label in the access log and passed to telemetry)",
+    "covered_by": "Lookup table only. Which label a request gets is decided in server/handler/http.go (HIT/STALE/MISS), server/handler/handler.go and purge.go (NA), and rendered by logger/log.go#LogRequest. The visible log contract belongs to the observability/logging and caching/freshness scenarios of those modules",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/cachestatus/model.go#StatusLabel"
+   },
+   {
+    "candidate": "Not-applicable status (NA) counts as 'cached' in the access log because LogRequest treats anything except MISS as cached",
+    "covered_by": "Enforced in logger/log.go, not in this module; leave it to the logger module's spec (possibly questionable there)",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "logger/log.go#LogRequest"
+   }
+  ],
+  "utils/circuit-breaker": [
+   {
+    "candidate": "Looking up a breaker that was never initialised logs 'Missing circuit breaker for <name>' and returns nil (callers would then panic on Execute)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/circuit-breaker/circuit-breaker.go#CB"
+   },
+   {
+    "candidate": "Interval clears failure counts periodically while closed (0 = never)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/circuit-breaker/circuit-breaker.go#InitCircuitBreaker"
+   },
+   {
+    "candidate": "Default breaker settings (threshold 2, failurerate 0.5, interval 0s, timeout 60s, maxrequests 1)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/model.go#DefaultCBThreshold"
+   },
+   {
+    "candidate": "Number of trial calls allowed while half-open (maxrequests)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/circuit-breaker/circuit-breaker.go#InitCircuitBreaker"
+   }
+  ],
+  "utils/convert": [
+   {
+    "candidate": "A text duration such as \"10s\", \"10m\" or \"10h\" becomes that length of time, and empty or unparseable text becomes zero (ToDuration)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/convert/convert.go#ToDuration"
+   },
+   {
+    "candidate": "Numeric text becomes an integer, and empty or non-numeric text silently becomes 0 (ToInt)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/convert/convert.go#ToInt"
+   },
+   {
+    "candidate": "A list of text values becomes a list of integers, with each invalid entry turned into 0 and an empty list giving an empty list (ToIntSlice)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/convert/convert.go#ToIntSlice"
+   }
+  ],
+  "utils/msgpack": [
+   {
+    "candidate": "Values are encoded to MessagePack bytes before being stored",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "utils/msgpack/msgpack.go#Encode"
+   },
+   {
+    "candidate": "MessagePack bytes are decoded back into the original value (round-trip preserves content)",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "utils/msgpack/msgpack.go#Decode"
+   },
+   {
+    "candidate": "Encode returns whatever bytes were written along with the encoder error, rather than nil bytes on failure",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/msgpack/msgpack.go#Encode"
+   },
+   {
+    "candidate": "A single shared MessagePack handle with default settings is used for all encode/decode calls",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/msgpack/msgpack.go#msgpackHandler"
+   }
+  ],
+  "utils/random": [
+   {
+    "candidate": "RandomInt64 returns a cryptographically random integer in [0, max)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/random/random.go#RandomInt64"
+   },
+   {
+    "candidate": "RandomInt64 panics when max <= 0 or the random source fails (crypto/rand.Int panics for non-positive max)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/random/random.go#RandomInt64"
+   },
+   {
+    "candidate": "Random upstream selection among healthy nodes (uses RandomInt64); the observable rule belongs to the load-balancing module",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/random.go"
+   },
+   {
+    "candidate": "Fallback random pick in IP-hash balancing (uses RandomInt64); the observable rule belongs to the load-balancing module",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "server/balancer/ip_hash.go"
+   },
+   {
+    "candidate": "Randomised soft-expiration TTL between the default min and max (uses RandomInt64); the observable rule belongs to the caching module",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "cache/cache.go"
+   }
+  ],
+  "utils/scheme": [
+   {
+    "candidate": "SchemeHTTP / SchemeHTTPS constants and the allowed-schemes lookup table",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/scheme/scheme.go#NormalizeScheme"
+   },
+   {
+    "candidate": "Per-value permutations of invalid inputs (\"1\", \"-\", \"qwerty\")",
+    "covered_by": "proxying.upstream-scheme.unsupported-falls-back-to-incoming",
+    "reason": "TRIVIAL",
+    "source": "utils/scheme/scheme_test.go#TestNormalizeNonExisting"
+   }
+  ],
+  "utils/slice": [
+   {
+    "candidate": "ContainsInt reports whether an integer is in a list",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/slice/slice.go#ContainsInt"
+   },
+   {
+    "candidate": "ContainsString reports whether a string is in a list",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/slice/slice.go#ContainsString"
+   },
+   {
+    "candidate": "GetByKeyCaseInsensitive returns header values for a key matched without regard to case; when several keys match, the first in sorted order wins; nil when none match",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/slice/slice.go#GetByKeyCaseInsensitive"
+   },
+   {
+    "candidate": "Unique removes duplicate strings and keeps the order in which each first appears",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/slice/slice.go#Unique"
+   },
+   {
+    "candidate": "LenSliceBytes adds up the lengths of byte chunks",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/slice/slice.go#LenSliceBytes"
+   }
+  ],
+  "utils/ttl": [
+   {
+    "candidate": "GetTTLFromCacheControl returns the delta-seconds of a named directive (0 when absent)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/ttl/ttl.go#GetTTLFromCacheControl"
+   },
+   {
+    "candidate": "When a directive is repeated, the first occurrence wins",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "utils/ttl/ttl.go#ParseCacheControl"
+   },
+   {
+    "candidate": "Backslash escapes inside quoted Cache-Control arguments are skipped while splitting",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/ttl/ttl.go#splitDirectives"
+   },
+   {
+    "candidate": "Only the first Expires header value is considered",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "utils/ttl/ttl.go#overrideWithExpires"
+   },
+   {
+    "candidate": "Unparsable Expires falls back to the default TTL",
+    "covered_by": "caching.freshness.default-ttl-without-origin-freshness",
+    "reason": "DUPLICATE_OF",
+    "source": "utils/ttl/ttl.go#ttlFromExpires"
+   }
+  ],
+  "utils/utils": [
+   {
+    "candidate": "GetEnv returns an environment variable or a fallback",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/utils.go#GetEnv"
+   },
+   {
+    "candidate": "IfEmpty returns fallback for empty string",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/utils.go#IfEmpty"
+   },
+   {
+    "candidate": "A list whose first element is empty counts as unset",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "utils/utils.go#IsEmpty"
+   },
+   {
+    "candidate": "StripPort removes port, handles bracketed IPv6 (used for domain matching, purge IP allow-list, metrics host label)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/utils.go#StripPort"
+   },
+   {
+    "candidate": "Join separators @@ and --",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "utils/utils.go#StringSeparatorOne"
+   },
+   {
+    "candidate": "Upstream URL built from wildcard scheme / unformatted endpoint (server/handler/utils_test.go)",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "server/handler/utils_test.go#TestGetUpstreamURLWithWildcard"
+   }
+  ]
+ },
+ "lifted": {
+  "bin/build-multiarch": [],
+  "bin/tls-tests": [],
+  "cache/cache": [
+   {
+    "from_source": "cache/cache.go#URIObj.IsStorableBySharedCache",
+    "rule": "caching.store.private-responses-never-stored"
+   },
+   {
+    "from_source": "cache/cache.go#URIObj.BypassesSharedCache",
+    "rule": "caching.lookup.credentialed-requests-bypass-cache"
+   },
+   {
+    "from_source": "cache/cache.go#Object.PurgeHost",
+    "rule": "caching.purge.host-wide-limited-to-host-and-scheme"
+   },
+   {
+    "from_source": "cache/cache.go#Object.StoreFullPage",
+    "rule": "caching.freshness.stale-grace-period"
+   }
+  ],
+  "cache/engine": [
+   {
+    "from_source": "cache/engine/client/client_wildcard.go#DelWildcard",
+    "rule": "caching.purging.store-unreachable-is-failure"
+   },
+   {
+    "from_source": "cache/engine/client/client.go#Push",
+    "rule": "caching.cache-lookup-store.store-without-vary"
+   }
+  ],
+  "config/config": [],
+  "config/domain": [],
+  "config/merge": [],
+  "config/model": [
+   {
+    "from_source": "config/model.go#Cache.validate",
+    "rule": "A negative forced cache lifetime (global or per domain) stops the proxy from starting"
+   },
+   {
+    "from_source": "config/model.go#Cache.EffectiveAllowedStatuses",
+    "rule": "Error statuses given their own short lifetime become cacheable without being listed"
+   }
+  ],
+  "config/print": [],
+  "docker/dockerfile": [
+   {
+    "from_source": "docker/Dockerfile#USER gpc",
+    "rule": "operations.container-image.runs-unprivileged-on-standard-ports"
+   }
+  ],
+  "go-proxy-cache/go-proxy-cache": [
+   {
+    "from_source": "config/config.go#getFromYaml",
+    "rule": "A configuration with a negative override_ttl, global or per domain, is rejected by the config check (operations.cli.config-test-rejects-invalid-file)"
+   }
+  ],
+  "go-proxy-cache/makefile": [],
+  "logger/log": [
+   {
+    "from_source": "utils/utils.go#EscapeLogValue",
+    "rule": "Client-supplied request values cannot forge extra access-log lines (CR/LF stripped)"
+   }
+  ],
+  "server/balancer": [],
+  "server/handler": [
+   {
+    "from_source": "server/handler/purge.go#RequestCall.isPurgeAuthorized",
+    "rule": "Only callers who pass the configured purge secret and/or IP allowlist (by connection IP, never X-Forwarded-For) may purge; with no controls configured nobody may"
+   },
+   {
+    "from_source": "server/handler/coalesce.go#coalescingRoundTripper.RoundTrip",
+    "rule": "Collapsed forwarding never shares private, credentialed, non-public or vary-* responses between clients"
+   }
+  ],
+  "server/jwt": [
+   {
+    "from_source": "config/config.go#InitJWT",
+    "rule": "security.jwt.key-set-unavailable-fails-closed"
+   }
+  ],
+  "server/listeners": [
+   {
+    "from_source": "server/server.go#Servers.startListeners",
+    "rule": "A passed socket on a port with no configured listener is closed with a warning"
+   },
+   {
+    "from_source": "server/server.go#Servers.shutdownServers",
+    "rule": "Requests already accepted finish before the proxy stops (drain bounded by the shutdown timeout)"
+   }
+  ],
+  "server/response": [],
+  "server/server": [
+   {
+    "from_source": "server/tls/tls.go#ServerOverrides",
+    "rule": "security.listeners.broken-tls-serves-http-only"
+   }
+  ],
+  "server/storage": [
+   {
+    "from_source": "cache/cache.go#Object.StoreFullPage",
+    "rule": "caching.store.private-responses-never-shared"
+   },
+   {
+    "from_source": "cache/cache.go#Object.PurgeHost",
+    "rule": "caching.purging.host-wide-purge-scoped-to-host-and-scheme"
+   }
+  ],
+  "server/tls": [
+   {
+    "from_source": "server/tls/tls.go#InitCertManager",
+    "rule": "Automatically issued certificates are kept in a stable, owner-only directory so a restart does not trigger re-issuance (security.tls.auto-certificates-persist-across-restarts)"
+   }
+  ],
+  "server/transport": [],
+  "telemetry/metrics": [
+   {
+    "from_source": "telemetry/metrics/enterprise.go#boundedMethod",
+    "rule": "Request metrics never expose requested paths, query strings or client-chosen ports or methods on /metrics"
+   }
+  ],
+  "telemetry/telemetry": [],
+  "telemetry/tracing": [],
+  "utils/base64": [],
+  "utils/cachestatus": [],
+  "utils/circuit-breaker": [],
+  "utils/convert": [],
+  "utils/msgpack": [],
+  "utils/random": [],
+  "utils/scheme": [],
+  "utils/slice": [],
+  "utils/ttl": [
+   {
+    "from_source": "utils/ttl/ttl.go#ForbidsStoring",
+    "rule": "Responses marked no-store, private (qualified or not) or no-cache are never stored for other clients"
+   }
+  ],
+  "utils/utils": [
+   {
+    "from_source": "utils/utils.go#EscapeLogValue",
+    "rule": "observability.logging.request-values-cannot-forge-log-lines"
+   },
+   {
+    "from_source": "utils/utils.go#Coalesce",
+    "rule": "configuration.merging.unset-domain-setting-inherits-global"
+   },
+   {
+    "from_source": "utils/utils.go#IsEmpty",
+    "rule": "configuration.merging.off-or-zero-cannot-override-global"
+   }
+  ]
+ },
+ "retired": [],
+ "scenarios": {
+  "caching.cache-backend.001": {
+   "file": "specs/caching/cache-backend/cache-store-behaviour.feature",
+   "fingerprint": "bf3961b70f3c",
+   "human": false,
+   "rule": "caching.cache-backend.eviction-policy-allowlist",
+   "source": "cache/engine/client/client.go#applyEvictionPolicy",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "caching.cache-backend.002": {
+   "file": "specs/caching/cache-backend/cache-store-behaviour.feature",
+   "fingerprint": "ee6cb5f39f8a",
+   "human": false,
+   "rule": "caching.purging.store-unreachable-is-failure",
+   "source": "cache/engine/client/client_wildcard.go#DelWildcard",
+   "status": "verified",
+   "test": "server/handler/purge_test.go#TestEndToEndCallPurgeWithRedisDown",
+   "tests": [
+    "server/handler/purge_test.go#TestEndToEndCallPurgeWithRedisDown"
+   ]
+  },
+  "caching.cache-backend.003": {
+   "file": "specs/caching/cache-backend/cache-store-behaviour.feature",
+   "fingerprint": "361ee7ef8b31",
+   "human": false,
+   "rule": "caching.cache-lookup-store.store-without-vary",
+   "source": "cache/engine/client/client.go#Push",
+   "status": "verified",
+   "test": "cache/engine/client/client_test.go#TestPushListEmptyIsANoOp",
+   "tests": [
+    "cache/engine/client/client_test.go#TestPushListEmptyIsANoOp"
+   ]
+  },
+  "caching.cache-lookup-store.001": {
+   "file": "specs/caching/cache-lookup-store/serving-cached-pages.feature",
+   "fingerprint": "0d48a26481a7",
+   "human": false,
+   "rule": "caching.lookup.vary-separates-variants",
+   "source": "cache/cache.go#StorageKey",
+   "status": "verified",
+   "test": "cache/cache_integration_test.go#TestFullPageRoundTripOnRedis",
+   "tests": [
+    "cache/cache_integration_test.go#TestFullPageRoundTripOnRedis",
+    "cache/cache_unit_test.go#TestVaryHeaderChecksumPreservesNamesAndCase"
+   ]
+  },
+  "caching.cache-lookup-store.002": {
+   "file": "specs/caching/cache-lookup-store/shared-cache-privacy.feature",
+   "fingerprint": "71beb29d2db8",
+   "human": false,
+   "rule": "caching.store.private-responses-never-shared",
+   "source": "server/storage/storage.go#StoreGeneratedPage",
+   "status": "verified",
+   "test": "server/storage/storage_test.go#TestStoreGeneratedPageOverrideTTLDoesNotStoreForbidden",
+   "tests": [
+    "server/storage/storage_test.go#TestStoreGeneratedPageOverrideTTLDoesNotStoreForbidden",
+    "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLDoesNotStorePrivate"
+   ]
+  },
+  "caching.freshness.001": {
+   "file": "specs/caching/freshness/cache-status.feature",
+   "fingerprint": "a9850dc046e1",
+   "human": false,
+   "rule": "caching.status.reported-per-response",
+   "source": "server/handler/http.go#HandleHTTPRequestAndProxy",
+   "status": "verified",
+   "test": "server/handler/purge_test.go#TestEndToEndCallPurge",
+   "tests": [
+    "server/handler/purge_test.go#TestEndToEndCallPurge"
+   ]
+  },
+  "caching.freshness.002": {
+   "file": "specs/caching/freshness/cache-status.feature",
+   "fingerprint": "a9850dc046e1",
+   "human": false,
+   "rule": "caching.status.force-fresh-bypasses",
+   "source": "server/handler/http.go#HandleHTTPRequestAndProxy",
+   "status": "verified",
+   "test": "test/etag_test.go#TestETagValidResponse",
+   "tests": [
+    "test/etag_test.go#TestETagValidResponse"
+   ]
+  },
+  "caching.freshness.003": {
+   "file": "specs/caching/freshness/cache-status-header.feature",
+   "fingerprint": "b33aee8610d1",
+   "human": false,
+   "rule": "caching.status.reported-in-response-header",
+   "source": "server/response/header.go#CacheStatusHeader",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "caching.freshness.004": {
+   "file": "specs/caching/freshness/cache-lifetime.feature",
+   "fingerprint": "bfc91d17a5ff",
+   "human": false,
+   "rule": "caching.freshness.ttl-precedence",
+   "source": "server/storage/storage.go#StorageTTL",
+   "status": "verified",
+   "test": "server/storage/storage_test.go#TestStorageTTLOverride",
+   "tests": [
+    "server/storage/storage_test.go#TestStorageTTLOverride",
+    "server/storage/storage_test.go#TestApplyNegativeTTLWithOverride",
+    "server/storage/storage_test.go#TestApplyNegativeTTLWithoutOverride",
+    "server/storage/storage_test.go#TestApplyNegativeTTLWithNilMap"
+   ]
+  },
+  "caching.freshness.005": {
+   "file": "specs/caching/freshness/cache-lifetime.feature",
+   "fingerprint": "71beb29d2db8",
+   "human": false,
+   "rule": "caching.freshness.negative-ttl-caches-error-pages",
+   "source": "server/storage/storage.go#StoreGeneratedPage",
+   "status": "verified",
+   "test": "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLFromYAML",
+   "tests": [
+    "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLFromYAML"
+   ]
+  },
+  "caching.freshness.006": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "e330bf65bbe3",
+   "human": false,
+   "rule": "caching.freshness.default-ttl-without-origin-freshness",
+   "source": "utils/ttl/ttl.go#GetTTL",
+   "status": "verified",
+   "test": "utils/ttl/ttl_test.go#TestGetTTLWhenNotSet",
+   "tests": [
+    "utils/ttl/ttl_test.go#TestGetTTLWhenNotSet",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenSetCacheControlEmpty",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenInvalidExpires"
+   ]
+  },
+  "caching.freshness.007": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "887451645812",
+   "human": false,
+   "rule": "caching.freshness.shared-max-age-precedence",
+   "source": "utils/ttl/ttl.go#ttlFromCacheControlChain",
+   "status": "verified",
+   "test": "utils/ttl/ttl_test.go#TestGetTTLWhenSetCacheControlSmaxage",
+   "tests": [
+    "utils/ttl/ttl_test.go#TestGetTTLWhenSetCacheControlSmaxage",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenSetCacheControlMaxage",
+    "utils/ttl/ttl_test.go#TestGetTTLSmaxageWinsOverMaxage",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenMaxageZero",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenSetCacheControlAndExpires"
+   ]
+  },
+  "caching.freshness.008": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "c82b43638f34",
+   "human": false,
+   "rule": "caching.freshness.expires-sets-lifetime",
+   "source": "utils/ttl/ttl.go#overrideWithExpires",
+   "status": "verified",
+   "test": "utils/ttl/ttl_test.go#TestGetTTLWhenSetExpires",
+   "tests": [
+    "utils/ttl/ttl_test.go#TestGetTTLWhenSetExpires"
+   ]
+  },
+  "caching.freshness.009": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "1c95442080cc",
+   "human": false,
+   "rule": "caching.freshness.past-expires-not-treated-as-stale",
+   "source": "utils/ttl/ttl.go#ttlFromExpires",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "caching.freshness.010": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "1d3f0e0f2144",
+   "human": false,
+   "rule": "caching.freshness.invalid-max-age-is-stale",
+   "source": "utils/ttl/ttl.go#parseDeltaSeconds",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "caching.freshness.011": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "6713faa0f66b",
+   "human": false,
+   "rule": "caching.freshness.private-responses-never-shared",
+   "source": "utils/ttl/ttl.go#ForbidsStoring",
+   "status": "verified",
+   "test": "utils/ttl/ttl_test.go#TestGetTTLWhenCacheControlNoCache",
+   "tests": [
+    "utils/ttl/ttl_test.go#TestGetTTLWhenCacheControlNoCache",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenCacheControlNoStore",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenCacheControlPrivateWithMaxage",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenCacheControlPrivateWithoutMaxage",
+    "utils/ttl/ttl_test.go#TestGetTTLWhenCacheControlQualifiedPrivate",
+    "utils/ttl/ttl_test.go#TestGetTTLParsesCaseWhitespaceAndQuotes"
+   ]
+  },
+  "caching.freshness.012": {
+   "file": "specs/caching/freshness/response-freshness-lifetime.feature",
+   "fingerprint": "39d3c26a1fc3",
+   "human": false,
+   "rule": "caching.freshness.cache-control-read-as-whole-tokens",
+   "source": "utils/ttl/ttl.go#ParseCacheControl",
+   "status": "verified",
+   "test": "utils/ttl/ttl_test.go#TestGetTTLParsesCaseWhitespaceAndQuotes",
+   "tests": [
+    "utils/ttl/ttl_test.go#TestGetTTLParsesCaseWhitespaceAndQuotes",
+    "utils/ttl/ttl_test.go#TestGetTTLCombinesMultipleCacheControlHeaders",
+    "utils/ttl/ttl_test.go#TestGetTTLMatchesDirectivesAsTokens"
+   ]
+  },
+  "caching.purging.001": {
+   "file": "specs/caching/purging/purging-cached-pages.feature",
+   "fingerprint": "86545b211f0e",
+   "human": false,
+   "rule": "caching.purge.escaped-star-is-single-page",
+   "source": "server/storage/storage.go#PurgeCachedContent",
+   "status": "verified",
+   "test": "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost",
+   "tests": [
+    "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost"
+   ]
+  },
+  "caching.purging.002": {
+   "file": "specs/caching/purging/cache-purge.feature",
+   "fingerprint": "b07e74caf0b1",
+   "human": false,
+   "rule": "caching.purge.requires-authorisation",
+   "source": "server/handler/purge.go#HandlePurge",
+   "status": "verified",
+   "test": "server/handler/purge_auth_unit_test.go#TestIsPurgeAuthorizedDeniesMissingControls",
+   "tests": [
+    "server/handler/purge_auth_unit_test.go#TestIsPurgeAuthorizedDeniesMissingControls",
+    "server/handler/purge_auth_unit_test.go#TestIsPurgeAuthorizedSecret",
+    "server/handler/purge_auth_unit_test.go#TestIsPurgeAuthorizedSecretCustomHeader",
+    "server/handler/purge_auth_unit_test.go#TestIsPurgeAuthorizedIPAllowlist",
+    "server/handler/purge_auth_unit_test.go#TestIsPurgeAuthorizedBothMustPass"
+   ]
+  },
+  "caching.purging.003": {
+   "file": "specs/caching/purging/cache-purge.feature",
+   "fingerprint": "b07e74caf0b1",
+   "human": false,
+   "rule": "caching.purge.removes-cached-page",
+   "source": "server/handler/purge.go#HandlePurge",
+   "status": "verified",
+   "test": "server/handler/purge_test.go#TestEndToEndCallPurge",
+   "tests": [
+    "server/handler/purge_test.go#TestEndToEndCallPurge"
+   ]
+  },
+  "caching.purging.004": {
+   "file": "specs/caching/purging/cache-purge.feature",
+   "fingerprint": "b07e74caf0b1",
+   "human": false,
+   "rule": "caching.purge.distinguishes-nothing-cached-from-failure",
+   "source": "server/handler/purge.go#HandlePurge",
+   "status": "verified",
+   "test": "server/handler/purge_test.go#TestEndToEndCallPurgeDoNothing",
+   "tests": [
+    "server/handler/purge_test.go#TestEndToEndCallPurgeDoNothing",
+    "server/handler/purge_test.go#TestEndToEndCallPurgeWithRedisDown"
+   ]
+  },
+  "caching.purging.005": {
+   "file": "specs/caching/purging/purge-scope.feature",
+   "fingerprint": "86545b211f0e",
+   "human": false,
+   "rule": "caching.purging.host-wide-purge-scoped-to-host-and-scheme",
+   "source": "server/storage/storage.go#PurgeCachedContent",
+   "status": "verified",
+   "test": "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost",
+   "tests": [
+    "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost"
+   ]
+  },
+  "caching.purging.006": {
+   "file": "specs/caching/purging/purge-scope.feature",
+   "fingerprint": "86545b211f0e",
+   "human": false,
+   "rule": "caching.purging.escaped-or-queried-star-is-single-url",
+   "source": "server/storage/storage.go#PurgeCachedContent",
+   "status": "verified",
+   "test": "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost",
+   "tests": [
+    "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost"
+   ]
+  },
+  "caching.purging.007": {
+   "file": "specs/caching/purging/purge-scope.feature",
+   "fingerprint": "86545b211f0e",
+   "human": false,
+   "rule": "caching.purging.nothing-to-purge-is-not-found",
+   "source": "server/storage/storage.go#PurgeCachedContent",
+   "status": "verified",
+   "test": "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost",
+   "tests": [
+    "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost"
+   ]
+  },
+  "configuration.config-display.001": {
+   "file": "specs/configuration/config-display/effective-config-display.feature",
+   "fingerprint": "0226beb7180d",
+   "human": false,
+   "rule": "configuration.config-display.shown-in-debug-mode",
+   "source": "config/print.go#Print",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-display.002": {
+   "file": "specs/configuration/config-display/effective-config-display.feature",
+   "fingerprint": "0226beb7180d",
+   "human": false,
+   "rule": "configuration.config-display.secrets-masked",
+   "source": "config/print.go#Print",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-display.003": {
+   "file": "specs/configuration/config-display/effective-config-display.feature",
+   "fingerprint": "0226beb7180d",
+   "human": false,
+   "rule": "configuration.config-display.sentry-dsn-unmasked",
+   "source": "config/print.go#Print",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-loading.001": {
+   "file": "specs/configuration/config-loading/loading-configuration.feature",
+   "fingerprint": "e2fa3dbcbe7d",
+   "human": false,
+   "rule": "configuration.loading.test-flag-reports-validity",
+   "source": "config/config.go#Validate",
+   "status": "verified",
+   "test": "config/override_ttl_test.go#TestOverrideTTLNegativeRejected",
+   "tests": [
+    "config/override_ttl_test.go#TestOverrideTTLNegativeRejected",
+    "config/override_ttl_test.go#TestOverrideTTLValidYAML"
+   ]
+  },
+  "configuration.config-loading.002": {
+   "file": "specs/configuration/config-loading/loading-configuration.feature",
+   "fingerprint": "4375d3e014da",
+   "human": false,
+   "rule": "configuration.loading.runs-from-environment-without-file",
+   "source": "config/config.go#InitConfigFromFileOrEnv",
+   "status": "verified",
+   "test": "config/override_ttl_test.go#TestOverrideTTLFromEnv",
+   "tests": [
+    "config/override_ttl_test.go#TestOverrideTTLFromEnv"
+   ]
+  },
+  "configuration.config-loading.003": {
+   "file": "specs/configuration/config-loading/loading-configuration.feature",
+   "fingerprint": "4375d3e014da",
+   "human": false,
+   "rule": "configuration.loading.file-overrides-environment",
+   "source": "config/config.go#InitConfigFromFileOrEnv",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-loading.004": {
+   "file": "specs/configuration/config-loading/loading-configuration.feature",
+   "fingerprint": "dda7366166a1",
+   "human": false,
+   "rule": "configuration.loading.invalid-settings-refuse-start",
+   "source": "config/config.go#loadYAMLFile",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-loading.005": {
+   "file": "specs/configuration/config-loading/loading-configuration.feature",
+   "fingerprint": "5016981c6e9a",
+   "human": false,
+   "rule": "configuration.loading.tls-paths-relative-to-config-file",
+   "source": "config/config.go#patchAbsFilePath",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-loading.006": {
+   "file": "specs/configuration/config-loading/built-in-defaults-and-validation.feature",
+   "fingerprint": "1e1d9ee78135",
+   "human": false,
+   "rule": "configuration.defaults.built-in-values",
+   "source": "config/model.go#Config",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-loading.007": {
+   "file": "specs/configuration/config-loading/built-in-defaults-and-validation.feature",
+   "fingerprint": "3fef96de5b3b",
+   "human": false,
+   "rule": "proxying.redirects.default-status-moved-permanently",
+   "source": "config/model.go#Upstream",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-loading.008": {
+   "file": "specs/configuration/config-loading/built-in-defaults-and-validation.feature",
+   "fingerprint": "1e1d9ee78135",
+   "human": false,
+   "rule": "load-balancing.health.probe-scheme-follows-upstream",
+   "source": "config/model.go#Config",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-merging.001": {
+   "file": "specs/configuration/config-merging/per-domain-settings.feature",
+   "fingerprint": "6a8447c204a0",
+   "human": false,
+   "rule": "configuration.domains.inherit-and-override-global",
+   "source": "config/config.go#copyGlobalOverDomainConfig",
+   "status": "verified",
+   "test": "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
+   "tests": [
+    "config/merge_test.go#TestYAMLMergeKeepsCacheFields"
+   ]
+  },
+  "configuration.config-merging.002": {
+   "file": "specs/configuration/config-merging/per-domain-settings.feature",
+   "fingerprint": "4375d3e014da",
+   "human": false,
+   "rule": "configuration.domains.defined-only-in-file",
+   "source": "config/config.go#InitConfigFromFileOrEnv",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-merging.003": {
+   "file": "specs/configuration/config-merging/per-domain-settings.feature",
+   "fingerprint": "6a8447c204a0",
+   "human": false,
+   "rule": "configuration.domains.jwks-url-env-override",
+   "source": "config/config.go#copyGlobalOverDomainConfig",
+   "status": "verified",
+   "test": "server/jwt/jwt_test.go#TestJWKSUrlFromYaml",
+   "tests": [
+    "server/jwt/jwt_test.go#TestJWKSUrlFromYaml",
+    "server/jwt/jwt_test.go#TestJWKSUrlFromEnvAndYaml",
+    "server/jwt/jwt_test.go#TestJWKSUrlFromEnv"
+   ]
+  },
+  "configuration.config-merging.004": {
+   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
+   "fingerprint": "401daf188fb8",
+   "human": false,
+   "rule": "configuration.merging.domain-inherits-unset-settings",
+   "source": "config/merge.go#CopyOverWith",
+   "status": "verified",
+   "test": "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
+   "tests": [
+    "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
+    "config/override_ttl_test.go#TestOverrideTTLMergesPerDomain",
+    "config/merge_test.go#TestCopyOverWithIsTotal"
+   ]
+  },
+  "configuration.config-merging.005": {
+   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
+   "fingerprint": "401daf188fb8",
+   "human": false,
+   "rule": "configuration.merging.domain-value-overrides-global",
+   "source": "config/merge.go#CopyOverWith",
+   "status": "verified",
+   "test": "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
+   "tests": [
+    "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
+    "config/override_ttl_test.go#TestOverrideTTLMergesPerDomain",
+    "config/merge_test.go#TestCopyOverWithIsTotal"
+   ]
+  },
+  "configuration.config-merging.006": {
+   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
+   "fingerprint": "9454001257cd",
+   "human": false,
+   "rule": "configuration.merging.negative-ttl-replaced-whole",
+   "source": "config/merge.go#copyOverWithCache",
+   "status": "verified",
+   "test": "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
+   "tests": [
+    "config/merge_test.go#TestYAMLMergeKeepsCacheFields"
+   ]
+  },
+  "configuration.config-merging.007": {
+   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
+   "fingerprint": "0f3cc2b24d6c",
+   "human": false,
+   "rule": "configuration.merging.zero-value-cannot-override",
+   "source": "utils/utils.go#Coalesce",
+   "status": "verified",
+   "test": "config/merge_test.go#TestCopyOverWithIsTotal",
+   "tests": [
+    "config/merge_test.go#TestCopyOverWithIsTotal"
+   ]
+  },
+  "configuration.config-merging.008": {
+   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
+   "fingerprint": "9454001257cd",
+   "human": false,
+   "rule": "configuration.merging.get-head-always-cacheable",
+   "source": "config/merge.go#copyOverWithCache",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-merging.009": {
+   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
+   "fingerprint": "5016981c6e9a",
+   "human": false,
+   "rule": "configuration.merging.tls-paths-relative-to-config-file",
+   "source": "config/config.go#patchAbsFilePath",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.config-merging.010": {
+   "file": "specs/configuration/config-merging/domain-setting-inheritance.feature",
+   "fingerprint": "0f3cc2b24d6c",
+   "human": false,
+   "rule": "configuration.merging.unset-domain-setting-inherits-global",
+   "source": "utils/utils.go#Coalesce",
+   "status": "verified",
+   "test": "utils/utils_test.go#TestCoalesceFalse",
+   "tests": [
+    "utils/utils_test.go#TestCoalesceFalse",
+    "utils/utils_test.go#TestCoalesceFallsBackOnTypedNilPointer",
+    "config/override_ttl_test.go#TestOverrideTTLMergesPerDomain"
+   ]
+  },
+  "configuration.config-merging.011": {
+   "file": "specs/configuration/config-merging/domain-setting-inheritance.feature",
+   "fingerprint": "661a6bf83ce7",
+   "human": false,
+   "rule": "configuration.merging.off-or-zero-cannot-override-global",
+   "source": "utils/utils.go#IsEmpty",
+   "status": "verified",
+   "test": "utils/utils_test.go#TestIsEmptyTrue",
+   "tests": [
+    "utils/utils_test.go#TestIsEmptyTrue"
+   ]
+  },
+  "configuration.multi-domain.001": {
+   "file": "specs/configuration/multi-domain/domain-selection.feature",
+   "fingerprint": "7009d2cdaa44",
+   "human": false,
+   "rule": "config.domains.request-matched-to-domain-settings",
+   "source": "config/domain.go#domainConfLookup",
+   "status": "verified",
+   "test": "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLFromYAML",
+   "tests": [
+    "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLFromYAML"
+   ]
+  },
+  "configuration.multi-domain.002": {
+   "file": "specs/configuration/multi-domain/domain-selection.feature",
+   "fingerprint": "7009d2cdaa44",
+   "human": false,
+   "rule": "config.domains.unknown-host-refused",
+   "source": "config/domain.go#domainConfLookup",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.multi-domain.003": {
+   "file": "specs/configuration/multi-domain/domain-selection.feature",
+   "fingerprint": "832297543efa",
+   "human": false,
+   "rule": "config.domains.every-domain-served-at-startup",
+   "source": "config/domain.go#GetDomains",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "load-balancing.balancing-strategies.001": {
+   "file": "specs/load-balancing/balancing-strategies/choosing-an-upstream-endpoint.feature",
+   "fingerprint": "f1a7807c4c8a",
+   "human": false,
+   "rule": "load-balancing.strategies.unknown-algorithm-uses-round-robin",
+   "source": "server/balancer/balancer.go#Init",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "load-balancing.balancing-strategies.002": {
+   "file": "specs/load-balancing/balancing-strategies/choosing-an-upstream-endpoint.feature",
+   "fingerprint": "d773a6de82b5",
+   "human": false,
+   "rule": "load-balancing.strategies.no-endpoint-falls-back-to-upstream-host",
+   "source": "server/balancer/balancer.go#GetUpstreamNode",
+   "status": "verified",
+   "test": "server/balancer/balancer_test.go#TestGetUpstreamNodeUndefined",
+   "tests": [
+    "server/balancer/balancer_test.go#TestGetUpstreamNodeUndefined"
+   ]
+  },
+  "load-balancing.circuit-breaking.001": {
+   "file": "specs/load-balancing/circuit-breaking/cache-backend-circuit-breaking.feature",
+   "fingerprint": "8b95e5d5b1c2",
+   "human": false,
+   "rule": "cache.backend-breaker.trips-on-failure-rate-after-threshold",
+   "source": "utils/circuit-breaker/circuit-breaker.go#cbReadyToTrip",
+   "status": "verified",
+   "test": "cache/engine/client/client_test.go#TestCircuitBreakerWithPingTimeout",
+   "tests": [
+    "cache/engine/client/client_test.go#TestCircuitBreakerWithPingTimeout"
+   ]
+  },
+  "load-balancing.circuit-breaking.002": {
+   "file": "specs/load-balancing/circuit-breaking/cache-backend-circuit-breaking.feature",
+   "fingerprint": "7b8ebce1eaaf",
+   "human": false,
+   "rule": "cache.backend-breaker.recovers-after-timeout",
+   "source": "utils/circuit-breaker/circuit-breaker.go#InitCircuitBreaker",
+   "status": "verified",
+   "test": "cache/engine/client/client_test.go#TestCircuitBreakerWithPingTimeout",
+   "tests": [
+    "cache/engine/client/client_test.go#TestCircuitBreakerWithPingTimeout"
+   ]
+  },
+  "load-balancing.circuit-breaking.003": {
+   "file": "specs/load-balancing/circuit-breaking/cache-backend-circuit-breaking.feature",
+   "fingerprint": "1c5014e854d1",
+   "human": false,
+   "rule": "cache.backend-breaker.state-changes-logged",
+   "source": "utils/circuit-breaker/circuit-breaker.go#cbOnStateChange",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "load-balancing.circuit-breaking.004": {
+   "file": "specs/load-balancing/circuit-breaking/cache-backend-circuit-breaking.feature",
+   "fingerprint": "7b8ebce1eaaf",
+   "human": false,
+   "rule": "cache.backend-breaker.isolated-per-domain",
+   "source": "utils/circuit-breaker/circuit-breaker.go#InitCircuitBreaker",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "load-balancing.upstream-health.001": {
+   "file": "specs/load-balancing/upstream-health/upstream-endpoint-health.feature",
+   "fingerprint": "a20eaf84c9bd",
+   "human": false,
+   "rule": "load-balancing.health.endpoint-in-rotation-only-on-accepted-status",
+   "source": "server/balancer/balancer.go#DoHealthCheck",
+   "status": "verified",
+   "test": "server/balancer/balancer_func_test.go#TestHealthCheckWithCustomPort",
+   "tests": [
+    "server/balancer/balancer_func_test.go#TestHealthCheckWithCustomPort"
+   ]
+  },
+  "load-balancing.upstream-health.002": {
+   "file": "specs/load-balancing/upstream-health/upstream-endpoint-health.feature",
+   "fingerprint": "9132f4a89bf1",
+   "human": false,
+   "rule": "load-balancing.health.recovered-endpoint-returns",
+   "source": "server/balancer/balancer.go#CheckHealth",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "load-balancing.upstream-health.003": {
+   "file": "specs/load-balancing/upstream-health/upstream-endpoint-health.feature",
+   "fingerprint": "5a7b1da0b60e",
+   "human": false,
+   "rule": "load-balancing.health.endpoints-trusted-until-first-probe",
+   "source": "server/balancer/balancer.go#convertEndpoints",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "load-balancing.upstream-health.004": {
+   "file": "specs/load-balancing/upstream-health/upstream-endpoint-health.feature",
+   "fingerprint": "e17f6d695e0a",
+   "human": false,
+   "rule": "load-balancing.health.probe-uses-upstream-scheme-and-port",
+   "source": "server/balancer/balancer.go#healthCheckFor",
+   "status": "verified",
+   "test": "server/balancer/healthcheck_scheme_test.go#TestHealthCheckInheritsTheUpstreamScheme",
+   "tests": [
+    "server/balancer/healthcheck_scheme_test.go#TestHealthCheckInheritsTheUpstreamScheme",
+    "server/balancer/balancer_func_test.go#TestHealthCheckWithCustomPort"
+   ]
+  },
+  "load-balancing.upstream-health.005": {
+   "file": "specs/load-balancing/upstream-health/upstream-endpoint-health.feature",
+   "fingerprint": "282416fc9d6d",
+   "human": false,
+   "rule": "load-balancing.health.probe-verifies-tls-unless-allowed-insecure",
+   "source": "server/balancer/balancer.go#getClient",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.health-endpoint.001": {
+   "file": "specs/observability/health-endpoint/health-check.feature",
+   "fingerprint": "ed033b26ca45",
+   "human": false,
+   "rule": "observability.health.reports-cache-store",
+   "source": "server/handler/healthcheck.go#HandleHealthcheck",
+   "status": "verified",
+   "test": "server/handler/healthcheck_test.go#TestHealthcheckWithRedis",
+   "tests": [
+    "server/handler/healthcheck_test.go#TestHealthcheckWithRedis",
+    "server/handler/healthcheck_test.go#TestHealthcheckWithoutRedis"
+   ]
+  },
+  "observability.logging.001": {
+   "file": "specs/observability/logging/request-access-log.feature",
+   "fingerprint": "7f7d6f5bdaaf",
+   "human": false,
+   "rule": "observability.access-log.format-placeholders-substituted",
+   "source": "logger/log.go#LogRequest",
+   "status": "verified",
+   "test": "logger/log_test.go#TestLogRequest",
+   "tests": [
+    "logger/log_test.go#TestLogRequest"
+   ]
+  },
+  "observability.logging.002": {
+   "file": "specs/observability/logging/request-access-log.feature",
+   "fingerprint": "7f7d6f5bdaaf",
+   "human": false,
+   "rule": "observability.access-log.unknown-protocol-method-placeholder",
+   "source": "logger/log.go#LogRequest",
+   "status": "verified",
+   "test": "logger/log_test.go#TestLogRequest",
+   "tests": [
+    "logger/log_test.go#TestLogRequest"
+   ]
+  },
+  "observability.logging.003": {
+   "file": "specs/observability/logging/request-access-log.feature",
+   "fingerprint": "7f7d6f5bdaaf",
+   "human": false,
+   "rule": "observability.access-log.client-values-cannot-forge-lines",
+   "source": "logger/log.go#LogRequest",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.logging.004": {
+   "file": "specs/observability/logging/request-access-log.feature",
+   "fingerprint": "7f7d6f5bdaaf",
+   "human": false,
+   "rule": "observability.access-log.cache-status-fields",
+   "source": "logger/log.go#LogRequest",
+   "status": "verified",
+   "test": "logger/log_test.go#TestLogRequest",
+   "tests": [
+    "logger/log_test.go#TestLogRequest"
+   ]
+  },
+  "observability.logging.005": {
+   "file": "specs/observability/logging/log-outputs.feature",
+   "fingerprint": "1b9a5e1445ff",
+   "human": false,
+   "rule": "observability.log-output.log-file-replaces-stdout",
+   "source": "logger/log.go#InitLogs",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.logging.006": {
+   "file": "specs/observability/logging/log-outputs.feature",
+   "fingerprint": "49f4af9b36d6",
+   "human": false,
+   "rule": "observability.log-output.debug-flag-enables-debug-logs",
+   "source": "logger/log.go#SetDebugLevel",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.logging.007": {
+   "file": "specs/observability/logging/log-outputs.feature",
+   "fingerprint": "29d8ac66528a",
+   "human": false,
+   "rule": "observability.log-output.sentry-receives-warnings-and-above",
+   "source": "logger/log.go#HookSentry",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.logging.008": {
+   "file": "specs/observability/logging/log-outputs.feature",
+   "fingerprint": "63e7d97994e4",
+   "human": false,
+   "rule": "observability.log-output.syslog-requires-endpoint",
+   "source": "logger/log.go#HookSyslog",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.logging.009": {
+   "file": "specs/observability/logging/log-outputs.feature",
+   "fingerprint": "62faf5ab5642",
+   "human": false,
+   "rule": "observability.log-output.startup-summary",
+   "source": "logger/log.go#LogSetup",
+   "status": "verified",
+   "test": "logger/log_test.go#TestLogSetup",
+   "tests": [
+    "logger/log_test.go#TestLogSetup",
+    "logger/log_test.go#TestLogSetupWithoutEndpoints"
+   ]
+  },
+  "observability.logging.010": {
+   "file": "specs/observability/logging/tamper-proof-request-logs.feature",
+   "fingerprint": "acf11405d8d1",
+   "human": false,
+   "rule": "observability.logging.request-values-cannot-forge-log-lines",
+   "source": "utils/utils.go#EscapeLogValue",
+   "status": "verified",
+   "test": "utils/utils_test.go#TestEscapeLogValueStripsCRLF",
+   "tests": [
+    "utils/utils_test.go#TestEscapeLogValueStripsCRLF",
+    "utils/utils_test.go#TestEscapeLogValueLeavesCleanValueAlone"
+   ]
+  },
+  "observability.metrics.001": {
+   "file": "specs/observability/metrics/proxy-metrics.feature",
+   "fingerprint": "0eee1930e243",
+   "human": false,
+   "rule": "observability.metrics.request-labels-bounded-and-private",
+   "source": "telemetry/metrics/enterprise.go#IncWholeRequest",
+   "status": "verified",
+   "test": "telemetry/metrics/enterprise_unit_test.go#TestWholeRequestResponseSeriesAreBounded",
+   "tests": [
+    "telemetry/metrics/enterprise_unit_test.go#TestWholeRequestResponseSeriesAreBounded"
+   ]
+  },
+  "observability.metrics.002": {
+   "file": "specs/observability/metrics/proxy-metrics.feature",
+   "fingerprint": "6a60db7e3070",
+   "human": false,
+   "rule": "observability.metrics.responses-counted-by-status-class",
+   "source": "telemetry/metrics/metrics.go#IncStatusCode",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.metrics.003": {
+   "file": "specs/observability/metrics/proxy-metrics.feature",
+   "fingerprint": "c5347a15b052",
+   "human": false,
+   "rule": "observability.metrics.upstream-health-status",
+   "source": "telemetry/metrics/enterprise.go#SetUpstreamServerHealthChecksHealthy",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.metrics.004": {
+   "file": "specs/observability/metrics/proxy-metrics.feature",
+   "fingerprint": "c87a3705b466",
+   "human": false,
+   "rule": "observability.metrics.build-info",
+   "source": "telemetry/metrics/enterprise.go#SetBuildInfo",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.metrics.005": {
+   "file": "specs/observability/metrics/proxy-metrics.feature",
+   "fingerprint": "00ad12ddc527",
+   "human": false,
+   "rule": "observability.metrics.up-reflects-cache-backend-health",
+   "source": "telemetry/metrics/enterprise.go#SetUp",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.metrics.006": {
+   "file": "specs/observability/metrics/proxy-metrics.feature",
+   "fingerprint": "a417fa3a7af6",
+   "human": false,
+   "rule": "observability.metrics.instance-and-env-labels",
+   "source": "telemetry/metrics/metrics.go#baseLabels",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.tracing.001": {
+   "file": "specs/observability/tracing/distributed-tracing.feature",
+   "fingerprint": "da0969a9cc12",
+   "human": false,
+   "rule": "observability.tracing.traces-identify-service-version-env",
+   "source": "telemetry/tracing/provider.go#NewJaegerProvider",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.tracing.002": {
+   "file": "specs/observability/tracing/distributed-tracing.feature",
+   "fingerprint": "da0969a9cc12",
+   "human": false,
+   "rule": "observability.tracing.sampling-ratio",
+   "source": "telemetry/tracing/provider.go#NewJaegerProvider",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.tracing.003": {
+   "file": "specs/observability/tracing/distributed-tracing.feature",
+   "fingerprint": "3a7d0e854b73",
+   "human": false,
+   "rule": "observability.tracing.context-propagated-to-upstream",
+   "source": "telemetry/tracing/span.go#Inject",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "observability.tracing.004": {
+   "file": "specs/observability/tracing/distributed-tracing.feature",
+   "fingerprint": "ec84570e566e",
+   "human": false,
+   "rule": "observability.tracing.disabled-sends-nothing",
+   "source": "server/server.go#Run",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.build-release.001": {
+   "file": "specs/operations/build-release/release-binaries.feature",
+   "fingerprint": "042d90381eec",
+   "human": false,
+   "rule": "release.binaries.supported-platforms",
+   "source": "bin/build-multiarch.sh#platforms",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.build-release.002": {
+   "file": "specs/operations/build-release/release-binaries.feature",
+   "fingerprint": "042d90381eec",
+   "human": false,
+   "rule": "release.binaries.all-or-nothing",
+   "source": "bin/build-multiarch.sh#platforms",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.container-image.001": {
+   "file": "specs/operations/container-image/container-image.feature",
+   "fingerprint": "b69be7e32f08",
+   "human": false,
+   "rule": "operations.container-image.runs-unprivileged-on-standard-ports",
+   "source": "docker/Dockerfile#USER gpc",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.container-image.002": {
+   "file": "specs/operations/container-image/container-image.feature",
+   "fingerprint": "2c1279a03d91",
+   "human": false,
+   "rule": "operations.container-image.health-follows-healthcheck-endpoint",
+   "source": "docker/Dockerfile#HEALTHCHECK",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.container-image.003": {
+   "file": "specs/operations/container-image/container-image.feature",
+   "fingerprint": "2c1279a03d91",
+   "human": false,
+   "rule": "operations.container-image.health-probe-fixed-port",
+   "source": "docker/Dockerfile#HEALTHCHECK",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.001": {
+   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
+   "fingerprint": "88fbe74c7093",
+   "human": false,
+   "rule": "operations.cli.version-flag-prints-version-and-exits",
+   "source": "main.go#printVersion",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.002": {
+   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
+   "fingerprint": "e6fc1454cd40",
+   "human": false,
+   "rule": "operations.cli.config-test-accepts-valid-file",
+   "source": "main.go#testConfiguration",
+   "status": "verified",
+   "test": "config/override_ttl_test.go#TestOverrideTTLValidYAML",
+   "tests": [
+    "config/override_ttl_test.go#TestOverrideTTLValidYAML"
+   ]
+  },
+  "operations.server-lifecycle.003": {
+   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
+   "fingerprint": "e6fc1454cd40",
+   "human": false,
+   "rule": "operations.cli.config-test-rejects-invalid-file",
+   "source": "main.go#testConfiguration",
+   "status": "verified",
+   "test": "config/override_ttl_test.go#TestOverrideTTLNegativeRejected",
+   "tests": [
+    "config/override_ttl_test.go#TestOverrideTTLNegativeRejected"
+   ]
+  },
+  "operations.server-lifecycle.004": {
+   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
+   "fingerprint": "c6b9fe24cf0e",
+   "human": false,
+   "rule": "operations.cli.default-config-file-is-config-yml",
+   "source": "main.go#initFlags",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.005": {
+   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
+   "fingerprint": "1b9a5e1445ff",
+   "human": false,
+   "rule": "operations.cli.log-flag-redirects-logs-to-file",
+   "source": "logger/log.go#InitLogs",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.006": {
+   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
+   "fingerprint": "c91d04bc1cef",
+   "human": false,
+   "rule": "operations.cli.debug-flag-shows-start-up-diagnostics",
+   "source": "main.go#main",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.007": {
+   "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
+   "fingerprint": "3d801ee558f4",
+   "human": false,
+   "rule": "operations.restart.sighup-keeps-connections",
+   "source": "server/listeners.go#reexec",
+   "status": "verified",
+   "test": "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
+   "tests": [
+    "server/listeners_test.go#TestInheritedListenerSurvivesReexec"
+   ]
+  },
+  "operations.server-lifecycle.008": {
+   "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
+   "fingerprint": "510227078149",
+   "human": false,
+   "rule": "operations.restart.drain-in-flight-before-stop",
+   "source": "server/listeners.go#connStates",
+   "status": "verified",
+   "test": "server/listeners_test.go#TestShutdownDrainsInFlightRequests",
+   "tests": [
+    "server/listeners_test.go#TestShutdownDrainsInFlightRequests"
+   ]
+  },
+  "operations.server-lifecycle.009": {
+   "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
+   "fingerprint": "b6b5cfb317a1",
+   "human": false,
+   "rule": "operations.socket-activation.inherited-sockets-used-by-port",
+   "source": "server/listeners.go#inheritedListeners",
+   "status": "verified",
+   "test": "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
+   "tests": [
+    "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
+    "server/listeners_test.go#TestInternalsReuseTheInheritedListener"
+   ]
+  },
+  "operations.server-lifecycle.010": {
+   "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
+   "fingerprint": "ed1eeb437da5",
+   "human": false,
+   "rule": "operations.socket-activation.foreign-pid-ignored",
+   "source": "server/listeners.go#inheritedFDs",
+   "status": "verified",
+   "test": "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
+   "tests": [
+    "server/listeners_test.go#TestInheritedListenerSurvivesReexec"
+   ]
+  },
+  "operations.server-lifecycle.011": {
+   "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
+   "fingerprint": "b6b5cfb317a1",
+   "human": false,
+   "rule": "operations.socket-activation.invalid-socket-refuses-start",
+   "source": "server/listeners.go#inheritedListeners",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.012": {
+   "file": "specs/operations/server-lifecycle/service-lifecycle.feature",
+   "fingerprint": "1d29a7a04f0a",
+   "human": false,
+   "rule": "operations.lifecycle.stop-drains-in-flight-requests",
+   "source": "server/server.go#shutdownServers",
+   "status": "verified",
+   "test": "server/listeners_test.go#TestShutdownDrainsInFlightRequests",
+   "tests": [
+    "server/listeners_test.go#TestShutdownDrainsInFlightRequests"
+   ]
+  },
+  "operations.server-lifecycle.013": {
+   "file": "specs/operations/server-lifecycle/service-lifecycle.feature",
+   "fingerprint": "b1bbc963d7b2",
+   "human": false,
+   "rule": "operations.lifecycle.drain-bounded-by-shutdown-timeout",
+   "source": "server/server.go#waitForSignal",
+   "status": "gap",
+   "test": "",
+   "tests": []
+  },
+  "operations.server-lifecycle.014": {
+   "file": "specs/operations/server-lifecycle/service-lifecycle.feature",
+   "fingerprint": "b1bbc963d7b2",
+   "human": false,
+   "rule": "operations.lifecycle.reload-keeps-accepting-connections",
+   "source": "server/server.go#waitForSignal",
+   "status": "verified",
+   "test": "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
+   "tests": [
+    "server/listeners_test.go#TestInheritedListenerSurvivesReexec"
+   ]
+  },
+  "proxying.redirects.001": {
+   "file": "specs/proxying/redirects/https-redirect.feature",
+   "fingerprint": "ef6e301da4fb",
+   "human": false,
+   "rule": "proxying.redirects.http-to-https",
+   "source": "server/handler/redirect.go#RedirectToHTTPS",
+   "status": "verified",
+   "test": "server/handler/http_functional_test.go#TestHTTPEndToEndCallRedirect",
+   "tests": [
+    "server/handler/http_functional_test.go#TestHTTPEndToEndCallRedirect",
+    "server/handler/http_functional_test.go#TestHTTPEndToEndCallWithHTTPSRedirect"
+   ]
+  },
+  "proxying.redirects.002": {
+   "file": "specs/proxying/redirects/upstream-scheme-setting.feature",
+   "fingerprint": "87cf968dc157",
+   "human": false,
+   "rule": "proxying.upstream-scheme.case-insensitive",
+   "source": "utils/scheme/scheme.go#NormalizeScheme",
+   "status": "verified",
+   "test": "utils/scheme/scheme_test.go#TestNormalizeHTTP",
+   "tests": [
+    "utils/scheme/scheme_test.go#TestNormalizeHTTP",
+    "utils/scheme/scheme_test.go#TestNormalizeHTTPS"
+   ]
+  },
+  "proxying.redirects.003": {
+   "file": "specs/proxying/redirects/upstream-scheme-setting.feature",
+   "fingerprint": "87cf968dc157",
+   "human": false,
+   "rule": "proxying.upstream-scheme.unsupported-falls-back-to-incoming",
+   "source": "utils/scheme/scheme.go#NormalizeScheme",
+   "status": "verified",
+   "test": "utils/scheme/scheme_test.go#TestNormalizeNonExisting",
+   "tests": [
+    "utils/scheme/scheme_test.go#TestNormalizeNonExisting"
+   ]
+  },
+  "proxying.request-forwarding.001": {
+   "file": "specs/proxying/request-forwarding/request-admission.feature",
+   "fingerprint": "36acd60467fc",
+   "human": false,
+   "rule": "proxying.admission.unconfigured-host-or-port-refused",
+   "source": "server/handler/handler.go#initRequestParams",
+   "status": "verified",
+   "test": "server/handler/http_functional_test.go#TestHTTPEndToEndCallWithMissingDomain",
+   "tests": [
+    "server/handler/http_functional_test.go#TestHTTPEndToEndCallWithMissingDomain",
+    "test/http_test.go#TestHTTPClientCallToMissingDomain"
+   ]
+  },
+  "proxying.request-forwarding.002": {
+   "file": "specs/proxying/request-forwarding/request-admission.feature",
+   "fingerprint": "97bf3ae3d577",
+   "human": false,
+   "rule": "proxying.admission.connect-method-refused",
+   "source": "server/handler/handler.go#HandleRequest",
+   "status": "verified",
+   "test": "server/handler/connect_test.go#TestEndToEndCallConnect",
+   "tests": [
+    "server/handler/connect_test.go#TestEndToEndCallConnect"
+   ]
+  },
+  "proxying.request-forwarding.003": {
+   "file": "specs/proxying/request-forwarding/request-admission.feature",
+   "fingerprint": "e60c7477b3e5",
+   "human": false,
+   "rule": "proxying.forwarding.client-identity-forwarded",
+   "source": "server/handler/utils.go#ProxyDirector",
+   "status": "verified",
+   "test": "server/handler/http_unit_test.go#TestXForwardedFor",
+   "tests": [
+    "server/handler/http_unit_test.go#TestXForwardedFor"
+   ]
+  },
+  "proxying.request-forwarding.004": {
+   "file": "specs/proxying/request-forwarding/request-admission.feature",
+   "fingerprint": "d0f592e042f2",
+   "human": false,
+   "rule": "proxying.forwarding.upstream-scheme-follows-client",
+   "source": "server/handler/utils.go#GetUpstreamURL",
+   "status": "verified",
+   "test": "server/handler/utils_test.go#TestGetUpstreamURLWithWildcard",
+   "tests": [
+    "server/handler/utils_test.go#TestGetUpstreamURLWithWildcard"
+   ]
+  },
+  "proxying.request-forwarding.005": {
+   "file": "specs/proxying/request-forwarding/request-time-limits.feature",
+   "fingerprint": "9bc7119f35e9",
+   "human": false,
+   "rule": "proxying.timeouts.slow-request-gets-503",
+   "source": "server/server.go#InitServer",
+   "status": "gap",
+   "test": "",
+   "tests": []
+  },
+  "proxying.request-forwarding.006": {
+   "file": "specs/proxying/request-forwarding/request-time-limits.feature",
+   "fingerprint": "9bc7119f35e9",
+   "human": false,
+   "rule": "proxying.timeouts.global-for-all-domains",
+   "source": "server/server.go#InitServer",
+   "status": "gap",
+   "test": "",
+   "tests": []
+  },
+  "proxying.request-forwarding.007": {
+   "file": "specs/proxying/request-forwarding/request-time-limits.feature",
+   "fingerprint": "9042b3587f8c",
+   "human": false,
+   "rule": "configuration.timeouts.bare-numbers-are-seconds",
+   "source": "server/server.go#normalizeTimeout",
+   "status": "gap",
+   "test": "",
+   "tests": []
+  },
+  "proxying.response-delivery.001": {
+   "file": "specs/proxying/response-delivery/gzip-delivery.feature",
+   "fingerprint": "8833f48ce4d0",
+   "human": false,
+   "rule": "proxying.delivery.gzip-labelled-for-accepting-clients",
+   "source": "server/handler/gzip.go#WrapResponseForGZip",
+   "status": "verified",
+   "test": "server/handler/gzip_test.go#TestWrapResponseForGZipWhenAcceptEncodingGZip",
+   "tests": [
+    "server/handler/gzip_test.go#TestWrapResponseForGZipWhenAcceptEncodingGZip",
+    "server/handler/gzip_test.go#TestWrapResponseForGZipWhenNoAcceptEncoding"
+   ]
+  },
+  "proxying.response-delivery.002": {
+   "file": "specs/proxying/response-delivery/response-delivery.feature",
+   "fingerprint": "8833f48ce4d0",
+   "human": false,
+   "rule": "proxying.delivery.gzip-label-matches-body",
+   "source": "server/handler/gzip.go#WrapResponseForGZip",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "proxying.response-delivery.003": {
+   "file": "specs/proxying/response-delivery/replaying-stored-responses.feature",
+   "fingerprint": "316d195d2e3f",
+   "human": false,
+   "rule": "proxying.response-delivery.stored-response-keeps-status-headers-body",
+   "source": "server/transport/http.go#ServeCachedResponse",
+   "status": "verified",
+   "test": "server/transport/http_test.go#TestServeCachedResponseSendsCachedStatusCode",
+   "tests": [
+    "server/transport/http_test.go#TestServeCachedResponseSendsCachedStatusCode"
+   ]
+  },
+  "proxying.response-delivery.004": {
+   "file": "specs/proxying/response-delivery/replaying-stored-responses.feature",
+   "fingerprint": "0f6baa1c3b17",
+   "human": false,
+   "rule": "proxying.response-delivery.stored-response-drops-hop-by-hop-headers",
+   "source": "server/transport/http.go#handleHeaders",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "proxying.response-delivery.005": {
+   "file": "specs/proxying/response-delivery/replaying-stored-responses.feature",
+   "fingerprint": "0f6baa1c3b17",
+   "human": false,
+   "rule": "proxying.response-delivery.stored-cache-status-not-replayed",
+   "source": "server/transport/http.go#handleHeaders",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "proxying.response-delivery.006": {
+   "file": "specs/proxying/response-delivery/replaying-stored-responses.feature",
+   "fingerprint": "613901ca3339",
+   "human": false,
+   "rule": "proxying.response-delivery.http2-push-preload-links",
+   "source": "server/transport/http2.go#PushProxiedResources",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.jwt-auth.001": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "97cb148774ab",
+   "human": false,
+   "rule": "security.jwt.valid-token-with-allowed-scope-passes",
+   "source": "server/jwt/jwt.go#ValidateJWT",
+   "status": "verified",
+   "test": "server/jwt/jwt_test.go#TestValidateJWTWithScopeConfigAndScopeClaimToken",
+   "tests": [
+    "server/jwt/jwt_test.go#TestValidateJWTWithScopeConfigAndScopeClaimToken",
+    "server/jwt/jwt_test.go#TestValidateJWTWithScopeConfigAndScpClaimToken",
+    "server/jwt/jwt_test.go#TestValidateJWTWithMultipleKeysInKeySet"
+   ]
+  },
+  "security.jwt-auth.002": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "6a642471536e",
+   "human": false,
+   "rule": "security.jwt.missing-or-invalid-token-refused",
+   "source": "server/jwt/jwt.go#logJWTErrorAndAbort",
+   "status": "verified",
+   "test": "server/jwt/jwt_test.go#TestValidateJWTWithoutAnyToken",
+   "tests": [
+    "server/jwt/jwt_test.go#TestValidateJWTWithoutAnyToken",
+    "server/jwt/jwt_test.go#TestValidateJWTWithAnExpiredToken"
+   ]
+  },
+  "security.jwt-auth.003": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "97cb148774ab",
+   "human": false,
+   "rule": "security.jwt.scope-not-allowed-refused",
+   "source": "server/jwt/jwt.go#ValidateJWT",
+   "status": "verified",
+   "test": "server/jwt/jwt_test.go#TestValidateJWTWithoutAnyScopeInTheConfig",
+   "tests": [
+    "server/jwt/jwt_test.go#TestValidateJWTWithoutAnyScopeInTheConfig",
+    "server/jwt/jwt_test.go#TestAllowedScope"
+   ]
+  },
+  "security.jwt-auth.004": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "de2fb1c7184e",
+   "human": false,
+   "rule": "security.jwt.scp-claim-overrides-scope-claim",
+   "source": "server/jwt/jwt.go#getScopes",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.jwt-auth.005": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "bd681068be4f",
+   "human": false,
+   "rule": "security.jwt.key-set-unavailable-fails-closed",
+   "source": "server/jwt/jwt.go#getKeySet",
+   "status": "verified",
+   "test": "server/jwt/jwt_test.go#TestValidateJWTWithoutAnyKeySet",
+   "tests": [
+    "server/jwt/jwt_test.go#TestValidateJWTWithoutAnyKeySet"
+   ]
+  },
+  "security.jwt-auth.006": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "b125cc9cb74f",
+   "human": false,
+   "rule": "security.jwt.excluded-paths-skip-authentication",
+   "source": "server/jwt/jwt_utils.go#IsExcluded",
+   "status": "verified",
+   "test": "server/jwt/jwt_utils_test.go#TestIsExcluded",
+   "tests": [
+    "server/jwt/jwt_utils_test.go#TestIsExcluded"
+   ]
+  },
+  "security.jwt-auth.007": {
+   "file": "specs/security/jwt-auth/jwt-token-authentication.feature",
+   "fingerprint": "09f519bd821f",
+   "human": false,
+   "rule": "security.jwt.only-enforced-with-jwks-url",
+   "source": "server/jwt/jwt.go#JWTHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.listeners.001": {
+   "file": "specs/security/listeners/listeners-and-internal-endpoints.feature",
+   "fingerprint": "f46ab6f81ca3",
+   "human": false,
+   "rule": "security.listeners.internals-only-on-internal-address",
+   "source": "server/server.go#AttachInternals",
+   "status": "verified",
+   "test": "server/server_unit_test.go#TestAttachInternalsBindsConfiguredAddress",
+   "tests": [
+    "server/server_unit_test.go#TestAttachInternalsBindsConfiguredAddress",
+    "server/server_unit_test.go#TestAttachInternalsIPv6",
+    "server/listeners_test.go#TestInternalsListenOnTheConfiguredAddress"
+   ]
+  },
+  "security.listeners.002": {
+   "file": "specs/security/listeners/listeners-and-internal-endpoints.feature",
+   "fingerprint": "f46ab6f81ca3",
+   "human": false,
+   "rule": "security.listeners.internal-port-must-not-be-public",
+   "source": "server/server.go#AttachInternals",
+   "status": "verified",
+   "test": "server/server_unit_test.go#TestAttachInternalsRejectsPublicPortCollision",
+   "tests": [
+    "server/server_unit_test.go#TestAttachInternalsRejectsPublicPortCollision"
+   ]
+  },
+  "security.listeners.003": {
+   "file": "specs/security/listeners/listeners-and-internal-endpoints.feature",
+   "fingerprint": "cda4432dddc9",
+   "human": false,
+   "rule": "security.listeners.broken-tls-serves-http-only",
+   "source": "server/server.go#InitServers",
+   "status": "gap",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.001": {
+   "file": "specs/security/tls-certificates/tls-protocol-floor.feature",
+   "fingerprint": "1e1d9ee78135",
+   "human": false,
+   "rule": "security.tls.minimum-version-1-2",
+   "source": "config/model.go#Config",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.002": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "18f1874a87c6",
+   "human": false,
+   "rule": "security.tls.certificate-by-server-name",
+   "source": "server/tls/tls.go#returnCert",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.003": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "18f1874a87c6",
+   "human": false,
+   "rule": "security.tls.unknown-server-name-refused",
+   "source": "server/tls/tls.go#returnCert",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.004": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "d8fa54ec8723",
+   "human": false,
+   "rule": "security.tls.https-requires-certificate-pair",
+   "source": "server/tls/tls.go#Config",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.005": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "136704040e45",
+   "human": false,
+   "rule": "security.tls.auto-certificates-only-for-configured-domains",
+   "source": "server/tls/tls.go#InitCertManager",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.006": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "136704040e45",
+   "human": false,
+   "rule": "security.tls.auto-certificates-persist-across-restarts",
+   "source": "server/tls/tls.go#InitCertManager",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.007": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "b32cfade1334",
+   "human": false,
+   "rule": "security.tls.protocol-version-and-cipher-policy",
+   "source": "server/tls/tls.go#newDefaultTLSConfig",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "security.tls-certificates.008": {
+   "file": "specs/security/tls-certificates/serving-https.feature",
+   "fingerprint": "b32cfade1334",
+   "human": false,
+   "rule": "security.tls.per-domain-tls-policy-ignored",
+   "source": "server/tls/tls.go#newDefaultTLSConfig",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  }
+ },
+ "taxonomy": {
+  "domains": [
+   {
+    "areas": [
+     {
+      "description": "Accepting HTTP requests on the catch-all route and relaying them to the configured upstream over HTTP/1.1 or HTTP/2.",
+      "slug": "request-forwarding",
+      "title": "Request forwarding"
+     },
+     {
+      "description": "Upgrading and tunnelling WebSocket connections between clients and upstreams.",
+      "slug": "websockets",
+      "title": "WebSockets"
+     },
+     {
+      "description": "Redirecting clients between HTTP and HTTPS and resolving the scheme to use for upstream calls.",
+      "slug": "redirects",
+      "title": "Redirects and scheme handling"
+     },
+     {
+      "description": "Collapsing concurrent identical requests into a single upstream fetch shared by all waiters.",
+      "slug": "request-coalescing",
+      "title": "Request coalescing"
+     },
+     {
+      "description": "Building the response sent to the client, including headers, status, body buffering and gzip compression.",
+      "slug": "response-delivery",
+      "title": "Response delivery"
+     }
+    ],
+    "description": "Forwarding client requests to upstream servers and returning their responses.",
+    "slug": "proxying",
+    "title": "Reverse Proxying"
+   },
+   {
+    "areas": [
+     {
+      "description": "Deciding cache keys, reading cached responses and saving new ones, including vary-by-header handling.",
+      "slug": "cache-lookup-store",
+      "title": "Cache lookup and storage"
+     },
+     {
+      "description": "Computing time-to-live from headers and config and reporting hit, miss or stale status to clients.",
+      "slug": "freshness",
+      "title": "Freshness and cache status"
+     },
+     {
+      "description": "Generating ETags and answering If-None-Match and similar requests with not-modified responses.",
+      "slug": "conditional-requests",
+      "title": "Conditional requests"
+     },
+     {
+      "description": "Letting authorised callers invalidate cached entries by URL or pattern.",
+      "slug": "purging",
+      "title": "Cache purging"
+     },
+     {
+      "description": "Persisting cache entries in Redis, including connection management, wildcard key scans and compact serialisation.",
+      "slug": "cache-backend",
+      "title": "Cache backend"
+     }
+    ],
+    "description": "Storing upstream responses and serving them again without hitting the upstream.",
+    "slug": "caching",
+    "title": "Caching"
+   },
+   {
+    "areas": [
+     {
+      "description": "Choosing an upstream with round-robin, random, least-connections or IP-hash algorithms.",
+      "slug": "balancing-strategies",
+      "title": "Balancing strategies"
+     },
+     {
+      "description": "Checking upstream availability and taking failing ones out of rotation.",
+      "slug": "upstream-health",
+      "title": "Upstream health"
+     },
+     {
+      "description": "Stopping calls to a failing dependency for a while and letting it recover gradually.",
+      "slug": "circuit-breaking",
+      "title": "Circuit breaking"
+     }
+    ],
+    "description": "Spreading traffic across several upstream servers and avoiding unhealthy ones.",
+    "slug": "load-balancing",
+    "title": "Load Balancing"
+   },
+   {
+    "areas": [
+     {
+      "description": "Serving HTTPS with configured or automatically issued certificates and secure TLS settings.",
+      "slug": "tls-certificates",
+      "title": "TLS and certificates"
+     },
+     {
+      "description": "Opening the HTTP and HTTPS ports per domain and binding them to the right handlers.",
+      "slug": "listeners",
+      "title": "Network listeners"
+     },
+     {
+      "description": "Validating JWT bearer tokens and scopes before letting requests through.",
+      "slug": "jwt-auth",
+      "title": "Token authentication"
+     },
+     {
+      "description": "Sending HSTS headers so browsers keep using HTTPS.",
+      "slug": "strict-transport",
+      "title": "Strict transport security"
+     }
+    ],
+    "description": "Protecting traffic in transit and controlling who may use protected features.",
+    "slug": "security",
+    "title": "Security"
+   },
+   {
+    "areas": [
+     {
+      "description": "Reading settings from file and environment and applying built-in defaults.",
+      "slug": "config-loading",
+      "title": "Config loading"
+     },
+     {
+      "description": "Defining separate settings per hosted domain and picking the right one for each request.",
+      "slug": "multi-domain",
+      "title": "Multiple domains"
+     },
+     {
+      "description": "Combining global and domain-level settings so domains inherit and override values.",
+      "slug": "config-merging",
+      "title": "Config merging"
+     },
+     {
+      "description": "Printing the effective configuration for inspection.",
+      "slug": "config-display",
+      "title": "Config display"
+     }
+    ],
+    "description": "How operators describe the proxy's behaviour and per-site settings.",
+    "slug": "configuration",
+    "title": "Configuration"
+   },
+   {
+    "areas": [
+     {
+      "description": "Writing structured logs of requests and events at configurable levels.",
+      "slug": "logging",
+      "title": "Logging"
+     },
+     {
+      "description": "Exposing Prometheus-style counters and collectors on the metrics endpoint.",
+      "slug": "metrics",
+      "title": "Metrics"
+     },
+     {
+      "description": "Creating and exporting trace spans for each proxied request.",
+      "slug": "tracing",
+      "title": "Distributed tracing"
+     },
+     {
+      "description": "Initialising and wiring the logging, metrics and tracing providers at start-up.",
+      "slug": "telemetry-setup",
+      "title": "Telemetry setup"
+     },
+     {
+      "description": "Reporting the proxy's own and its cache backend's health on the healthcheck route.",
+      "slug": "health-endpoint",
+      "title": "Health check endpoint"
+     }
+    ],
+    "description": "Seeing what the proxy is doing through logs, metrics, traces and health signals.",
+    "slug": "observability",
+    "title": "Observability"
+   },
+   {
+    "areas": [
+     {
+      "description": "Starting the service from the command line, registering routes and shutting down gracefully.",
+      "slug": "server-lifecycle",
+      "title": "Server lifecycle"
+     },
+     {
+      "description": "Compiling binaries, multi-architecture builds and make targets for development tasks.",
+      "slug": "build-release",
+      "title": "Build and release"
+     },
+     {
+      "description": "Packaging the proxy as a Docker image.",
+      "slug": "container-image",
+      "title": "Container image"
+     },
+     {
+      "description": "Scripts that probe a running instance's TLS, HTTP versions, proxy and WebSocket behaviour.",
+      "slug": "manual-testing",
+      "title": "Manual test scripts"
+     },
+     {
+      "description": "Small common helpers for encoding, conversion, random values and list handling.",
+      "slug": "shared-utilities",
+      "title": "Shared utilities"
+     }
+    ],
+    "description": "Starting, building, packaging and testing the proxy, plus shared helpers.",
+    "slug": "operations",
+    "title": "Operations and Developer Tooling"
+   }
+  ]
+ }
+}
