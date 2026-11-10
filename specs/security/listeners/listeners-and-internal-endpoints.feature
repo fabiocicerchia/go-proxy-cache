@@ -28,12 +28,3 @@ Feature: Opening public and internal ports
       | public_port | kind  |
       | 80          | HTTP  |
       | 443         | HTTPS |
-
-  @id:security.listeners.003 @rule:security.listeners.broken-tls-serves-http-only @gap @source:server/server.go#InitServers @questionable
-  Scenario: A domain whose certificate cannot be loaded is served over HTTP only
-    Given www.example.com has automatic certificates turned off
-    And its certificate or key file is missing or unreadable
-    When the operator starts the proxy
-    Then www.example.com answers on its HTTP port
-    And no HTTPS listener is opened for www.example.com
-    And the log reports "No HTTPS server will be listening on 'www.example.com'"

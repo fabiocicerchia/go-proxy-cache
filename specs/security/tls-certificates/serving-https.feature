@@ -77,7 +77,9 @@ Feature: Serving HTTPS for hosted domains
 
     Examples:
       | min               | max               | client offer                                       | outcome                                           |
+      | TLS 1.2 (default) | TLS 1.3 (default) | TLS 1.0                                            | the handshake fails with a protocol version alert |
       | TLS 1.2 (default) | TLS 1.3 (default) | TLS 1.1                                            | the handshake fails with a protocol version alert |
+      | TLS 1.2 (default) | TLS 1.3 (default) | TLS 1.3                                            | the connection is established with TLS 1.3        |
       | TLS 1.2 (default) | TLS 1.3 (default) | TLS 1.2 with TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 | the connection is established with TLS 1.2        |
       | TLS 1.2 (default) | TLS 1.3 (default) | TLS 1.2 with only TLS_RSA_WITH_AES_128_CBC_SHA     | the handshake fails                               |
 

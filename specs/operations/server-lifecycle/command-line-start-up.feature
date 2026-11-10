@@ -42,19 +42,3 @@ Feature: Starting the proxy from the command line
     When the operator runs go-proxy-cache with -test and no -config flag
     Then config.yml in the working directory is the file that gets checked
     And "Configuration file valid." is printed
-
-  @id:operations.server-lifecycle.005 @rule:operations.cli.log-flag-redirects-logs-to-file @inferred @source:logger/log.go#InitLogs
-  Scenario: Logs go to the file named by the log flag instead of standard output
-    Given /var/log/gpc.log is writable
-    When the operator starts go-proxy-cache with -log /var/log/gpc.log
-    Then log lines are appended to /var/log/gpc.log
-    And log lines no longer appear on standard output
-    And the file is created readable and writable only by its owner if it did not exist
-
-  @id:operations.server-lifecycle.006 @rule:operations.cli.debug-flag-shows-start-up-diagnostics @inferred @source:main.go#main
-  Scenario: Debug mode shows the start-up banner and runtime details
-    Given the operator has a valid config.yml
-    When the operator starts go-proxy-cache with -debug
-    Then the log shows the go-proxy-cache banner and copyright line
-    And the log shows the version, Go version, thread count, OS and architecture
-    And without -debug none of these lines are logged

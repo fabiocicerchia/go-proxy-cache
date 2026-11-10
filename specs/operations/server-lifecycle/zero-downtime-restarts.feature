@@ -15,15 +15,6 @@ Feature: Restarting without refusing connections
     And the proxy keeps the same process id
     And new requests are answered by the restarted proxy using the configuration on disk
 
-  @id:operations.server-lifecycle.008 @rule:operations.restart.drain-in-flight-before-stop @verified @source:server/listeners.go#connStates @test:server/listeners_test.go#TestShutdownDrainsInFlightRequests
-  Scenario: Requests already accepted finish before the proxy stops
-    Given a client request to example.com is still being answered
-    And the shutdown timeout is 5s
-    When the operator sends SIGTERM to the proxy
-    Then the proxy stops accepting new connections
-    And the in-flight request receives its full response
-    And the proxy exits once no request is in progress, or after 5s at the latest
-
   @id:operations.server-lifecycle.009 @rule:operations.socket-activation.inherited-sockets-used-by-port @verified @source:server/listeners.go#inheritedListeners @test:server/listeners_test.go#TestInheritedListenerSurvivesReexec @test:server/listeners_test.go#TestInternalsReuseTheInheritedListener
   Scenario Outline: Sockets handed over by systemd are used for the listener on the same port
     Given systemd passes the proxy a listening socket on port <port>

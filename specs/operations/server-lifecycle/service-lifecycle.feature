@@ -27,11 +27,3 @@ Feature: Stopping and reloading the proxy without dropping requests
     Then the proxy exits about 5 seconds after the signal
     And the slow request does not receive a complete response
     And the log reports that a server could not shut down
-
-  @id:operations.server-lifecycle.014 @rule:operations.lifecycle.reload-keeps-accepting-connections @verified @source:server/server.go#waitForSignal @test:server/listeners_test.go#TestInheritedListenerSurvivesReexec
-  Scenario: Reloading the proxy does not refuse any client connection
-    Given a client request to www.example.com is still being answered
-    When the operator sends SIGHUP to the proxy
-    Then the request in progress receives its full response
-    And new requests sent during the reload are answered, not refused
-    And after the reload, requests are answered by the restarted proxy on the same port

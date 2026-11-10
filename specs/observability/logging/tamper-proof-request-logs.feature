@@ -17,4 +17,5 @@ Feature: Tamper-proof request logs
       | request path | /path\r\nINFO forged log line     | /pathINFO forged log line     |
       | user agent   | curl/8.0\nINFO admin login ok     | curl/8.0INFO admin login ok   |
       | referer      | https://example.com/\r\nWARN fake | https://example.com/WARN fake |
+      | host         | www.example.com\r\nINFO forged   | www.example.comINFO forged    |
       | request path | /path?a=b                         | /path?a=b                     |

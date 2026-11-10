@@ -42,18 +42,6 @@ Feature: Replaying stored responses to clients
       | Trailer            | Expires              | Trailer            |
       | Connection         | X-Origin-Debug       | X-Origin-Debug     |
 
-  @id:proxying.response-delivery.005 @rule:proxying.response-delivery.stored-cache-status-not-replayed @inferred @source:server/transport/http.go#handleHeaders
-  Scenario Outline: A replayed response reports today's cache status, not the one it was stored with
-    Given the stored response carries the header "X-Go-Proxy-Cache-Status: MISS"
-    And the stored response is <freshness>
-    When a visitor requests https://www.example.com/page
-    Then the response header X-Go-Proxy-Cache-Status has exactly one value, "<status>"
-
-    Examples:
-      | freshness | status |
-      | fresh     | HIT    |
-      | stale     | STALE  |
-
   @id:proxying.response-delivery.006 @rule:proxying.response-delivery.http2-push-preload-links @inferred @source:server/transport/http2.go#PushProxiedResources @questionable
   Scenario Outline: Over HTTP/2, resources the origin marks for preload are pushed with the stored page
     Given the stored response carries the header "Link: <link>"

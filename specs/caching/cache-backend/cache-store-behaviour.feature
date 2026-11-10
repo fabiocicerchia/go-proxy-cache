@@ -19,14 +19,6 @@ Feature: Running the cache on Redis
       |               | left at the store's own default | nothing about the eviction policy                       |
       | lru; FLUSHALL | left at the store's own default | Invalid REDIS_EVICTION_POLICY "lru; FLUSHALL", skipping |
 
-  @id:caching.cache-backend.002 @rule:caching.purging.store-unreachable-is-failure @verified @source:cache/engine/client/client_wildcard.go#DelWildcard @test:server/handler/purge_test.go#TestEndToEndCallPurgeWithRedisDown
-  Scenario: A purge that cannot reach the cache store is reported as a failure, not as nothing to purge
-    Given the cache store for example.com is unreachable
-    And the client has a valid purge secret
-    When the client sends PURGE for https://example.com/
-    Then the response status is 500
-    And the response body is "KO"
-
   @id:caching.cache-backend.003 @rule:caching.cache-lookup-store.store-without-vary @verified @source:cache/engine/client/client.go#Push @test:cache/engine/client/client_test.go#TestPushListEmptyIsANoOp
   Scenario: A response without a Vary header is still cached
     Given the upstream answers GET https://example.com/page with status 200, a cacheable lifetime and no Vary header

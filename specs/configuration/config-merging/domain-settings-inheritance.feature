@@ -73,15 +73,3 @@ Feature: Inheriting global settings per domain
       | POST               | POST, HEAD, GET   |
       | (not set)          | HEAD, GET         |
       | GET, PURGE         | GET, PURGE, HEAD  |
-
-  @id:configuration.config-merging.009 @rule:configuration.merging.tls-paths-relative-to-config-file @inferred @source:config/config.go#patchAbsFilePath
-  Scenario Outline: Relative certificate and key paths resolve against the config file's folder
-    Given the config file is "/etc/go-proxy-cache/config.yml"
-    And domain "shop.example.com" sets tls cert_file to <cert_file>
-    When the operator starts the proxy with this config file
-    Then "shop.example.com" loads its certificate from <resolved path>
-
-    Examples:
-      | cert_file         | resolved path                      |
-      | certs/shop.crt    | /etc/go-proxy-cache/certs/shop.crt |
-      | /srv/tls/shop.crt | /srv/tls/shop.crt                  |

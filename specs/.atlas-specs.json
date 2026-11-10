@@ -1831,7 +1831,27 @@
    }
   ]
  },
- "retired": [],
+ "retired": [
+  "caching.purging.001",
+  "caching.cache-backend.002",
+  "caching.freshness.001",
+  "proxying.response-delivery.005",
+  "proxying.response-delivery.002",
+  "configuration.config-merging.001",
+  "configuration.config-merging.010",
+  "configuration.config-merging.011",
+  "configuration.config-merging.009",
+  "configuration.config-loading.008",
+  "configuration.config-loading.001",
+  "configuration.multi-domain.002",
+  "observability.logging.003",
+  "operations.server-lifecycle.005",
+  "operations.server-lifecycle.008",
+  "operations.server-lifecycle.014",
+  "operations.server-lifecycle.006",
+  "security.listeners.003",
+  "security.tls-certificates.001"
+ ],
  "scenarios": {
   "caching.cache-backend.001": {
    "file": "specs/caching/cache-backend/cache-store-behaviour.feature",
@@ -1842,18 +1862,6 @@
    "status": "inferred",
    "test": "",
    "tests": []
-  },
-  "caching.cache-backend.002": {
-   "file": "specs/caching/cache-backend/cache-store-behaviour.feature",
-   "fingerprint": "ee6cb5f39f8a",
-   "human": false,
-   "rule": "caching.purging.store-unreachable-is-failure",
-   "source": "cache/engine/client/client_wildcard.go#DelWildcard",
-   "status": "verified",
-   "test": "server/handler/purge_test.go#TestEndToEndCallPurgeWithRedisDown",
-   "tests": [
-    "server/handler/purge_test.go#TestEndToEndCallPurgeWithRedisDown"
-   ]
   },
   "caching.cache-backend.003": {
    "file": "specs/caching/cache-backend/cache-store-behaviour.feature",
@@ -1891,18 +1899,6 @@
    "tests": [
     "server/storage/storage_test.go#TestStoreGeneratedPageOverrideTTLDoesNotStoreForbidden",
     "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLDoesNotStorePrivate"
-   ]
-  },
-  "caching.freshness.001": {
-   "file": "specs/caching/freshness/cache-status.feature",
-   "fingerprint": "a9850dc046e1",
-   "human": false,
-   "rule": "caching.status.reported-per-response",
-   "source": "server/handler/http.go#HandleHTTPRequestAndProxy",
-   "status": "verified",
-   "test": "server/handler/purge_test.go#TestEndToEndCallPurge",
-   "tests": [
-    "server/handler/purge_test.go#TestEndToEndCallPurge"
    ]
   },
   "caching.freshness.002": {
@@ -2047,18 +2043,6 @@
     "utils/ttl/ttl_test.go#TestGetTTLMatchesDirectivesAsTokens"
    ]
   },
-  "caching.purging.001": {
-   "file": "specs/caching/purging/purging-cached-pages.feature",
-   "fingerprint": "86545b211f0e",
-   "human": false,
-   "rule": "caching.purge.escaped-star-is-single-page",
-   "source": "server/storage/storage.go#PurgeCachedContent",
-   "status": "verified",
-   "test": "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost",
-   "tests": [
-    "cache/purge_host_test.go#TestPurgeHostDeletesOnlyThatHost"
-   ]
-  },
   "caching.purging.002": {
    "file": "specs/caching/purging/cache-purge.feature",
    "fingerprint": "b07e74caf0b1",
@@ -2166,19 +2150,6 @@
    "test": "",
    "tests": []
   },
-  "configuration.config-loading.001": {
-   "file": "specs/configuration/config-loading/loading-configuration.feature",
-   "fingerprint": "e2fa3dbcbe7d",
-   "human": false,
-   "rule": "configuration.loading.test-flag-reports-validity",
-   "source": "config/config.go#Validate",
-   "status": "verified",
-   "test": "config/override_ttl_test.go#TestOverrideTTLNegativeRejected",
-   "tests": [
-    "config/override_ttl_test.go#TestOverrideTTLNegativeRejected",
-    "config/override_ttl_test.go#TestOverrideTTLValidYAML"
-   ]
-  },
   "configuration.config-loading.002": {
    "file": "specs/configuration/config-loading/loading-configuration.feature",
    "fingerprint": "4375d3e014da",
@@ -2240,28 +2211,6 @@
    "status": "inferred",
    "test": "",
    "tests": []
-  },
-  "configuration.config-loading.008": {
-   "file": "specs/configuration/config-loading/built-in-defaults-and-validation.feature",
-   "fingerprint": "1e1d9ee78135",
-   "human": false,
-   "rule": "load-balancing.health.probe-scheme-follows-upstream",
-   "source": "config/model.go#Config",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "configuration.config-merging.001": {
-   "file": "specs/configuration/config-merging/per-domain-settings.feature",
-   "fingerprint": "6a8447c204a0",
-   "human": false,
-   "rule": "configuration.domains.inherit-and-override-global",
-   "source": "config/config.go#copyGlobalOverDomainConfig",
-   "status": "verified",
-   "test": "config/merge_test.go#TestYAMLMergeKeepsCacheFields",
-   "tests": [
-    "config/merge_test.go#TestYAMLMergeKeepsCacheFields"
-   ]
   },
   "configuration.config-merging.002": {
    "file": "specs/configuration/config-merging/per-domain-settings.feature",
@@ -2349,42 +2298,6 @@
    "test": "",
    "tests": []
   },
-  "configuration.config-merging.009": {
-   "file": "specs/configuration/config-merging/domain-settings-inheritance.feature",
-   "fingerprint": "5016981c6e9a",
-   "human": false,
-   "rule": "configuration.merging.tls-paths-relative-to-config-file",
-   "source": "config/config.go#patchAbsFilePath",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "configuration.config-merging.010": {
-   "file": "specs/configuration/config-merging/domain-setting-inheritance.feature",
-   "fingerprint": "0f3cc2b24d6c",
-   "human": false,
-   "rule": "configuration.merging.unset-domain-setting-inherits-global",
-   "source": "utils/utils.go#Coalesce",
-   "status": "verified",
-   "test": "utils/utils_test.go#TestCoalesceFalse",
-   "tests": [
-    "utils/utils_test.go#TestCoalesceFalse",
-    "utils/utils_test.go#TestCoalesceFallsBackOnTypedNilPointer",
-    "config/override_ttl_test.go#TestOverrideTTLMergesPerDomain"
-   ]
-  },
-  "configuration.config-merging.011": {
-   "file": "specs/configuration/config-merging/domain-setting-inheritance.feature",
-   "fingerprint": "661a6bf83ce7",
-   "human": false,
-   "rule": "configuration.merging.off-or-zero-cannot-override-global",
-   "source": "utils/utils.go#IsEmpty",
-   "status": "verified",
-   "test": "utils/utils_test.go#TestIsEmptyTrue",
-   "tests": [
-    "utils/utils_test.go#TestIsEmptyTrue"
-   ]
-  },
   "configuration.multi-domain.001": {
    "file": "specs/configuration/multi-domain/domain-selection.feature",
    "fingerprint": "7009d2cdaa44",
@@ -2396,16 +2309,6 @@
    "tests": [
     "server/storage/storage_test.go#TestStoreGeneratedPageNegativeTTLFromYAML"
    ]
-  },
-  "configuration.multi-domain.002": {
-   "file": "specs/configuration/multi-domain/domain-selection.feature",
-   "fingerprint": "7009d2cdaa44",
-   "human": false,
-   "rule": "config.domains.unknown-host-refused",
-   "source": "config/domain.go#domainConfLookup",
-   "status": "inferred",
-   "test": "",
-   "tests": []
   },
   "configuration.multi-domain.003": {
    "file": "specs/configuration/multi-domain/domain-selection.feature",
@@ -2574,16 +2477,6 @@
    "tests": [
     "logger/log_test.go#TestLogRequest"
    ]
-  },
-  "observability.logging.003": {
-   "file": "specs/observability/logging/request-access-log.feature",
-   "fingerprint": "7f7d6f5bdaaf",
-   "human": false,
-   "rule": "observability.access-log.client-values-cannot-forge-lines",
-   "source": "logger/log.go#LogRequest",
-   "status": "inferred",
-   "test": "",
-   "tests": []
   },
   "observability.logging.004": {
    "file": "specs/observability/logging/request-access-log.feature",
@@ -2859,26 +2752,6 @@
    "test": "",
    "tests": []
   },
-  "operations.server-lifecycle.005": {
-   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
-   "fingerprint": "1b9a5e1445ff",
-   "human": false,
-   "rule": "operations.cli.log-flag-redirects-logs-to-file",
-   "source": "logger/log.go#InitLogs",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "operations.server-lifecycle.006": {
-   "file": "specs/operations/server-lifecycle/command-line-start-up.feature",
-   "fingerprint": "c91d04bc1cef",
-   "human": false,
-   "rule": "operations.cli.debug-flag-shows-start-up-diagnostics",
-   "source": "main.go#main",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "operations.server-lifecycle.007": {
    "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
    "fingerprint": "3d801ee558f4",
@@ -2889,18 +2762,6 @@
    "test": "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
    "tests": [
     "server/listeners_test.go#TestInheritedListenerSurvivesReexec"
-   ]
-  },
-  "operations.server-lifecycle.008": {
-   "file": "specs/operations/server-lifecycle/zero-downtime-restarts.feature",
-   "fingerprint": "510227078149",
-   "human": false,
-   "rule": "operations.restart.drain-in-flight-before-stop",
-   "source": "server/listeners.go#connStates",
-   "status": "verified",
-   "test": "server/listeners_test.go#TestShutdownDrainsInFlightRequests",
-   "tests": [
-    "server/listeners_test.go#TestShutdownDrainsInFlightRequests"
    ]
   },
   "operations.server-lifecycle.009": {
@@ -2959,18 +2820,6 @@
    "status": "gap",
    "test": "",
    "tests": []
-  },
-  "operations.server-lifecycle.014": {
-   "file": "specs/operations/server-lifecycle/service-lifecycle.feature",
-   "fingerprint": "b1bbc963d7b2",
-   "human": false,
-   "rule": "operations.lifecycle.reload-keeps-accepting-connections",
-   "source": "server/server.go#waitForSignal",
-   "status": "verified",
-   "test": "server/listeners_test.go#TestInheritedListenerSurvivesReexec",
-   "tests": [
-    "server/listeners_test.go#TestInheritedListenerSurvivesReexec"
-   ]
   },
   "proxying.redirects.001": {
    "file": "specs/proxying/redirects/https-redirect.feature",
@@ -3102,16 +2951,6 @@
     "server/handler/gzip_test.go#TestWrapResponseForGZipWhenNoAcceptEncoding"
    ]
   },
-  "proxying.response-delivery.002": {
-   "file": "specs/proxying/response-delivery/response-delivery.feature",
-   "fingerprint": "8833f48ce4d0",
-   "human": false,
-   "rule": "proxying.delivery.gzip-label-matches-body",
-   "source": "server/handler/gzip.go#WrapResponseForGZip",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "proxying.response-delivery.003": {
    "file": "specs/proxying/response-delivery/replaying-stored-responses.feature",
    "fingerprint": "316d195d2e3f",
@@ -3129,16 +2968,6 @@
    "fingerprint": "0f6baa1c3b17",
    "human": false,
    "rule": "proxying.response-delivery.stored-response-drops-hop-by-hop-headers",
-   "source": "server/transport/http.go#handleHeaders",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "proxying.response-delivery.005": {
-   "file": "specs/proxying/response-delivery/replaying-stored-responses.feature",
-   "fingerprint": "0f6baa1c3b17",
-   "human": false,
-   "rule": "proxying.response-delivery.stored-cache-status-not-replayed",
    "source": "server/transport/http.go#handleHeaders",
    "status": "inferred",
    "test": "",
@@ -3263,26 +3092,6 @@
    "tests": [
     "server/server_unit_test.go#TestAttachInternalsRejectsPublicPortCollision"
    ]
-  },
-  "security.listeners.003": {
-   "file": "specs/security/listeners/listeners-and-internal-endpoints.feature",
-   "fingerprint": "cda4432dddc9",
-   "human": false,
-   "rule": "security.listeners.broken-tls-serves-http-only",
-   "source": "server/server.go#InitServers",
-   "status": "gap",
-   "test": "",
-   "tests": []
-  },
-  "security.tls-certificates.001": {
-   "file": "specs/security/tls-certificates/tls-protocol-floor.feature",
-   "fingerprint": "1e1d9ee78135",
-   "human": false,
-   "rule": "security.tls.minimum-version-1-2",
-   "source": "config/model.go#Config",
-   "status": "inferred",
-   "test": "",
-   "tests": []
   },
   "security.tls-certificates.002": {
    "file": "specs/security/tls-certificates/serving-https.feature",

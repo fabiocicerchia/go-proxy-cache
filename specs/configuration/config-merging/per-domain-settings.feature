@@ -5,15 +5,6 @@ Feature: Per-domain settings
   Background:
     Given the config file defines global settings and a domains section
 
-  @id:configuration.config-merging.001 @rule:configuration.domains.inherit-and-override-global @verified @source:config/config.go#copyGlobalOverDomainConfig @test:config/merge_test.go#TestYAMLMergeKeepsCacheFields
-  Scenario: A domain inherits global settings it does not set and keeps the ones it does
-    Given the global settings use eviction policy allkeys-lru and negative TTLs 404 for 30s and 502 for 10s
-    And domain inherits sets no cache settings
-    And domain overrides sets eviction policy volatile-ttl and a negative TTL of 404 for 5s
-    When the operator starts the proxy
-    Then domain inherits uses allkeys-lru with 404 for 30s and 502 for 10s
-    And domain overrides uses volatile-ttl with only 404 for 5s
-
   @id:configuration.config-merging.002 @rule:configuration.domains.defined-only-in-file @inferred @source:config/config.go#InitConfigFromFileOrEnv
   Scenario: Domains can only be defined in the config file
     Given no file exists at the config file path

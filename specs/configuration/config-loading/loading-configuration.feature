@@ -5,21 +5,6 @@ Feature: Loading and checking the configuration
   Background:
     Given the proxy is started with a config file path (default config.yml)
 
-  @id:configuration.config-loading.001 @rule:configuration.loading.test-flag-reports-validity @verified @source:config/config.go#Validate @test:config/override_ttl_test.go#TestOverrideTTLNegativeRejected @test:config/override_ttl_test.go#TestOverrideTTLValidYAML
-  Scenario Outline: Checking a config file reports whether it is valid
-    Given a config file whose content is <content>
-    When the operator runs the proxy with --test against that file
-    Then the output says "<message>"
-    And the command exits with code <exit>
-
-    Examples:
-      | content                                       | message                       | exit |
-      | cache: override_ttl: 300                      | Configuration file valid.     | 0    |
-      | an unknown key such as cache: colour: blue    | Configuration file not valid. | 1    |
-      | cache: override_ttl: -1                       | Configuration file not valid. | 1    |
-      | domains: example_com: cache: override_ttl: -1 | Configuration file not valid. | 1    |
-      | a path to a file that does not exist          | Configuration file not valid. | 1    |
-
   @id:configuration.config-loading.002 @rule:configuration.loading.runs-from-environment-without-file @verified @source:config/config.go#InitConfigFromFileOrEnv @test:config/override_ttl_test.go#TestOverrideTTLFromEnv
   Scenario: The proxy runs on environment settings alone when no config file exists
     Given no file exists at the config file path

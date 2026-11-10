@@ -26,20 +26,6 @@ Feature: Request access logging
     Then the access log line shows "?" where the protocol goes
     And the access log line shows "?" where the method goes
 
-  @id:observability.logging.003 @rule:observability.access-log.client-values-cannot-forge-lines @inferred @source:logger/log.go#LogRequest
-  Scenario Outline: Client-supplied values cannot add extra lines to the access log
-    Given the log format includes $request, $http_user_agent and $http_referer
-    When a client sends a request whose <field> contains a carriage return and a line feed followed by fake log text
-    Then the request produces exactly one access log line
-    And the carriage return and line feed are removed and the fake text stays on that same line
-
-    Examples:
-      | field             |
-      | URL               |
-      | User-Agent header |
-      | Referer header    |
-      | Host header       |
-
   @id:observability.logging.004 @rule:observability.access-log.cache-status-fields @verified @source:logger/log.go#LogRequest @test:logger/log_test.go#TestLogRequest @questionable
   Scenario Outline: The access log reports how each response was served
     Given the log format includes $cached_status and $cached_status_label

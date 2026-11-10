@@ -31,10 +31,3 @@ Feature: Applying built-in defaults and rejecting invalid settings
     When a client requests http://www.example.com/page
     Then the response status is 301
     And the Location header is https://www.example.com/page
-
-  @id:configuration.config-loading.008 @rule:load-balancing.health.probe-scheme-follows-upstream @inferred @source:config/model.go#Config @questionable
-  Scenario: Health checks without their own scheme probe over HTTPS even for a plain-HTTP upstream
-    Given the upstream is reached over http on port 8080
-    And the operator has not set a health check scheme
-    When the proxy checks the health of the upstream
-    Then the probe is sent over https to port 8080
