@@ -4,6 +4,7 @@ What this code does, one atomic Gherkin scenario per behaviour, read from the co
 Tags: `@verified` a test asserts it · `@inferred` read from the code only · `@gap` an entry point no test covers · `@human` written or amended by a person, never rewritten.
 
 ## Caching
+
 Storing upstream responses and serving them again without hitting the upstream.
 
 - **Cache backend**: [Running the cache on Redis](caching/cache-backend/cache-store-behaviour.feature) (2)
@@ -12,6 +13,7 @@ Storing upstream responses and serving them again without hitting the upstream.
 - **Cache purging**: [Purging cached pages](caching/purging/cache-purge.feature) (3), [Purging a page or a whole host](caching/purging/purge-scope.feature) (3)
 
 ## Configuration
+
 How operators describe the proxy's behaviour and per-site settings.
 
 - **Config display**: [Showing the effective configuration at start-up](configuration/config-display/effective-config-display.feature) (3)
@@ -20,6 +22,7 @@ How operators describe the proxy's behaviour and per-site settings.
 - **Multiple domains**: [Serving several domains from one proxy](configuration/multi-domain/domain-selection.feature) (2)
 
 ## Load Balancing
+
 Spreading traffic across several upstream servers and avoiding unhealthy ones.
 
 - **Balancing strategies**: [Choosing an upstream endpoint](load-balancing/balancing-strategies/choosing-an-upstream-endpoint.feature) (2)
@@ -27,6 +30,7 @@ Spreading traffic across several upstream servers and avoiding unhealthy ones.
 - **Upstream health**: [Keeping unhealthy endpoints out of rotation](load-balancing/upstream-health/upstream-endpoint-health.feature) (5)
 
 ## Observability
+
 Seeing what the proxy is doing through logs, metrics, traces and health signals.
 
 - **Health check endpoint**: [Health check](observability/health-endpoint/health-check.feature) (1)
@@ -35,6 +39,7 @@ Seeing what the proxy is doing through logs, metrics, traces and health signals.
 - **Distributed tracing**: [Tracing proxied requests](observability/tracing/distributed-tracing.feature) (4)
 
 ## Operations and Developer Tooling
+
 Starting, building, packaging and testing the proxy, plus shared helpers.
 
 - **Build and release**: [Publishing prebuilt release binaries](operations/build-release/release-binaries.feature) (2)
@@ -42,6 +47,7 @@ Starting, building, packaging and testing the proxy, plus shared helpers.
 - **Server lifecycle**: [Starting the proxy from the command line](operations/server-lifecycle/command-line-start-up.feature) (4), [Stopping and reloading the proxy without dropping requests](operations/server-lifecycle/service-lifecycle.feature) (2), [Restarting without refusing connections](operations/server-lifecycle/zero-downtime-restarts.feature) (4)
 
 ## Reverse Proxying
+
 Forwarding client requests to upstream servers and returning their responses.
 
 - **Redirects and scheme handling**: [Redirecting plain HTTP to HTTPS](proxying/redirects/https-redirect.feature) (1), [Choosing the upstream scheme](proxying/redirects/upstream-scheme-setting.feature) (2)
@@ -49,6 +55,7 @@ Forwarding client requests to upstream servers and returning their responses.
 - **Response delivery**: [Compressed delivery](proxying/response-delivery/gzip-delivery.feature) (1), [Replaying stored responses to clients](proxying/response-delivery/replaying-stored-responses.feature) (3)
 
 ## Security
+
 Protecting traffic in transit and controlling who may use protected features.
 
 - **Token authentication**: [Authenticating requests with JWT bearer tokens](security/jwt-auth/jwt-token-authentication.feature) (7)
