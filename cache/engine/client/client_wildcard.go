@@ -12,7 +12,7 @@ package client
 import (
 	"context"
 
-	goredislib "github.com/go-redis/redis/v8"
+	goredislib "github.com/redis/go-redis/v9"
 
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 )
@@ -27,8 +27,10 @@ func (rdb *RedisClient) DelWildcard(ctx context.Context, key string) (int, error
 		return keys, err
 	})
 
+	// An error here is Redis being unreachable, not an empty match: callers
+	// report nothing-to-purge as a success, so it must not look like one.
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	return rdb.deleteKeys(ctx, key, k.([]string))
@@ -43,6 +45,7 @@ func (rdb *RedisClient) deleteClusterKeys(ctx context.Context, key string) (int,
 			keys, err := client.Keys(ctx, key).Result()
 			if err != nil {
 				rdb.logger.Errorf("Error removing keys with pattern: %s on node: %s", key, client)
+				return nil, err
 			}
 			deletedKeysByNode, err := rdb.deleteKeysByShard(ctx, key, keys, client)
 			if err == nil {
@@ -54,7 +57,7 @@ func (rdb *RedisClient) deleteClusterKeys(ctx context.Context, key string) (int,
 	})
 
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	return deletedKeys.counter, nil
@@ -91,13 +94,14 @@ func (rdb *RedisClient) deleteKeys(ctx context.Context, keyID string, keys []str
 
 func (rdb *RedisClient) doDeleteKeys(ctx context.Context, keyID string, keys []string) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, keyID); errLock != nil {
+		mutex, errLock := rdb.lock(ctx, keyID)
+		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Del(ctx, keys...).Err()
 
-		if errUnlock := rdb.unlock(ctx, keyID); errUnlock != nil {
+		if errUnlock := rdb.unlock(ctx, keyID, mutex); errUnlock != nil {
 			return nil, errUnlock
 		}
 
@@ -110,11 +114,12 @@ func (rdb *RedisClient) doDeleteNodeKeys(ctx context.Context, keys []string) fun
 		var removingError error
 
 		for _, currentKey := range keys {
-			if errLock := rdb.lock(ctx, currentKey); errLock != nil {
+			mutex, errLock := rdb.lock(ctx, currentKey)
+			if errLock != nil {
 				return nil, errLock
 			}
 			removingError = rdb.Client.Del(ctx, currentKey).Err()
-			if errUnlock := rdb.unlock(ctx, currentKey); errUnlock != nil {
+			if errUnlock := rdb.unlock(ctx, currentKey, mutex); errUnlock != nil {
 				return nil, errUnlock
 			}
 		}

@@ -37,8 +37,8 @@ func (rc RequestCall) RedirectToHTTPS(ctx context.Context) {
 	rc.GetLogger().Infof("Redirect to: %s", escapedURL)
 
 	// Just write to client, no need to cache this response.
-	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	http.Redirect(rc.Response.ResponseWriter, &rc.Request, targetURL.String(), rc.upstream().RedirectStatusCode)
 
 	telemetry.From(ctx).RegisterRedirect(targetURL)
-	telemetry.From(ctx).RegisterStatusCode(rc.DomainConfig.Server.Upstream.RedirectStatusCode)
+	telemetry.From(ctx).RegisterStatusCode(rc.upstream().RedirectStatusCode)
 }

@@ -23,8 +23,8 @@ RUN apt update \
       make \
       wget
 
-RUN wget https://go.dev/dl/go1.25.5.linux-$(dpkg --print-architecture).tar.gz \
-    && tar -C /usr/local -xzf go1.25.5.linux-$(dpkg --print-architecture).tar.gz
+RUN wget https://go.dev/dl/go1.26.8.linux-$(dpkg --print-architecture).tar.gz \
+    && tar -C /usr/local -xzf go1.26.8.linux-$(dpkg --print-architecture).tar.gz
 
 COPY . ./
 

@@ -76,6 +76,7 @@ func TestHTTPClientCallToMissingDomain(t *testing.T) {
 func tearDownHttp() {
 	req, _ := http.NewRequest("PURGE", "http://testing.local:50080/Consortium/", nil)
 	req.Host = "www.w3.org"
+	req.Header.Set("X-Go-Proxy-Cache-Purge-Key", "test-only-purge-key")
 	client := &http.Client{}
 	_, _ = client.Do(req)
 }

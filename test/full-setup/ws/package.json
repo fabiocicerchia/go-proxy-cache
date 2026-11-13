@@ -4,13 +4,14 @@
   "description": "",
   "main": "ws.js",
   "scripts": {
-    "start": "npm cache clean --force && npm install && node ws.js"
+    "start": "npm cache clean --force && npm install && node ws.js",
+    "test": "node --test"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@opentelemetry/api": "^1.1.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.78.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.81.0",
     "@opentelemetry/core": "^2.9.0",
     "@opentelemetry/exporter-jaeger": "^2.9.0",
     "@opentelemetry/instrumentation": "^0.27.0",
@@ -19,5 +20,9 @@
     "@opentelemetry/sdk-trace-base": "^2.9.0",
     "@opentelemetry/sdk-trace-web": "^2.9.0",
     "ws": "^8.21.0"
+  },
+  "overrides": {
+    "glob": "^14.0.2",
+    "uuid": "^11.1.1"
   }
 }

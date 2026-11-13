@@ -3,7 +3,7 @@
 go-proxy-cache can run as a Kubernetes ingress controller. Instead of reading
 its virtual hosts from the `domains` block of `config.yml`, it watches the
 cluster and builds its routing table from `Ingress` objects — and, optionally,
-from the Gateway API's `Gateway` and `HTTPRoute`.
+from Gateway API `Gateway` and `HTTPRoute` objects.
 
 What you get over a plain ingress controller is the cache: every route is a
 caching reverse proxy, with per-Ingress TTLs, negative caching, collapsed
@@ -15,9 +15,9 @@ The controller needs the Kubernetes client, which is large enough that the
 standalone proxy does not carry it: 36 MB against 99 MB. So there are two
 builds of the same binary.
 
-| | Image | Built with |
-|---|---|---|
-| Standalone proxy | `fabiocicerchia/go-proxy-cache:<tag>` | `make build` |
+|                    | Image                                         | Built with           |
+| ------------------ | --------------------------------------------- | -------------------- |
+| Standalone proxy   | `fabiocicerchia/go-proxy-cache:<tag>`         | `make build`         |
 | Ingress controller | `fabiocicerchia/go-proxy-cache:<tag>-ingress` | `make build-ingress` |
 
 The Helm chart and the kustomize overlay already select the `-ingress` image
@@ -115,27 +115,27 @@ Certificates are swapped atomically as Secrets change; nothing needs a restart.
 
 All annotations are prefixed with `go-proxy-cache.fabiocicerchia.it/`.
 
-| Annotation | Effect |
-| --- | --- |
-| `cache-enabled` | `false` disables caching for the route |
-| `cache-ttl` | Fallback TTL in seconds when the response carries no cache headers |
-| `cache-allowed-statuses` | Comma separated status codes to cache, e.g. `200,301,404` |
-| `cache-allowed-methods` | Comma separated methods to cache, e.g. `GET,HEAD` |
-| `cache-negative-ttl` | Per-status TTL overrides, e.g. `404=30,502=10` |
-| `gzip` | Compress responses |
-| `collapsed-forwarding` | Coalesce concurrent identical misses into one upstream request |
-| `backend-protocol` | `HTTP`, `HTTPS`, `WS` or `WSS` |
-| `insecure-bridge` | Skip upstream certificate verification |
-| `balancing-algorithm` | `round-robin`, `ip-hash`, `least-connections`, `random` |
-| `preserve-host` | Forward the client `Host` upstream (default `true`) |
-| `upstream-host` | Force a specific `Host` header upstream |
-| `http-to-https` | Redirect HTTP to HTTPS |
-| `redirect-status-code` | Status code used for that redirect |
-| `hsts-enabled`, `hsts-max-age`, `hsts-include-subdomains`, `hsts-preload` | `Strict-Transport-Security` |
-| `purge-allowed-ips` | Comma separated IPs/CIDRs allowed to issue `PURGE` |
-| `jwt-jwks-url`, `jwt-allowed-scopes`, `jwt-excluded-paths` | JWT validation |
-| `rewrite-target` | Rewrite the matched path before forwarding |
-| `use-regex` | Treat `ImplementationSpecific` paths as regular expressions |
+| Annotation                                                                | Effect                                                             |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `cache-enabled`                                                           | `false` disables caching for the route                             |
+| `cache-ttl`                                                               | Fallback TTL in seconds when the response carries no cache headers |
+| `cache-allowed-statuses`                                                  | Comma separated status codes to cache, e.g. `200,301,404`          |
+| `cache-allowed-methods`                                                   | Comma separated methods to cache, e.g. `GET,HEAD`                  |
+| `cache-negative-ttl`                                                      | Per-status TTL overrides, e.g. `404=30,502=10`                     |
+| `gzip`                                                                    | Compress responses                                                 |
+| `collapsed-forwarding`                                                    | Coalesce concurrent identical misses into one upstream request     |
+| `backend-protocol`                                                        | `HTTP`, `HTTPS`, `WS` or `WSS`                                     |
+| `insecure-bridge`                                                         | Skip upstream certificate verification                             |
+| `balancing-algorithm`                                                     | `round-robin`, `ip-hash`, `least-connections`, `random`            |
+| `preserve-host`                                                           | Forward the client `Host` upstream (default `true`)                |
+| `upstream-host`                                                           | Force a specific `Host` header upstream                            |
+| `http-to-https`                                                           | Redirect HTTP to HTTPS                                             |
+| `redirect-status-code`                                                    | Status code used for that redirect                                 |
+| `hsts-enabled`, `hsts-max-age`, `hsts-include-subdomains`, `hsts-preload` | `Strict-Transport-Security`                                        |
+| `purge-allowed-ips`                                                       | Comma separated IPs/CIDRs allowed to issue `PURGE`                 |
+| `jwt-jwks-url`, `jwt-allowed-scopes`, `jwt-excluded-paths`                | JWT validation                                                     |
+| `rewrite-target`                                                          | Rewrite the matched path before forwarding                         |
+| `use-regex`                                                               | Treat `ImplementationSpecific` paths as regular expressions        |
 
 A malformed annotation value is logged and ignored rather than taking the route
 out of service.
@@ -189,18 +189,18 @@ apiVersion: inference.networking.k8s.io/v1
 kind: InferencePool
 spec:
   selector:
-    matchLabels: {app: vllm}
+    matchLabels: { app: vllm }
   targetPorts:
     - number: 8000
   endpointPickerRef:
     name: vllm-epp
-    port: {number: 9002}
-    failureMode: FailClose   # the default
+    port: { number: 9002 }
+    failureMode: FailClose # the default
 ```
 
 `failureMode` decides what happens when the picker cannot be reached:
 `FailClose` (the default) refuses the request, `FailOpen` falls back to the
-ordinary load-balancing algorithm. A picker that *answers* "no suitable
+ordinary load-balancing algorithm. A picker that _answers_ "no suitable
 endpoint" is a decision rather than an outage, so it refuses the request under
 either mode — failing open past it would send the request exactly where the
 picker just ruled out. The per-pick budget is 500ms.
@@ -208,7 +208,7 @@ picker just ruled out. The per-pick budget is 500ms.
 The picker is reached over plaintext gRPC, which is what the reference
 implementation serves; the extension does not define a TLS story for this hop.
 
-Still not implemented: model-aware routing on the request *body* (choosing a
+Still not implemented: model-aware routing on the request _body_ (choosing a
 pool by the `model` field of an OpenAI-style payload), and a pool declaring
 several `targetPorts` uses the first and logs the rest.
 
@@ -254,16 +254,16 @@ apiVersion: gateway.networking.k8s.io/v1beta1
 kind: ReferenceGrant
 metadata:
   name: allow-tenant-a
-  namespace: platform          # the namespace being referenced
+  namespace: platform # the namespace being referenced
 spec:
   from:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: tenant-a      # the namespace doing the referencing
+      namespace: tenant-a # the namespace doing the referencing
   to:
     - group: ""
       kind: Service
-      name: shared-api         # omit to cover every Service in the namespace
+      name: shared-api # omit to cover every Service in the namespace
 ```
 
 Use `kind: Gateway` in `from` and `kind: Secret` in `to` to grant a
@@ -287,18 +287,18 @@ across the fleet.
 
 ## Flags
 
-| Flag | Environment variable | Default |
-| --- | --- | --- |
-| `-k8s` | `INGRESS_CONTROLLER_ENABLED` | off |
-| `-gateway-api` | `GATEWAY_API_ENABLED` | off |
-| `-ingress-class` | `INGRESS_CLASS` | `go-proxy-cache` |
-| `-controller-name` | `INGRESS_CONTROLLER_NAME` | `fabiocicerchia.it/go-proxy-cache` |
-| `-watch-namespace` | `WATCH_NAMESPACE` | whole cluster |
-| `-publish-service` | `PUBLISH_SERVICE` | — |
-| `-publish-status-address` | `PUBLISH_STATUS_ADDRESS` | — |
-| `-election-id` | `ELECTION_ID` | `go-proxy-cache-ingress-controller` |
-| `-disable-status-updates` | `DISABLE_STATUS_UPDATES` | off |
-| `-kubeconfig` | `KUBECONFIG` | in-cluster |
+| Flag                      | Environment variable         | Default                             |
+| ------------------------- | ---------------------------- | ----------------------------------- |
+| `-k8s`                    | `INGRESS_CONTROLLER_ENABLED` | off                                 |
+| `-gateway-api`            | `GATEWAY_API_ENABLED`        | off                                 |
+| `-ingress-class`          | `INGRESS_CLASS`              | `go-proxy-cache`                    |
+| `-controller-name`        | `INGRESS_CONTROLLER_NAME`    | `fabiocicerchia.it/go-proxy-cache`  |
+| `-watch-namespace`        | `WATCH_NAMESPACE`            | whole cluster                       |
+| `-publish-service`        | `PUBLISH_SERVICE`            | —                                   |
+| `-publish-status-address` | `PUBLISH_STATUS_ADDRESS`     | —                                   |
+| `-election-id`            | `ELECTION_ID`                | `go-proxy-cache-ingress-controller` |
+| `-disable-status-updates` | `DISABLE_STATUS_UPDATES`     | off                                 |
+| `-kubeconfig`             | `KUBECONFIG`                 | in-cluster                          |
 
 Leader election also reads `POD_NAMESPACE` and `POD_NAME`; the shipped
 manifests inject both from the downward API.
@@ -342,7 +342,7 @@ connection level. The shipped kustomize overlay sets it.
 ## Metrics
 
 `gpcee_http_request` and `gpcee_http_response` carry `req_id`, `url`, `size`
-and `duration` as *labels*, so their cardinality grows with the number of
+and `duration` as _labels_, so their cardinality grows with the number of
 distinct URLs served. Serving a whole cluster's traffic, that has no bound
 anyone has agreed to, so ingress mode does not record them. Set
 `metrics.per_request_series: true` (or `METRICS_PER_REQUEST_SERIES=true`) to

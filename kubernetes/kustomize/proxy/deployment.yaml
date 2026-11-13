@@ -34,6 +34,11 @@ spec:
               name: go-proxy-cache-config-yml
               subPath: config.yml
               readOnly: true
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""
       volumes:

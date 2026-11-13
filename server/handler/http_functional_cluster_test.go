@@ -622,9 +622,10 @@ func TestClusterHTTPSEndToEndCallWithCacheHit(t *testing.T) {
 	config.Config = config.Configuration{
 		Server: config.Server{
 			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
+				Host:           "www.w3.org",
+				Scheme:         "https",
+				Endpoints:      []string{cookieFreeW3Origin(t)},
+				InsecureBridge: true,
 			},
 		},
 		Cache: config.Cache{

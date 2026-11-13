@@ -37,11 +37,11 @@ func TestIsIPAllowed(t *testing.T) {
 	assert.True(t, isIPAllowed(net.ParseIP("10.0.0.5"), []string{"not-an-ip", " 10.0.0.5 "}))
 }
 
-func TestIsPurgeAuthorizedUnrestricted(t *testing.T) {
+func TestIsPurgeAuthorizedDeniesMissingControls(t *testing.T) {
 	rc := RequestCall{DomainConfig: config.Configuration{}}
 	rc.Request = http.Request{RemoteAddr: "1.2.3.4:5678", Header: http.Header{}}
 
-	assert.True(t, rc.isPurgeAuthorized())
+	assert.False(t, rc.isPurgeAuthorized())
 }
 
 func TestIsPurgeAuthorizedSecret(t *testing.T) {

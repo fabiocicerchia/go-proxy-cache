@@ -16,8 +16,8 @@ import (
 	"github.com/yhat/wsutil"
 
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/cachestatus"
 )
 
 // HandleWSRequestAndProxy - Handles the websocket requests and proxies to backend server.
@@ -25,7 +25,7 @@ func (rc RequestCall) HandleWSRequestAndProxy(ctx context.Context) {
 	rc.serveReverseProxyWS(ctx)
 
 	if enableLoggingRequest {
-		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusMiss)
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cachestatus.StatusMiss)
 	}
 }
 

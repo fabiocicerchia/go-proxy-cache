@@ -37,6 +37,7 @@ func TestClusterEndToEndCallPurgeDoNothing(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
+			Purge: config.Purge{Secret: "test-only-purge-key"},
 			Upstream: config.Upstream{
 				Host:      "www.w3.org",
 				Scheme:    "https",
@@ -64,6 +65,7 @@ func TestClusterEndToEndCallPurgeDoNothing(t *testing.T) {
 	// --- PURGE
 
 	req, err := http.NewRequest("PURGE", "/", nil)
+	req.Header.Set(config.DefaultPurgeSecretHeader, "test-only-purge-key")
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host
@@ -89,10 +91,12 @@ func TestClusterEndToEndCallPurge(t *testing.T) {
 
 	config.Config = config.Configuration{
 		Server: config.Server{
+			Purge: config.Purge{Secret: "test-only-purge-key"},
 			Upstream: config.Upstream{
-				Host:      "www.w3.org",
-				Scheme:    "https",
-				Endpoints: []string{"www.w3.org"},
+				Host:           "www.w3.org",
+				Scheme:         "https",
+				Endpoints:      []string{cookieFreeW3Origin(t)},
+				InsecureBridge: true,
 			},
 		},
 		Cache: config.Cache{
@@ -167,6 +171,7 @@ func TestClusterEndToEndCallPurge(t *testing.T) {
 	// --- PURGE
 
 	req, err = http.NewRequest("PURGE", "/", nil)
+	req.Header.Set(config.DefaultPurgeSecretHeader, "test-only-purge-key")
 	req.URL.Scheme = config.Config.Server.Upstream.Scheme
 	req.URL.Host = config.Config.Server.Upstream.Host
 	req.Host = config.Config.Server.Upstream.Host

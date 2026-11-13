@@ -120,7 +120,7 @@ spec:
         meta.service: nginx
     spec:
       containers:
-      - image: nginx:1.19.5-alpine
+      - image: nginx:1.31-alpine
         name: nginx
         ports:
         - containerPort: 40080
@@ -244,7 +244,7 @@ spec:
         meta.service: redis
     spec:
       containers:
-      - image: redis:6.0.8-alpine3.12
+      - image: redis:8-alpine3.24
         name: redis
         ports:
         - containerPort: 6379
@@ -299,9 +299,9 @@ data:
 #             exec:
 #               command: ["go-proxy-cache", "-debug"]
 #       - name: redis
-#         image: redis:6.0.8-alpine3.12
+#         image: redis:8-alpine3.24
 #       - name: nginx
-#         image: nginx:1.19.5-alpine
+#         image: nginx:1.31-alpine
 #         volumeMounts:
 #           - name: certs-files
 #             mountPath: /certs/server.key

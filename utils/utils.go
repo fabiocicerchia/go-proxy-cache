@@ -75,15 +75,12 @@ func IsEmpty(value interface{}) bool {
 	case time.Duration:
 		return t == 0
 	default:
-		// A nil pointer boxed in an interface is NOT == nil: the interface
-		// still carries the pointer's type. Without this, Coalesce returned
-		// the nil override instead of the fallback and every consumer of
-		// config.Server.TLS.Override dereferenced nil.
-		if v := reflect.ValueOf(value); v.Kind() == reflect.Ptr {
-			return v.IsNil()
-		}
-
-		return value == nil
+		// A nil pointer/map boxed in an interface is NOT == nil: the
+		// interface still carries the type. Without the reflect check,
+		// Coalesce returned the nil override instead of the fallback (every
+		// consumer of config.Server.TLS.Override dereferenced nil), and an
+		// unset float64/uint32 override clobbered the configured value.
+		return value == nil || reflect.ValueOf(value).IsZero()
 	}
 }
 

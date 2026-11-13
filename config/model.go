@@ -37,6 +37,9 @@ var DefaultTimeoutIdle time.Duration = 20 * time.Second
 // DefaultTimeoutHandler - Default value used for http.TimeoutHandler
 var DefaultTimeoutHandler time.Duration = 5 * time.Second
 
+// DefaultTimeoutShutdown - Default value for how long in-flight requests get to finish on SIGTERM/SIGHUP
+var DefaultTimeoutShutdown time.Duration = 5 * time.Second
+
 // DefaultCBThreshold - Default value used for circuitbreaker.CircuitBreaker.Threshold
 var DefaultCBThreshold uint32 = 2
 
@@ -90,8 +93,8 @@ type Server struct {
 }
 
 // Purge - Defines access control for PURGE requests.
-// When both AllowedIPs and Secret are empty, PURGE is unrestricted (backward
-// compatible). When either is set, a PURGE request must satisfy every configured
+// When both AllowedIPs and Secret are empty, PURGE is denied.
+// When either is set, a PURGE request must satisfy every configured
 // check to be authorized.
 type Purge struct {
 	// AllowedIPs - Allowlist of client IPs/CIDRs permitted to issue PURGE. The
@@ -196,6 +199,7 @@ type Timeout struct {
 	Write      time.Duration `yaml:"write" envconfig:"TIMEOUT_WRITE"`
 	Idle       time.Duration `yaml:"idle" envconfig:"TIMEOUT_IDLE"`
 	Handler    time.Duration `yaml:"handler" envconfig:"TIMEOUT_HANDLER"`
+	Shutdown   time.Duration `yaml:"shutdown" envconfig:"TIMEOUT_SHUTDOWN"`
 }
 
 // Cache - Defines the config for the cache backend.
@@ -216,6 +220,20 @@ type Cache struct {
 	// its (often absent/wrong) Cache-Control headers. YAML-only: envconfig has no
 	// clean map[int]int support, unlike the slice fields above.
 	NegativeTTL map[int]int `yaml:"negative_ttl"`
+	// OverrideTTL - Forced TTL (in seconds) for storable responses, replacing
+	// the origin's Expires / max-age / s-maxage and the default TTL. It never
+	// makes a response storable, and NegativeTTL wins for its statuses.
+	// 0 = off (default); negative values are rejected.
+	OverrideTTL int `yaml:"override_ttl" envconfig:"OVERRIDE_TTL"`
+}
+
+// validate - Rejects cache settings that can't be meaningfully applied.
+func (c Cache) validate() error {
+	if c.OverrideTTL < 0 {
+		return fmt.Errorf("cache.override_ttl must be >= 0, got %d", c.OverrideTTL)
+	}
+
+	return nil
 }
 
 // EffectiveAllowedStatuses - AllowedStatuses plus any status codes that have a
@@ -259,9 +277,9 @@ type Tracing struct {
 type Metrics struct {
 	// PerRequestSeries - Record the per-request series.
 	//
-	// gpcee_http_request and gpcee_http_response carry req_id, url, size and
-	// duration as labels, so their cardinality grows with the number of
-	// distinct URLs served. Left unset it is on for a static configuration,
+	// gpcee_http_request and gpcee_http_response add a series per host (and
+	// scheme/method/protocol/code), so their cardinality grows with the number
+	// of hosts served. Left unset it is on for a static configuration,
 	// where the served hosts are known in advance, and off in routed mode,
 	// where they are not. Setting it either way is honoured in both.
 	PerRequestSeries *bool `yaml:"per_request_series" envconfig:"METRICS_PER_REQUEST_SERIES"`
@@ -338,6 +356,7 @@ var Config Configuration = Configuration{
 			Write:      DefaultTimeoutWrite,
 			Idle:       DefaultTimeoutIdle,
 			Handler:    DefaultTimeoutHandler,
+			Shutdown:   DefaultTimeoutShutdown,
 		},
 		Upstream: Upstream{
 			HTTP2HTTPS:         false,
@@ -366,6 +385,6 @@ var Config Configuration = Configuration{
 	},
 	Log: Log{
 		TimeFormat: "2006/01/02 15:04:05",
-		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status_label`,
+		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status_label`, // nosemgrep
 	},
 }

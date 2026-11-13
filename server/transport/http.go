@@ -82,6 +82,10 @@ func ServeCachedResponse(ctx context.Context, lwr *response.LoggedResponseWriter
 	// @deprecated
 	PushProxiedResources(lwr, &uriobj)
 
+	// lwr.WriteHeader only buffers the status; the body below goes straight to
+	// the client, so the status must be sent first or net/http answers 200.
+	lwr.ResponseWriter.WriteHeader(res.StatusCode)
+
 	handleBody(lwr.ResponseWriter, uriobj.Content)
 	handleTrailer(announcedTrailers, lwr, res)
 }

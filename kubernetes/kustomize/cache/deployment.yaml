@@ -18,10 +18,15 @@ spec:
     spec:
       containers:
       - name: redis
-        image: redis:6.2.6-alpine3.15
+        image: redis:8-alpine
         ports:
         - name: redis
           containerPort: 6379
           protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""

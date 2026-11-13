@@ -138,3 +138,94 @@ func TestGetTTLWhenSetCacheControlAndExpires(t *testing.T) {
 	value := ttl.GetTTL(headers, 1)
 	assert.Equal(t, 86400*time.Second, value)
 }
+
+// --- RFC 9111 directive handling
+
+func TestGetTTLWhenCacheControlPrivateWithMaxage(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"private, max-age=60"},
+	}
+	value := ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+}
+
+func TestGetTTLWhenCacheControlPrivateWithoutMaxage(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"private"},
+	}
+	value := ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+}
+
+func TestGetTTLWhenCacheControlQualifiedPrivate(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{`private="Set-Cookie", max-age=60`},
+	}
+	value := ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+
+	// A quoted list of field names must not be split on its inner comma.
+	headers = http.Header{
+		"Cache-Control": []string{`private="Set-Cookie, X-Foo", max-age=60`},
+	}
+	value = ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+}
+
+func TestGetTTLMatchesDirectivesAsTokens(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"x-no-store-hint, x-private-ish, max-age=60"},
+	}
+	value := ttl.GetTTL(headers, 1)
+	assert.Equal(t, 60*time.Second, value)
+}
+
+func TestGetTTLWhenMaxageZero(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"public, max-age=0"},
+	}
+	value := ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+}
+
+func TestGetTTLSmaxageWinsOverMaxage(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"s-maxage=0, max-age=60"},
+	}
+	value := ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+
+	headers = http.Header{
+		"Cache-Control": []string{"max-age=60, s-maxage=120"},
+	}
+	value = ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 120*time.Second, value)
+}
+
+func TestGetTTLParsesCaseWhitespaceAndQuotes(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{` PUBLIC ,  MAX-AGE="120" `},
+	}
+	value := ttl.GetTTL(headers, 1)
+	assert.Equal(t, 120*time.Second, value)
+
+	headers = http.Header{
+		"Cache-Control": []string{"No-Store"},
+	}
+	value = ttl.GetTTL(headers, 3600)
+	assert.Equal(t, 0*time.Second, value)
+}
+
+func TestGetTTLCombinesMultipleCacheControlHeaders(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": []string{"public", "max-age=120"},
+	}
+	value := ttl.GetTTL(headers, 1)
+	assert.Equal(t, 120*time.Second, value)
+
+	headers = http.Header{
+		"Cache-Control": []string{"max-age=120", "private"},
+	}
+	value = ttl.GetTTL(headers, 1)
+	assert.Equal(t, 0*time.Second, value)
+}
