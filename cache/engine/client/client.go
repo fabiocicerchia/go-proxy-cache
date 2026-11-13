@@ -12,17 +12,17 @@ package client
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
-	goredislib "github.com/go-redis/redis/v8"
 	"github.com/go-redsync/redsync/v4"
-	goredis "github.com/go-redsync/redsync/v4/redis/goredis/v8"
+	goredis "github.com/go-redsync/redsync/v4/redis/goredis/v9"
+	goredislib "github.com/redis/go-redis/v9"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/base64"
 	circuitbreaker "github.com/fabiocicerchia/go-proxy-cache/utils/circuit-breaker"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/msgpack"
@@ -30,12 +30,25 @@ import (
 
 var ctx = context.Background()
 
+// validEvictionPolicies - Allowed values for Redis' maxmemory-policy. Kept as
+// an allowlist since the value may come from an env var (trust boundary)
+// before being sent verbatim to Redis via CONFIG SET.
+var validEvictionPolicies = map[string]bool{
+	"noeviction":      true,
+	"allkeys-lru":     true,
+	"allkeys-lfu":     true,
+	"volatile-lru":    true,
+	"volatile-lfu":    true,
+	"allkeys-random":  true,
+	"volatile-random": true,
+	"volatile-ttl":    true,
+}
+
 // RedisClient - Redis Client structure.
 type RedisClient struct {
 	Client  goredislib.UniversalClient
 	Redsync *redsync.Redsync
 	Name    string
-	Mutex   map[string]*redsync.Mutex
 	logger  *log.Logger
 }
 
@@ -54,11 +67,30 @@ func Connect(connName string, config config.Cache, logger *log.Logger) *RedisCli
 		Name:    connName,
 		Client:  client,
 		Redsync: rs,
-		Mutex:   make(map[string]*redsync.Mutex),
 		logger:  logger,
 	}
 
+	applyEvictionPolicy(rdb, config.EvictionPolicy)
+
 	return rdb
+}
+
+// applyEvictionPolicy - Sets Redis' own maxmemory-policy (LRU/LFU/etc) on
+// connect. Redis already implements eviction natively, so there is no
+// reimplementation here, just exposing the existing knob via config.
+func applyEvictionPolicy(rdb *RedisClient, policy string) {
+	if policy == "" {
+		return
+	}
+
+	if !validEvictionPolicies[policy] {
+		rdb.logger.Errorf("Invalid REDIS_EVICTION_POLICY %q, skipping", policy)
+		return
+	}
+
+	if err := rdb.Client.ConfigSet(ctx, "maxmemory-policy", policy).Err(); err != nil {
+		rdb.logger.Errorf("Failed to set maxmemory-policy=%s: %s", policy, err)
+	}
 }
 
 // Close - Closes the connection.
@@ -66,34 +98,31 @@ func (rdb *RedisClient) Close() error {
 	return rdb.Client.Close()
 }
 
-func (rdb *RedisClient) getMutex(key string) *redsync.Mutex {
-	mutexname := fmt.Sprintf("mutex-%s-%s", rdb.Name, key)
-	if _, ok := rdb.Mutex[mutexname]; !ok {
-		rdb.Mutex[mutexname] = rdb.Redsync.NewMutex(mutexname)
-	}
-
-	return rdb.Mutex[mutexname]
-}
-
-func (rdb *RedisClient) lock(ctx context.Context, key string) error {
-	if err := rdb.getMutex(key).Lock(); err != nil {
-		escapedKey := strings.Replace(key, "\n", "", -1)
-		escapedKey = strings.Replace(escapedKey, "\r", "", -1)
+// lock - Acquires the distributed lock for a key. Each call gets its own
+// redsync.Mutex: it carries the lock token, so it must not be shared between
+// concurrent operations. Release it with unlock.
+func (rdb *RedisClient) lock(ctx context.Context, key string) (*redsync.Mutex, error) {
+	mutex := rdb.Redsync.NewMutex(fmt.Sprintf("mutex-%s-%s", rdb.Name, key))
+	if err := mutex.LockContext(ctx); err != nil {
+		escapedKey := utils.EscapeLogValue(key)
 		rdb.logger.Errorf("Lock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
 			"error": err.Error(),
 		})
-		return err
+		return nil, err
 	}
 
-	return nil
+	return mutex, nil
 }
 
-func (rdb *RedisClient) unlock(ctx context.Context, key string) error {
-	if ok, err := rdb.getMutex(key).Unlock(); !ok || err != nil {
-		escapedKey := strings.Replace(key, "\n", "", -1)
-		escapedKey = strings.Replace(escapedKey, "\r", "", -1)
+func (rdb *RedisClient) unlock(ctx context.Context, key string, mutex *redsync.Mutex) error {
+	// Release even if the request was cancelled meanwhile, so the lock does not linger until expiry.
+	if ok, err := mutex.UnlockContext(context.WithoutCancel(ctx)); !ok || err != nil {
+		if err == nil {
+			err = redsync.ErrFailed
+		}
+		escapedKey := utils.EscapeLogValue(key)
 		rdb.logger.Errorf("Unlock Error on %s: %s", escapedKey, err)
 		telemetry.From(ctx).RegisterEventWithData("Lock Error", map[string]string{
 			"key":   key,
@@ -115,7 +144,7 @@ func (rdb *RedisClient) PurgeAll() (bool, error) {
 		})
 		return err == nil, err
 	}
-	
+
 	// single redis instance
 	err := rdb.purgeAllKeys(rdb.Client)
 	return err == nil, err
@@ -148,13 +177,14 @@ func (rdb *RedisClient) Set(ctx context.Context, key string, value string, expir
 
 func (rdb *RedisClient) doSet(ctx context.Context, key string, value string, expiration time.Duration) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, key); errLock != nil {
+		mutex, errLock := rdb.lock(ctx, key)
+		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.Set(ctx, key, value, expiration).Err()
 
-		if errUnlock := rdb.unlock(ctx, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(ctx, key, mutex); errUnlock != nil {
 			return nil, errUnlock
 		}
 
@@ -220,7 +250,25 @@ func (rdb *RedisClient) List(key string) ([]string, error) {
 }
 
 // Push - Append values to a list.
+//
+// Pushing nothing is a no-op, not an error: `RPUSH key` with no members is
+// rejected by Redis with "wrong number of arguments", and go-redis flattens an
+// empty slice into exactly that call. The caller's intent — a list with no
+// entries — is a key that does not exist, which is what every reader here
+// already treats as empty.
+//
+// This is not hypothetical. StoreMetadata pushes the response's Vary header
+// list, and a response without a Vary header yields an empty one, so every
+// such response failed to store with
+//
+//	Not Stored: ERR wrong number of arguments for 'rpush' command
+//
+// i.e. the cache stored nothing at all for the ordinary case.
 func (rdb *RedisClient) Push(ctx context.Context, key string, values []string) error {
+	if len(values) == 0 {
+		return nil
+	}
+
 	_, err := circuitbreaker.CB(rdb.Name, rdb.logger).Execute(rdb.doPushKey(ctx, key, values))
 
 	return err
@@ -228,13 +276,14 @@ func (rdb *RedisClient) Push(ctx context.Context, key string, values []string) e
 
 func (rdb *RedisClient) doPushKey(ctx context.Context, key string, values []string) func() (interface{}, error) {
 	return func() (interface{}, error) {
-		if errLock := rdb.lock(ctx, key); errLock != nil {
+		mutex, errLock := rdb.lock(ctx, key)
+		if errLock != nil {
 			return nil, errLock
 		}
 
 		err := rdb.Client.RPush(ctx, key, values).Err()
 
-		if errUnlock := rdb.unlock(ctx, key); errUnlock != nil {
+		if errUnlock := rdb.unlock(ctx, key, mutex); errUnlock != nil {
 			return nil, errUnlock
 		}
 

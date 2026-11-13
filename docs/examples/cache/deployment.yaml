@@ -17,9 +17,14 @@ spec:
         meta.service: redis
     spec:
       containers:
-      - image: redis:6.2.6-alpine3.15
+      - image: redis:8-alpine
         name: redis
         ports:
         - containerPort: 6379
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - NET_RAW
       restartPolicy: Always
       serviceAccountName: ""

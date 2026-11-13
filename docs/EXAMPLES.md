@@ -7,7 +7,7 @@ In the folder `test/full-setup` there is complete working environment in Docker:
 - GoProxyCache
 - Redis
 - Nginx (for upstream)
-- NodeJS (for ws/wss server)
+- Node.js (for ws/wss server)
 - Jaeger (for OpenTelemetry)
 - Prometheus (for pulling metrics)
 - Grafana (for visualising metrics)
@@ -75,6 +75,9 @@ curl -H"Host: www.google.com" -v http://127.0.0.1:8080/
 
 ## PURGE
 
+PURGE is denied unless `server.purge.allowed_ips` or `server.purge.secret` is
+configured; send the secret in `X-Go-Proxy-Cache-Purge-Key`.
+
 ```concole
 $ curl -vX PURGE http://localhost/cached/page
 *   Trying 127.0.0.1...
@@ -111,6 +114,17 @@ $ curl -vX PURGE http://localhost/page/not/cached
 <
 * Connection #0 to host localhost left intact
 KO* Closing connection 0
+```
+
+`PURGE /*` invalidates every cached response for the request's host and scheme,
+over every method in `allowed_methods`, and answers `404` only when nothing was
+cached for it. Purge `https://` and `http://` separately: they can be separate
+domains with their own Redis. Other hosts sharing the same Redis are untouched,
+and `PURGE /%2A` still purges only the resource at that path.
+
+```console
+$ curl -X PURGE 'http://localhost/*'
+OK
 ```
 
 ## HTTP/2

@@ -12,7 +12,7 @@ package storage
 import (
 	"context"
 	"net/http"
-	"strings"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -20,6 +20,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
@@ -35,8 +36,7 @@ type RequestCallDTO struct {
 func RetrieveCachedContent(ctx context.Context, rc RequestCallDTO, logger *log.Entry) (cache.URIObj, error) {
 	err := rc.CacheObject.RetrieveFullPage()
 	if err != nil {
-		escapedURL := strings.Replace(rc.CacheObject.CurrentURIObject.URL.String(), "\n", "", -1)
-		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+		escapedURL := utils.EscapeLogValue(rc.CacheObject.CurrentURIObject.URL.String())
 		if err == cache.ErrEmptyValue {
 			logger.Infof("Cannot retrieve page %s: %s\n", escapedURL, err)
 		} else {
@@ -59,16 +59,52 @@ func RetrieveCachedContent(ctx context.Context, rc RequestCallDTO, logger *log.E
 	return rc.CacheObject.CurrentURIObject, nil
 }
 
+// ApplyNegativeTTL - Overrides the TTL for a configured status (e.g. 404/502)
+// with its own short TTL instead of inheriting origin cache headers, which
+// error pages rarely set sanely. This shields the origin from repeated hits
+// on a broken URL.
+func ApplyNegativeTTL(status int, negativeTTL map[int]int, defaultTTL time.Duration) time.Duration {
+	if secs, ok := negativeTTL[status]; ok {
+		return time.Duration(secs) * time.Second
+	}
+
+	return defaultTTL
+}
+
+// StorageTTL - Decides the TTL a response is stored with, by precedence:
+//  1. negative_ttl, for the statuses it lists;
+//  2. override_ttl, when > 0, replacing any origin freshness information;
+//  3. s-maxage / max-age / Expires from the origin (see ttl.GetTTL);
+//  4. ttl, the default when the origin sends no freshness information.
+//
+// It never makes a response storable: StoreFullPage still refuses what a
+// shared cache must not store (no-store, private, no-cache, Authorization
+// without public/s-maxage/must-revalidate) whatever TTL is returned here.
+func StorageTTL(uri cache.URIObj, domainConfigCache config.Cache) time.Duration {
+	currentTTL := ttl.GetTTL(uri.ResponseHeaders, domainConfigCache.TTL)
+	if domainConfigCache.OverrideTTL > 0 {
+		currentTTL = time.Duration(domainConfigCache.OverrideTTL) * time.Second
+	}
+
+	return ApplyNegativeTTL(uri.StatusCode, domainConfigCache.NegativeTTL, currentTTL)
+}
+
 // StoreGeneratedPage - Stores a response in the cache.
 func StoreGeneratedPage(ctx context.Context, rc RequestCallDTO, domainConfigCache config.Cache) (bool, error) {
 	// Use the static rc.CacheObject.CurrentURIObject.ResponseHeaders to avoid data race
-	currentTTL := ttl.GetTTL(rc.CacheObject.CurrentURIObject.ResponseHeaders, domainConfigCache.TTL)
-	done, err := rc.CacheObject.StoreFullPage(ctx, currentTTL)
+	currentTTL := StorageTTL(rc.CacheObject.CurrentURIObject, domainConfigCache)
 
-	return done, err
+	return rc.CacheObject.StoreFullPage(ctx, currentTTL)
 }
 
-// PurgeCachedContent - Purges a content in the cache.
+// PurgeCachedContent - Purges a content in the cache, or everything cached for
+// the host when the request-target is cache.PurgeAllPath.
 func PurgeCachedContent(ctx context.Context, upstream config.Upstream, rc RequestCallDTO) (bool, error) {
+	u := rc.CacheObject.CurrentURIObject.URL
+	// The escaped path, so a PURGE of the resource at /%2A stays a single URL.
+	if u.EscapedPath() == cache.PurgeAllPath && u.RawQuery == "" {
+		return rc.CacheObject.PurgeHost(ctx)
+	}
+
 	return rc.CacheObject.PurgeFullPage(ctx)
 }

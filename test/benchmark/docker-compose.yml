@@ -15,13 +15,13 @@ services:
       - ./server.key:/app/server.key
       - ./server.pem:/app/server.pem
   redis:
-    image: redis:6.0.8-alpine3.12
+    image: redis:8-alpine
     ports:
       - 6379:6379
     sysctls:
       net.core.somaxconn: 1024
   nginx:
-    image: nginx:1.19.5-alpine
+    image: nginx:1.31-alpine
     restart: always
     ports:
       - "81:80"

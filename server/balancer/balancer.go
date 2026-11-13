@@ -64,52 +64,82 @@ func Init(name string, config config.Upstream) {
 	}
 }
 
-// InitRoundRobin - Initialise the LB algorithm for round robin selection.
-func InitRoundRobin(name string, config config.Upstream, enableHealthchecks bool) {
+// initBalancer - Shared init for every LB algorithm: build the items, store
+// the balancer, and health-check it. Only the constructor differs per algorithm.
+func initBalancer(name string, config config.Upstream, enableHealthchecks bool, newBalancer func(string, []Item) Balancer) {
 	initLB()
 	items := convertEndpoints(config.Endpoints)
 
-	lb[name] = NewRoundRobinBalancer(name, items)
+	b := newBalancer(name, items)
+	lb[name] = b
 
 	if enableHealthchecks {
-		CheckHealth(&lb[name].(*RoundRobinBalancer).NodeBalancer, config.Host, config.HealthCheck)
+		CheckHealth(b.GetNodeBalancer(), config.Host, healthCheckFor(config))
 	}
+}
+
+// healthCheckFor - The upstream's health-check settings, with the scheme and
+// port inherited from the upstream when the check does not set its own.
+//
+// They used to default to https/443 independently of the upstream, so an
+// upstream declared `scheme: http` was probed over TLS and every check failed
+// with `server gave HTTP response to HTTPS client` — an error that reads like
+// the upstream misbehaving rather than the prober asking wrongly. A health
+// check is a request to the same place the traffic goes; anything else is a
+// check of something you are not serving.
+// The two schemes this proxy speaks. Local to the package: server/handler
+// exports the same pair and imports this one, so borrowing them would be a
+// cycle.
+const (
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+)
+
+func healthCheckFor(upstream config.Upstream) config.HealthCheck {
+	hc := upstream.HealthCheck
+
+	hc.Scheme = firstNonEmpty(hc.Scheme, upstream.Scheme, schemeHTTPS)
+	hc.Port = firstNonEmpty(hc.Port, upstream.Port, defaultHealthCheckPort(hc.Scheme))
+
+	return hc
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, v := range values {
+		if v != "" {
+			return v
+		}
+	}
+
+	return ""
+}
+
+func defaultHealthCheckPort(scheme string) string {
+	if scheme == schemeHTTP {
+		return "80"
+	}
+
+	return "443"
+}
+
+// InitRoundRobin - Initialise the LB algorithm for round robin selection.
+func InitRoundRobin(name string, config config.Upstream, enableHealthchecks bool) {
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewRoundRobinBalancer(n, items) })
 }
 
 // InitRandom - Initialise the LB algorithm for random selection.
 func InitRandom(name string, config config.Upstream, enableHealthchecks bool) {
-	initLB()
-	items := convertEndpoints(config.Endpoints)
-
-	lb[name] = NewRandomBalancer(name, items)
-
-	if enableHealthchecks {
-		CheckHealth(&lb[name].(*RandomBalancer).NodeBalancer, config.Host, config.HealthCheck)
-	}
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewRandomBalancer(n, items) })
 }
 
 // InitLeastConnection - Initialise the LB algorithm for least-connection selection.
 func InitLeastConnection(name string, config config.Upstream, enableHealthchecks bool) {
-	initLB()
-	items := convertEndpoints(config.Endpoints)
-
-	lb[name] = NewLeastConnectionsBalancer(name, items)
-
-	if enableHealthchecks {
-		CheckHealth(&lb[name].(*LeastConnectionsBalancer).NodeBalancer, config.Host, config.HealthCheck)
-	}
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewLeastConnectionsBalancer(n, items) })
 }
 
 // InitIpHash - Initialise the LB algorithm for ip-hash selection.
 func InitIpHash(name string, config config.Upstream, enableHealthchecks bool) {
-	initLB()
-	items := convertEndpoints(config.Endpoints)
-
-	lb[name] = NewIpHashBalancer(name, items)
-
-	if enableHealthchecks {
-		CheckHealth(&lb[name].(*IpHashBalancer).NodeBalancer, config.Host, config.HealthCheck)
-	}
+	initBalancer(name, config, enableHealthchecks, func(n string, items []Item) Balancer { return NewIpHashBalancer(n, items) })
 }
 
 // GetUpstreamNode - Returns backend server using current algorithm.

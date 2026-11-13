@@ -54,14 +54,20 @@ func (rc RequestCall) GetLogger() *log.Entry {
 	})
 }
 
+// upstream - Returns the upstream configuration of the request's domain.
+func (rc RequestCall) upstream() config.Upstream {
+	return rc.DomainConfig.Server.Upstream
+}
+
 // IsLegitRequest - Check whether a request is bound on the right Host and Port.
 func (rc RequestCall) IsLegitRequest(ctx context.Context, listeningPort string) bool {
-	hostMatch := rc.DomainConfig.Server.Upstream.Host == rc.GetHostname()
+	upstream := rc.upstream()
+	hostMatch := upstream.Host == rc.GetHostname()
 	legitPort := isLegitPort(rc.DomainConfig.Server.Port, listeningPort)
 
-	telemetry.From(ctx).RegisterLegitRequest(hostMatch, legitPort, rc.GetHostname(), listeningPort, rc.DomainConfig.Server.Upstream.Host, rc.DomainConfig.Server.Upstream.Port)
+	telemetry.From(ctx).RegisterLegitRequest(hostMatch, legitPort, rc.GetHostname(), listeningPort, upstream.Host, upstream.Port)
 
-	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), rc.DomainConfig.Server.Upstream.Host)
+	rc.GetLogger().Debugf("Is Hostname matching Request and Configuration? %v - Request: %s - Config: %s", hostMatch, rc.GetHostname(), upstream.Host)
 	rc.GetLogger().Debugf("Is Port matching Request and Configuration? %v - Request: %s - Config: %s", legitPort, listeningPort, rc.DomainConfig.Server.Port)
 
 	return hostMatch && legitPort

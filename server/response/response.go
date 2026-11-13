@@ -23,6 +23,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/go-http-utils/headers"
+	log "github.com/sirupsen/logrus"
 )
 
 var errHijackNotSupported = errors.New("hijack not supported")
@@ -159,7 +160,14 @@ func (lwr LoggedResponseWriter) SendResponse() {
 	if lwr.GZipResponse != nil && lwr.StatusCode != http.StatusNotModified && lwr.StatusCode != http.StatusNoContent {
 		// In this way it'll write in a nested LoggedResponseWriter so it can
 		// catch the binary data.
-		lwr.GZipResponse.Close()
+		//
+		// Close() flushes the gzip trailer; if it fails the body being sent is
+		// truncated, which the client sees as a corrupt stream. Nothing can be
+		// done about it at this point (the header is already out), but it must
+		// not pass silently.
+		if err := lwr.GZipResponse.Close(); err != nil {
+			log.Errorf("Cannot finalise gzip response: %s", err)
+		}
 	}
 
 	// Serve content.

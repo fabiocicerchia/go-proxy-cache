@@ -12,6 +12,7 @@ package config
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -35,6 +36,9 @@ var DefaultTimeoutIdle time.Duration = 20 * time.Second
 
 // DefaultTimeoutHandler - Default value used for http.TimeoutHandler
 var DefaultTimeoutHandler time.Duration = 5 * time.Second
+
+// DefaultTimeoutShutdown - Default value for how long in-flight requests get to finish on SIGTERM/SIGHUP
+var DefaultTimeoutShutdown time.Duration = 5 * time.Second
 
 // DefaultCBThreshold - Default value used for circuitbreaker.CircuitBreaker.Threshold
 var DefaultCBThreshold uint32 = 2
@@ -60,7 +64,7 @@ type Configuration struct {
 	Log            Log                           `yaml:"log"`
 	Tracing        Tracing                       `yaml:"tracing"`
 	domainsCache   map[string]Configuration
-	Jwt		   	   Jwt					 		 `yaml:"jwt"`
+	Jwt            Jwt `yaml:"jwt"`
 }
 
 // Domains - Overrides per domain.
@@ -81,8 +85,8 @@ type Server struct {
 }
 
 // Purge - Defines access control for PURGE requests.
-// When both AllowedIPs and Secret are empty, PURGE is unrestricted (backward
-// compatible). When either is set, a PURGE request must satisfy every configured
+// When both AllowedIPs and Secret are empty, PURGE is denied.
+// When either is set, a PURGE request must satisfy every configured
 // check to be authorized.
 type Purge struct {
 	// AllowedIPs - Allowlist of client IPs/CIDRs permitted to issue PURGE. The
@@ -113,6 +117,35 @@ type TLS struct {
 	// cached. Must be persistent: an ephemeral directory forces re-issuance on
 	// every restart, burning through the CA's rate limits.
 	CertCacheDir string `yaml:"cert_cache_dir" envconfig:"TLS_CERT_CACHE_DIR"`
+	HSTS         HSTS   `yaml:"hsts"`
+}
+
+// HSTS - Defines the configuration for the Strict-Transport-Security header.
+// Mitigates MITM/SSL-stripping attacks by telling browsers to never
+// downgrade this host to plain HTTP again, once seen over HTTPS.
+type HSTS struct {
+	Enabled           bool `yaml:"enabled" envconfig:"TLS_HSTS_ENABLED"`
+	MaxAge            int  `yaml:"max_age" envconfig:"TLS_HSTS_MAX_AGE" default:"31536000"`
+	IncludeSubdomains bool `yaml:"include_subdomains" envconfig:"TLS_HSTS_INCLUDE_SUBDOMAINS"`
+	Preload           bool `yaml:"preload" envconfig:"TLS_HSTS_PRELOAD"`
+}
+
+// Header - Builds the Strict-Transport-Security header value.
+func (h HSTS) Header() string {
+	maxAge := h.MaxAge
+	if maxAge == 0 {
+		maxAge = 31536000 // 1 year, matches the envconfig default.
+	}
+
+	value := fmt.Sprintf("max-age=%d", maxAge)
+	if h.IncludeSubdomains {
+		value += "; includeSubDomains"
+	}
+	if h.Preload {
+		value += "; preload"
+	}
+
+	return value
 }
 
 // Upstream - Defines the upstream settings.
@@ -126,6 +159,10 @@ type Upstream struct {
 	HTTP2HTTPS         bool        `yaml:"http_to_https" envconfig:"HTTP2HTTPS"`
 	RedirectStatusCode int         `yaml:"redirect_status_code" envconfig:"REDIRECT_STATUS_CODE" default:"301"`
 	HealthCheck        HealthCheck `yaml:"health_check"`
+	// CollapsedForwarding - Feature flag for collapsed forwarding, off by
+	// default. When true, concurrent identical GET/HEAD cache misses are
+	// coalesced into a single upstream round-trip.
+	CollapsedForwarding bool `yaml:"collapsed_forwarding" envconfig:"COLLAPSED_FORWARDING"`
 }
 
 // GetDomainID - Returns the unique ID for the upstream.
@@ -135,12 +172,16 @@ func (u Upstream) GetDomainID() string {
 
 // HealthCheck - Defines the health check settings.
 type HealthCheck struct {
-	StatusCodes   []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
-	Timeout       time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
-	Interval      time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
-	Port          string        `yaml:"port" envconfig:"HEALTHCHECK_PORT" default:"443"`
-	Scheme        string        `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME" default:"https"`
-	AllowInsecure bool          `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
+	StatusCodes []string      `yaml:"status_codes" envconfig:"HEALTHCHECK_STATUS_CODES" split_words:"true"`
+	Timeout     time.Duration `yaml:"timeout" envconfig:"HEALTHCHECK_TIMEOUT"`
+	Interval    time.Duration `yaml:"interval" envconfig:"HEALTHCHECK_INTERVAL"`
+	// No defaults on these two: unset has to stay representable, so the
+	// balancer can inherit the upstream's scheme and port. Defaulting them to
+	// https/443 here probed a plain-HTTP upstream over TLS and failed every
+	// check with "server gave HTTP response to HTTPS client".
+	Port          string `yaml:"port" envconfig:"HEALTHCHECK_PORT"`
+	Scheme        string `yaml:"scheme" envconfig:"HEALTHCHECK_SCHEME"`
+	AllowInsecure bool   `yaml:"allow_insecure" envconfig:"HEALTHCHECK_ALLOW_INSECURE"`
 }
 
 // Timeout - Defines the server timeouts.
@@ -150,6 +191,7 @@ type Timeout struct {
 	Write      time.Duration `yaml:"write" envconfig:"TIMEOUT_WRITE"`
 	Idle       time.Duration `yaml:"idle" envconfig:"TIMEOUT_IDLE"`
 	Handler    time.Duration `yaml:"handler" envconfig:"TIMEOUT_HANDLER"`
+	Shutdown   time.Duration `yaml:"shutdown" envconfig:"TIMEOUT_SHUTDOWN"`
 }
 
 // Cache - Defines the config for the cache backend.
@@ -165,6 +207,51 @@ type Cache struct {
 	Engine string `yaml:"engine" envconfig:"CACHE_ENGINE"`
 	// FreecacheSizeMB - In-memory size cap for the freecache backend. Ignored by redis.
 	FreecacheSizeMB int `yaml:"freecache_size_mb" envconfig:"CACHE_FREECACHE_SIZE_MB"`
+	// EvictionPolicy - Redis maxmemory-policy applied on connect. One of:
+	// noeviction, allkeys-lru, allkeys-lfu, volatile-lru, volatile-lfu,
+	// allkeys-random, volatile-random, volatile-ttl. Empty leaves Redis's own
+	// default (noeviction) untouched.
+	EvictionPolicy string `yaml:"eviction_policy" envconfig:"REDIS_EVICTION_POLICY"`
+	// NegativeTTL - Per-status TTL override (in seconds), e.g. {404: 30, 502: 10},
+	// to cache error responses briefly and shield the origin without waiting on
+	// its (often absent/wrong) Cache-Control headers. YAML-only: envconfig has no
+	// clean map[int]int support, unlike the slice fields above.
+	NegativeTTL map[int]int `yaml:"negative_ttl"`
+	// OverrideTTL - Forced TTL (in seconds) for storable responses, replacing
+	// the origin's Expires / max-age / s-maxage and the default TTL. It never
+	// makes a response storable, and NegativeTTL wins for its statuses.
+	// 0 = off (default); negative values are rejected.
+	OverrideTTL int `yaml:"override_ttl" envconfig:"OVERRIDE_TTL"`
+}
+
+// validate - Rejects cache settings that can't be meaningfully applied.
+func (c Cache) validate() error {
+	if c.OverrideTTL < 0 {
+		return fmt.Errorf("cache.override_ttl must be >= 0, got %d", c.OverrideTTL)
+	}
+
+	return nil
+}
+
+// EffectiveAllowedStatuses - AllowedStatuses plus any status codes that have a
+// NegativeTTL override, so operators don't have to list the same status twice.
+func (c Cache) EffectiveAllowedStatuses() []int {
+	statuses := append([]int{}, c.AllowedStatuses...)
+
+	for status := range c.NegativeTTL {
+		found := false
+		for _, s := range statuses {
+			if s == status {
+				found = true
+				break
+			}
+		}
+		if !found {
+			statuses = append(statuses, status)
+		}
+	}
+
+	return statuses
 }
 
 // Log - Defines the config for the logs.
@@ -197,10 +284,10 @@ type DomainSet struct {
 
 // Jwt - Defines the config for the jwt validation.
 type Jwt struct {
-	ExcludedPaths       []string   `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
-	AllowedScopes       []string   `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
-	JwksUrl             string     `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
-	JwksRefreshInterval int        `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
+	ExcludedPaths       []string `yaml:"excluded_paths" envconfig:"JWT_EXCLUDED_PATHS" split_words:"true"`
+	AllowedScopes       []string `yaml:"allowed_scopes" envconfig:"JWT_ALLOWED_SCOPES" split_words:"true"`
+	JwksUrl             string   `yaml:"jwks_url" envconfig:"JWT_JWKS_URL"`
+	JwksRefreshInterval int      `yaml:"jwks_refresh_interval" envconfig:"JWT_REFRESH_INTERVAL" default:"15"`
 	JwkCache            *jwk.Cache
 	Context             context.Context
 	Logger              *logrus.Logger
@@ -254,6 +341,7 @@ var Config Configuration = Configuration{
 			Write:      DefaultTimeoutWrite,
 			Idle:       DefaultTimeoutIdle,
 			Handler:    DefaultTimeoutHandler,
+			Shutdown:   DefaultTimeoutShutdown,
 		},
 		Upstream: Upstream{
 			HTTP2HTTPS:         false,
@@ -283,6 +371,6 @@ var Config Configuration = Configuration{
 	},
 	Log: Log{
 		TimeFormat: "2006/01/02 15:04:05",
-		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status_label`,
+		Format:     `$host - $remote_addr - $remote_user $protocol $request_method "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $cached_status_label`, // nosemgrep
 	},
 }

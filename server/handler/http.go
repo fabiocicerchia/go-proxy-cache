@@ -14,19 +14,20 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/server/transport"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/cachestatus"
 )
 
 const enableStoringResponse = true
@@ -50,12 +51,11 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 	tracingSpan := tracing.NewChildSpan(ctx, "handler.handle_http_request_and_proxy")
 	defer tracingSpan.End()
 
-	cached := cache.StatusMiss
+	cached := cachestatus.StatusMiss
 
 	forceFresh := rc.Request.Header.Get(response.CacheBypassHeader) == "1"
 	if forceFresh {
-		escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
-		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+		escapedURL := utils.EscapeLogValue(rc.Request.URL.String())
 
 		rc.GetLogger().Warningf("Forcing Fresh Content on %s", escapedURL)
 	}
@@ -64,9 +64,9 @@ func (rc RequestCall) HandleHTTPRequestAndProxy(ctx context.Context) {
 		cached = rc.serveCachedContent(ctx)
 	}
 
-	telemetry.From(ctx).RegisterRequestCacheStatus(forceFresh, enableCachedResponse, cache.StatusLabel[cached])
+	telemetry.From(ctx).RegisterRequestCacheStatus(forceFresh, enableCachedResponse, cachestatus.StatusLabel[cached])
 
-	if cached == cache.StatusMiss {
+	if cached == cachestatus.StatusMiss {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderMiss)
 		rc.serveReverseProxyHTTP(ctx)
 	}
@@ -88,22 +88,33 @@ func (rc RequestCall) serveCachedContent(ctx context.Context) int {
 		rc.GetLogger().Warnf("Error on serving cached content: %s", err)
 		metrics.IncCacheMiss(rc.GetHostname())
 
-		return cache.StatusMiss
+		return cachestatus.StatusMiss
 	}
 
-	cached := cache.StatusHit
+	cached := cachestatus.StatusHit
 	if uriObj.Stale {
-		cached = cache.StatusStale
+		cached = cachestatus.StatusStale
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderStale)
 	} else {
 		rc.Response.Header().Set(response.CacheStatusHeader, response.CacheStatusHeaderHit)
 	}
 
-	telemetry.From(ctx).RegisterWholeResponse(rc.ReqID, rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.RequestTime, rc.GetScheme(), cached == cache.StatusHit, uriObj.Stale)
+	telemetry.From(ctx).RegisterWholeResponse(rc.Request, rc.Response.StatusCode, rc.GetScheme(), cached == cachestatus.StatusHit, uriObj.Stale)
 
 	transport.ServeCachedResponse(rc.Request.Context(), rc.Response, uriObj)
 
 	return cached
+}
+
+// announceUpstreamRequest - Logs the upstream hop and registers it with
+// telemetry. The HTTP and WebSocket proxies both report through here so the
+// two paths cannot drift into reporting different things about the same hop.
+func (rc RequestCall) announceUpstreamRequest(ctx context.Context, proxyURL url.URL) {
+	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
+	rc.GetLogger().Debugf("Req URL: %s", utils.EscapeLogValue(rc.Request.URL.String()))
+	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
+
+	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, cachestatus.StatusLabel[cachestatus.StatusMiss])
 }
 
 func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
@@ -118,17 +129,10 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 		return
 	}
 
-	escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
-	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
-
-	rc.GetLogger().Debugf("ProxyURL: %s", proxyURL.String())
-	rc.GetLogger().Debugf("Req URL: %s", escapedURL)
-	rc.GetLogger().Debugf("Req Host: %s", rc.Request.Host)
-
-	telemetry.From(ctx).RegisterRequestUpstream(proxyURL, enableCachedResponse, cache.StatusLabel[cache.StatusMiss])
+	rc.announceUpstreamRequest(ctx, proxyURL)
 
 	proxy := httputil.NewSingleHostReverseProxy(&proxyURL)
-	proxy.Transport = rc.patchProxyTransport()
+	proxy.Transport = rc.proxyTransport()
 
 	originalDirector := proxy.Director
 	gpcDirector := rc.ProxyDirector(ctx)
@@ -168,8 +172,7 @@ func (rc RequestCall) storeResponse(ctx context.Context) {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
-	escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+	escapedURL := utils.EscapeLogValue(rc.Request.URL.String())
 
 	rc.GetLogger().Debugf("Sync Store Response: %s", escapedURL)
 	stored, err := doStoreResponse(ctx, rcDTO, rc.DomainConfig.Cache)

@@ -11,7 +11,8 @@
 - `CACHE_ALLOWED_STATUSES`
 - `CACHE_ENGINE` = `redis` - Cache backend: `redis` (default) or `freecache` (in-process, single-instance, no external infra).
 - `CACHE_FREECACHE_SIZE_MB` = `100` - In-memory size cap for the `freecache` backend. Ignored by `redis`.
-- `DEFAULT_TTL`
+- `COLLAPSED_FORWARDING`
+- `DEFAULT_TTL` - Fallback TTL (seconds) when the origin sends no Expires / max-age / s-maxage.
 - `FORWARD_HOST`
 - `FORWARD_PORT`
 - `FORWARD_SCHEME`
@@ -23,8 +24,10 @@
 - `HEALTHCHECK_TIMEOUT`
 - `HTTP2HTTPS`
 - `LB_ENDPOINT_LIST`
+- `OVERRIDE_TTL` - Forced TTL (seconds) for cacheable responses, replacing the origin's freshness; `0` = off. See `override_ttl` below.
 - `REDIRECT_STATUS_CODE` = `301`
 - `REDIS_DB`
+- `REDIS_EVICTION_POLICY` - Redis `maxmemory-policy` to apply on connect (e.g. `allkeys-lru`, `allkeys-lfu`). Empty leaves Redis's own default.
 - `REDIS_HOSTS`
 - `REDIS_PASSWORD`
 - `SENTRY_DSN`
@@ -36,6 +39,7 @@
 - `TIMEOUT_IDLE`
 - `TIMEOUT_READ_HEADER`
 - `TIMEOUT_READ`
+- `TIMEOUT_SHUTDOWN`
 - `TIMEOUT_WRITE`
 - `TLS_AUTO_CERT`
 - `TLS_CERT_FILE`
@@ -65,6 +69,8 @@ server:
   # --- INTERNALS
   internals:
     # Internal listening Address for metrics and healthchecks.
+    # Only this address is bound; use "0.0.0.0" to reach /metrics or
+    # /healthcheck from other hosts (e.g. Prometheus, pod-IP probes).
     # Default: 127.0.0.1
     listening_address: "127.0.0.1"
     # Internal listening port for metrics and healthchecks.
@@ -201,6 +207,9 @@ server:
     idle: 20s
     # It runs the handler with the given time limit.
     handler: 5s
+    # How long in-flight requests get to finish on SIGTERM or SIGHUP before the
+    # process exits (SIGTERM) or re-executes itself (SIGHUP).
+    shutdown: 5s
   # --- FORWARDING
   upstream:
     # Hostname to be used for requests forwarding.
@@ -234,6 +243,10 @@ server:
     # Status code to be used when redirecting HTTP to HTTPS.
     # Default: 301
     redirect_status_code: 301
+    # Collapse concurrent identical GET/HEAD cache misses into a single
+    # upstream request.
+    # Default: false
+    collapsed_forwarding: false
     health_check:
       # Status codes for healthy node.
       # A list of space-separated status codes.
@@ -243,12 +256,15 @@ server:
       timeout: ~
       # Interval frequency for health checks.
       interval: ~
-      # Port to be used for requests forwarding.
-      # Default: incoming connection.
-      # Values: 80, 443.
-      port: 443
-      # Fallback scheme if endpoint doesn't provide it.
-      scheme: https
+      # Port to probe on.
+      # Default: the upstream's port; 80/443 by scheme when it has none.
+      port: ~
+      # Fallback scheme if the endpoint doesn't provide one.
+      # Default: the upstream's scheme. Setting this to https for an upstream
+      # served over http fails every check with "server gave HTTP response to
+      # HTTPS client" — the health check goes to the same place the traffic
+      # does, unless you say otherwise here.
+      scheme: ~
       # Allow healthchecks on self-signed TLS certificates (or expired/invalid).
       # Default: false
       allow_insecure: false
@@ -256,7 +272,7 @@ server:
 # --- CACHE
 cache:
   # --- REDIS SERVER
-  hosts: 
+  hosts:
     - localhost:6379
   password: ~
   db: 0
@@ -270,8 +286,29 @@ cache:
   #    value of the Date response header field, or
   #  - Otherwise, no explicit expiration time is present in the response.
   #    A heuristic freshness lifetime might be applicable.
+  # Whatever the TTL (including negative_ttl and override_ttl), a response is never stored when:
+  #  - Cache-Control has no-store, private (also private="..."), or no-cache
+  #    (this cache doesn't revalidate, so no-cache is treated as no-store), or
+  #  - the request had an Authorization header and the response doesn't
+  #    allow it explicitly with public, s-maxage or must-revalidate.
   # Default: 0
   ttl: 0
+  # --- OVERRIDE TTL
+  # Forced storage TTL (seconds) for cacheable responses. When > 0 it replaces
+  # whatever the origin sent (s-maxage, max-age, Expires) and the `ttl`
+  # fallback above. `ttl` only applies when the origin sends no freshness
+  # information; `override_ttl` applies always. Precedence:
+  #  1. negative_ttl, for the statuses it lists;
+  #  2. override_ttl, when > 0;
+  #  3. s-maxage, then max-age, then Expires from the origin;
+  #  4. ttl.
+  # It never makes a response cacheable: no-store, private, no-cache and
+  # Authorization requests without public/s-maxage/must-revalidate are still
+  # not stored. max-age=0 / s-maxage=0 only say "stale now", not "don't store",
+  # so override_ttl applies to them (use no-store/no-cache to opt out).
+  # Negative values are rejected.
+  # Default: 0 (off)
+  override_ttl: 0
   # --- ALLOWED VALUES
   # Allows caching for different response codes.
   # Default: 200, 301, 302
@@ -287,6 +324,15 @@ cache:
   allowed_methods:
     - HEAD
     - GET
+  # --- NEGATIVE CACHING
+  # Per-status TTL override (seconds) so error responses (404, 502, ...) get
+  # cached briefly and shield the origin, instead of inheriting origin cache
+  # headers (which error pages rarely set sanely). The status is implicitly
+  # added to allowed_statuses, no need to list it there too.
+  # Default: none
+  negative_ttl:
+    404: 30
+    502: 10
 
 # --- CIRCUIT BREAKER
 # WARNING: INTERNAL SERVER BEHAVIOUR

@@ -18,17 +18,20 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
-	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/server/storage"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/cachestatus"
 )
 
 // isPurgeAuthorized - Checks whether a PURGE request is allowed based on the
 // configured access controls (IP allowlist and/or shared secret). When neither is
-// configured PURGE is unrestricted; when both are configured both must pass.
+// configured PURGE is denied; when both are configured both must pass.
 func (rc RequestCall) isPurgeAuthorized() bool {
 	purge := rc.DomainConfig.Server.Purge
+	if purge.Secret == "" && len(purge.AllowedIPs) == 0 {
+		return false
+	}
 
 	if purge.Secret != "" {
 		header := purge.SecretHeader
@@ -92,13 +95,26 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 
 	rcDTO := ConvertToRequestCallDTO(rc)
 
-	status, err := storage.PurgeCachedContent(ctx, rc.DomainConfig.Server.Upstream, rcDTO)
-	if !status || err != nil {
+	status, err := storage.PurgeCachedContent(ctx, rc.upstream(), rcDTO)
+	if err != nil {
+		// Not a 404: that means "nothing was cached", and a caller that retries
+		// failures would drop this purge as done.
+		rc.Response.ForceWriteHeader(http.StatusInternalServerError)
+		_ = rc.Response.WriteBody("KO")
+
+		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", utils.EscapeLogValue(rc.Request.URL.String()), err)
+
+		telemetry.From(ctx).RegisterPurge(status, err)
+		telemetry.From(ctx).RegisterStatusCode(http.StatusInternalServerError)
+
+		return
+	}
+
+	if !status {
 		rc.Response.ForceWriteHeader(http.StatusNotFound)
 		_ = rc.Response.WriteBody("KO")
 
-		escapedURL := strings.Replace(rc.Request.URL.String(), "\n", "", -1)
-		escapedURL = strings.Replace(escapedURL, "\r", "", -1)
+		escapedURL := utils.EscapeLogValue(rc.Request.URL.String())
 
 		rc.GetLogger().Warnf("URL Not Purged %s: %v\n", escapedURL, err)
 
@@ -115,6 +131,6 @@ func (rc RequestCall) HandlePurge(ctx context.Context) {
 	telemetry.From(ctx).RegisterStatusCode(http.StatusOK)
 
 	if enableLoggingRequest {
-		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cache.StatusNA)
+		logger.LogRequest(rc.Request, rc.Response.StatusCode, rc.Response.Content.Len(), rc.ReqID, cachestatus.StatusNA)
 	}
 }

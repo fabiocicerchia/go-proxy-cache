@@ -236,12 +236,15 @@ server:
       timeout: ~
       # Interval frequency for health checks.
       interval: ~
-      # Port to be used for requests forwarding.
-      # Default: incoming connection.
-      # Values: 80, 443.
-      port: 443
-      # Fallback scheme if endpoint doesn't provide it.
-      scheme: https
+      # Port to probe on.
+      # Default: the upstream's port; 80/443 by scheme when it has none.
+      port: ~
+      # Fallback scheme if the endpoint doesn't provide one.
+      # Default: the upstream's scheme. Setting this to https for an upstream
+      # served over http fails every check with "server gave HTTP response to
+      # HTTPS client" — the health check goes to the same place the traffic
+      # does, unless you say otherwise here.
+      scheme: ~
       # Allow healthchecks on self-signed TLS certificates (or expired/invalid).
       # Default: false
       allow_insecure: false

@@ -1,0 +1,22 @@
+# Backstage catalog entry, read by paved's scorecard plugin.
+#
+# Every check paved scores is derived from this file alone — no cluster
+# access, no CI credentials. What is absent here is absent from the score.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: go-proxy-cache
+  description: >-
+      Simple Reverse Proxy with Caching, written in Go, using Redis.
+  annotations:
+    github.com/project-slug: fabiocicerchia/go-proxy-cache
+    backstage.io/source-location: url:https://github.com/fabiocicerchia/go-proxy-cache/
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: https://github.com/fabiocicerchia/go-proxy-cache
+      title: Source
+spec:
+  type: library
+  lifecycle: production
+  owner: group:default/kodebeat
+  system: oss-tools

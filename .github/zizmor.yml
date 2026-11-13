@@ -1,0 +1,8 @@
+# zizmor runs inside super-linter (GITHUB_ACTIONS_ZIZMOR).
+rules:
+  superfluous-actions:
+    ignore:
+      # zizmor suggests replacing softprops/action-gh-release with `gh release`
+      # in a script step. That is a fair simplification but it is a change to
+      # how releases are cut, not a security finding — it wants its own PR.
+      - release.yml

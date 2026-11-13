@@ -155,3 +155,14 @@ func (f *FreecacheClient) Decode(encoded string, obj interface{}) error {
 func (f *FreecacheClient) Ping() bool {
 	return true
 }
+
+// PurgeAll - Drops every entry.
+func (f *FreecacheClient) PurgeAll() (bool, error) {
+	f.cache.Clear()
+	return true, nil
+}
+
+// Close - Nothing to release for an in-process cache.
+func (f *FreecacheClient) Close() error {
+	return nil
+}

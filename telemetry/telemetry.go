@@ -5,7 +5,6 @@ import (
 	"hash"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/go-http-utils/headers"
 	"go.opentelemetry.io/otel/attribute"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
+	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
 
 // TelemetryContext - Context holder for OpenTelemetry.
@@ -66,7 +66,7 @@ func (tc TelemetryContext) RegisterRequestCall(reqID string, req http.Request, r
 	tc.tracingSpan.
 		SetAttributes(attribute.Key(tracing.TagRequestWebsocket).Bool(webSocket))
 
-	metrics.IncWholeRequest(reqID, req, scheme)
+	metrics.IncWholeRequest(req, scheme)
 }
 
 // RegisterStatusCode - Registers the response status code.
@@ -77,12 +77,11 @@ func (tc TelemetryContext) RegisterStatusCode(statusCode int) {
 }
 
 // RegisterWholeResponse - Registers the whole response.
-func (tc TelemetryContext) RegisterWholeResponse(reqID string, req http.Request, statusCode int, contentLength int, requestStartTime time.Time, scheme string, cached bool, stale bool) {
-	tc.RegisterCacheStaleOrHit(req.Host, stale)
+func (tc TelemetryContext) RegisterWholeResponse(req http.Request, statusCode int, scheme string, cached bool, stale bool) {
+	tc.RegisterCacheStaleOrHit(utils.StripPort(req.Host), stale)
 	tc.RegisterStatusCode(statusCode)
 
-	duration := time.Since(requestStartTime).Milliseconds()
-	metrics.IncWholeResponse(reqID, req, statusCode, contentLength, duration, scheme, cached, stale)
+	metrics.IncWholeResponse(req, statusCode, scheme, cached, stale)
 }
 
 // RegisterRequestCacheStatus - Registers extra metrics / traces about the cache status.

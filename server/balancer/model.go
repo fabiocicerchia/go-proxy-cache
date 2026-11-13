@@ -39,8 +39,15 @@ type NodeBalancer struct {
 	Items []Item
 }
 
+// GetNodeBalancer - Returns the embedded NodeBalancer, promoted to every
+// concrete balancer type so Init* can health-check without a type assertion.
+func (b *NodeBalancer) GetNodeBalancer() *NodeBalancer {
+	return b
+}
+
 // Balancer - Represents a Load Balancer interface.
 type Balancer interface {
 	GetHealthyNodes() []Item
 	Pick(requestURL string) (string, error)
+	GetNodeBalancer() *NodeBalancer
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/random"
 	"github.com/fabiocicerchia/go-proxy-cache/utils/slice"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/ttl"
 )
 
 var errMissingRedisConnection = errors.New("missing redis connection")
@@ -84,6 +85,40 @@ func (c Object) IsMethodAllowed() bool {
 	return slice.ContainsString(c.AllowedMethods, c.CurrentURIObject.Method)
 }
 
+// HasRangeRequest - Checks if the incoming request asked for a byte range.
+// Range requests must always bypass the cache: this cache stores/serves whole
+// bodies, so returning a full cached body for a ranged request would be a
+// wrong response (wrong status code and bytes) to the client.
+func (u URIObj) HasRangeRequest() bool {
+	return u.RequestHeaders.Get("Range") != ""
+}
+
+// IsPartialContent - Checks if the response is a partial content response
+// (206, or carrying Content-Range). Such responses must never be stored as if
+// they were the full resource, or later non-range requests would be served
+// truncated bytes.
+func (u URIObj) IsPartialContent() bool {
+	return u.StatusCode == http.StatusPartialContent || u.ResponseHeaders.Get("Content-Range") != ""
+}
+
+func (u URIObj) IsStorableBySharedCache() bool {
+	if u.BypassesSharedCache() || len(u.ResponseHeaders.Values("Set-Cookie")) > 0 {
+		return false
+	}
+	directives := ttl.ParseCacheControl(u.ResponseHeaders)
+	return !ttl.ForbidsStoring(directives)
+}
+
+func (u URIObj) BypassesSharedCache() bool {
+	if len(u.RequestHeaders.Values("Authorization")) > 0 || len(u.RequestHeaders.Values("Cookie")) > 0 {
+		return true
+	}
+	directives := ttl.ParseCacheControl(u.RequestHeaders)
+	_, noCache := directives["no-cache"]
+	_, noStore := directives["no-store"]
+	return noCache || noStore || u.HasRangeRequest()
+}
+
 func getRandomSoftExpirationTTL() time.Duration {
 	// Pick a random value in the range [Min, Max) so the soft expiration jitter
 	// respects its lower bound. The previous formula (Max - Min + Min) collapsed
@@ -102,9 +137,7 @@ func (u URIObj) GetHeadersChecksum(meta []string) string {
 	}
 
 	for _, k := range meta {
-		if val, ok := u.RequestHeaders[k]; ok {
-			key = append(key, strings.Join(val, utils.StringSeparatorTwo))
-		}
+		key = append(key, http.CanonicalHeaderKey(k)+"="+strings.Join(u.RequestHeaders.Values(k), utils.StringSeparatorTwo))
 	}
 
 	data, err := json.Marshal(key)
@@ -148,14 +181,19 @@ func (c Object) handleMetadata(ctx context.Context, domainID string, targetURL u
 
 // StoreFullPage - Stores the whole page response in cache.
 func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bool, error) {
-	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 {
+	if !c.IsStatusAllowed() || !c.IsMethodAllowed() || expiration < 1 ||
+		c.CurrentURIObject.HasRangeRequest() || c.CurrentURIObject.IsPartialContent() ||
+		!c.CurrentURIObject.IsStorableBySharedCache() {
 		logger.GetGlobal().WithFields(log.Fields{
 			"ReqID": c.ReqID,
 		}).Debugf(
-			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v",
+			"Not allowed to be stored. Status: %v - Method: %v - Expiration: %v - Range: %v - Partial: %v - Storable: %v",
 			c.IsStatusAllowed(),
 			c.IsMethodAllowed(),
 			expiration,
+			c.CurrentURIObject.HasRangeRequest(),
+			c.CurrentURIObject.IsPartialContent(),
+			c.CurrentURIObject.IsStorableBySharedCache(),
 		)
 
 		return false, nil
@@ -195,6 +233,10 @@ func (c Object) StoreFullPage(ctx context.Context, expiration time.Duration) (bo
 
 // RetrieveFullPage - Retrieves the whole page response from cache.
 func (c *Object) RetrieveFullPage() error {
+	if c.CurrentURIObject.BypassesSharedCache() {
+		return ErrEmptyValue
+	}
+
 	obj := &URIObj{}
 
 	meta, err := FetchMetadata(c.DomainID, c.CurrentURIObject.Method, c.CurrentURIObject.URL)
@@ -265,6 +307,49 @@ func (c Object) PurgeFullPage(ctx context.Context) (bool, error) {
 	return done, nil
 }
 
+// PurgeAllPath - The PURGE request-target that invalidates every cached
+// response for the request's host instead of a single URL.
+const PurgeAllPath = "/*"
+
+// globEscaper - Escapes Redis glob metacharacters, so a hostname is matched
+// literally and cannot widen a pattern into another host's keys.
+var globEscaper = strings.NewReplacer(`\`, `\\`, "*", `\*`, "?", `\?`, "[", `\[`, "]", `\]`)
+
+// PurgeHost - Deletes every cached response (data and metadata) for the host
+// and scheme of the current URL, over every cacheable method.
+//
+// Only the request's own scheme: http and https can be separate domains, with
+// their own Redis connection and allowed methods, and this Object carries only
+// the one the PURGE matched.
+//
+// The method and scheme are spelled out rather than globbed: a "*" there also
+// matches across the "@@" separator, so "DATA@@*@@http://host/*" would match
+// another host's key whose path happens to contain "@@http://host/".
+func (c Object) PurgeHost(ctx context.Context) (bool, error) {
+	conn := engine.GetConn(c.DomainID)
+	if conn == nil {
+		return false, errors.Wrapf(errMissingRedisConnection, "Error for %s", c.DomainID)
+	}
+
+	origin := c.CurrentURIObject.URL.Scheme + "://" + globEscaper.Replace(c.CurrentURIObject.URL.Host) + "/"
+	affected := 0
+
+	for _, kind := range []string{"DATA", "META"} {
+		for _, method := range c.AllowedMethods {
+			pattern := strings.Join([]string{kind, method, origin}, utils.StringSeparatorOne) + "*"
+
+			n, err := conn.DelWildcard(ctx, pattern)
+			if err != nil {
+				return false, err
+			}
+
+			affected += n
+		}
+	}
+
+	return affected > 0, nil
+}
+
 // StorageKey - Returns the cache key for the requested URL.
 func StorageKey(currentURIObject URIObj, meta []string) string {
 	key := []string{"DATA", currentURIObject.Method, currentURIObject.URL.String(), currentURIObject.GetHeadersChecksum(meta)}
@@ -324,24 +409,20 @@ func StoreMetadata(ctx context.Context, domainID string, method string, url url.
 	return true, nil
 }
 
-// GetVary - Returns the content from the Vary HTTP header.
+// GetVary - Returns the members of every Vary header; a "*" member anywhere
+// means the response can never be matched, so errVaryWildcard is returned.
 func GetVary(headers http.Header) ([]string, error) {
-	vary := headers.Get("Vary")
-
-	if vary == "*" {
-		return []string{}, errVaryWildcard
-	}
-
-	// An absent Vary header must yield an empty slice; strings.Split("", ",")
-	// returns [""], which forced a needless header-checksum computation on every
-	// cacheable response without a Vary header.
-	if vary == "" {
-		return []string{}, nil
-	}
-
-	varyList := strings.Split(vary, ",")
-	for k, v := range varyList {
-		varyList[k] = strings.Trim(v, " ")
+	varyList := []string{}
+	for _, value := range headers.Values("Vary") {
+		for _, member := range strings.Split(value, ",") {
+			member = strings.TrimSpace(member)
+			if member == "*" {
+				return []string{}, errVaryWildcard
+			}
+			if member != "" {
+				varyList = append(varyList, member)
+			}
+		}
 	}
 
 	return varyList, nil

@@ -16,7 +16,8 @@ import (
 
 // CacheClient - Minimal set of operations a cache backend must support.
 // Method set matches exactly what cache/cache.go and the health check use
-// against *RedisClient today - nothing speculative.
+// against *RedisClient today (plus PurgeAll/Close, used by the functional
+// tests via engine.GetConn) - nothing speculative.
 type CacheClient interface {
 	Set(ctx context.Context, key string, value string, expiration time.Duration) (bool, error)
 	Get(key string) (string, error)
@@ -28,6 +29,8 @@ type CacheClient interface {
 	Encode(obj interface{}) (string, error)
 	Decode(encoded string, obj interface{}) error
 	Ping() bool
+	PurgeAll() (bool, error)
+	Close() error
 }
 
 var _ CacheClient = (*RedisClient)(nil)

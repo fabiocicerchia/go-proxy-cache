@@ -13,6 +13,7 @@ package utils_test
 // Repo: https://github.com/fabiocicerchia/go-proxy-cache
 
 import (
+	"crypto/tls"
 	"os"
 	"testing"
 	"time"
@@ -22,6 +23,18 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
 )
+
+// --- EscapeLogValue
+
+func TestEscapeLogValueStripsCRLF(t *testing.T) {
+	escaped := utils.EscapeLogValue("/path\r\nINFO forged log line")
+
+	assert.Equal(t, "/pathINFO forged log line", escaped)
+}
+
+func TestEscapeLogValueLeavesCleanValueAlone(t *testing.T) {
+	assert.Equal(t, "/path?a=b", utils.EscapeLogValue("/path?a=b"))
+}
 
 // --- GetEnv
 
@@ -99,6 +112,22 @@ func TestIsEmptyTrue(t *testing.T) {
 	assert.True(t, utils.IsEmpty([]string{}))
 	assert.True(t, utils.IsEmpty(time.Duration(0)))
 	assert.True(t, utils.IsEmpty(nil))
+	assert.True(t, utils.IsEmpty((*tls.Config)(nil)))
+	assert.True(t, utils.IsEmpty(0.0))
+	assert.True(t, utils.IsEmpty(uint32(0)))
+	assert.True(t, utils.IsEmpty(map[int]int(nil)))
+
+	tearDown()
+}
+
+func TestCoalesceFallsBackOnTypedNilPointer(t *testing.T) {
+	fallback := &tls.Config{MinVersion: tls.VersionTLS12}
+
+	value := utils.Coalesce((*tls.Config)(nil), fallback)
+
+	// config.Server.TLS.Override is a *tls.Config: returning the typed nil
+	// here wiped the built-in TLS defaults and crashed the HTTPS listener.
+	assert.Same(t, fallback, value)
 
 	tearDown()
 }
@@ -110,6 +139,9 @@ func TestIsEmptyFalse(t *testing.T) {
 	assert.False(t, utils.IsEmpty([]int{1, 2, 3}))
 	assert.False(t, utils.IsEmpty([]string{"a", "b", "c"}))
 	assert.False(t, utils.IsEmpty(time.Duration(1)))
+	assert.False(t, utils.IsEmpty(0.5))
+	assert.False(t, utils.IsEmpty(uint32(1)))
+	assert.False(t, utils.IsEmpty(map[int]int{}))
 
 	tearDown()
 }

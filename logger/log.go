@@ -25,8 +25,8 @@ import (
 	lSyslog "github.com/sirupsen/logrus/hooks/syslog"
 
 	"github.com/fabiocicerchia/go-proxy-cache/config"
-	"github.com/fabiocicerchia/go-proxy-cache/server/cache"
 	"github.com/fabiocicerchia/go-proxy-cache/utils"
+	"github.com/fabiocicerchia/go-proxy-cache/utils/cachestatus"
 )
 
 var logFileHandle *os.File
@@ -74,19 +74,10 @@ func closeLogFile() {
 	}
 }
 
-// escapeLogValue - Strips CR/LF so attacker-controlled request data cannot
-// forge additional log lines (log injection, CWE-117).
-func escapeLogValue(value string) string {
-	value = strings.Replace(value, "\n", "", -1)
-	value = strings.Replace(value, "\r", "", -1)
-
-	return value
-}
-
 // Log - Logs against a requested URL.
 func Log(req http.Request, reqID string, message string) {
-	escapedMessage := escapeLogValue(message)
-	escapedURL := escapeLogValue(req.URL.String())
+	escapedMessage := utils.EscapeLogValue(message)
+	escapedURL := utils.EscapeLogValue(req.URL.String())
 
 	log := GetGlobal()
 	log.WithFields(logrus.Fields{"ReqID": reqID}).Infof("%s %s %s - %s", req.Proto, req.Method, escapedURL, escapedMessage)
@@ -94,8 +85,8 @@ func Log(req http.Request, reqID string, message string) {
 
 // LogRequest - Logs the requested URL.
 func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, cacheLabel int) {
-	cached := cacheLabel != cache.StatusMiss
-	cachedLabel := cache.StatusLabel[cacheLabel]
+	cached := cacheLabel != cachestatus.StatusMiss
+	cachedLabel := cachestatus.StatusLabel[cacheLabel]
 
 	// NOTE: THIS IS FOR EVERY DOMAIN, NO DOMAIN OVERRIDE.
 	//       WHEN SHARING SAME PORT NO CUSTOM OVERRIDES ON CRITICAL SETTINGS.
@@ -114,17 +105,17 @@ func LogRequest(req http.Request, statusCode int, lenContent int, reqID string, 
 	// Attacker-controlled fields are CR/LF-escaped to prevent forging extra
 	// log lines (log injection, CWE-117).
 	r := strings.NewReplacer(
-		`$host`, escapeLogValue(req.Host),
-		`$remote_addr`, escapeLogValue(req.RemoteAddr),
+		`$host`, utils.EscapeLogValue(req.Host),
+		`$remote_addr`, utils.EscapeLogValue(req.RemoteAddr),
 		`$remote_user`, "-",
 		`$time_local`, time.Now().Local().Format(config.Config.Log.TimeFormat),
-		`$protocol`, escapeLogValue(protocol),
-		`$request_method`, escapeLogValue(method),
-		`$request`, escapeLogValue(req.URL.String()),
+		`$protocol`, utils.EscapeLogValue(protocol),
+		`$request_method`, utils.EscapeLogValue(method),
+		`$request`, utils.EscapeLogValue(req.URL.String()),
 		`$status`, strconv.Itoa(statusCode),
 		`$body_bytes_sent`, strconv.Itoa(lenContent),
-		`$http_referer`, escapeLogValue(req.Referer()),
-		`$http_user_agent`, escapeLogValue(req.UserAgent()),
+		`$http_referer`, utils.EscapeLogValue(req.Referer()),
+		`$http_user_agent`, utils.EscapeLogValue(req.UserAgent()),
 		`$cached_status_label`, cachedLabel,
 		`$cached_status`, fmt.Sprintf("%v", cached),
 	)

@@ -105,7 +105,7 @@ test-endtoend: ## test endtoend
 	grc go test -v -race -count=1 --tags=endtoend ./...
 
 test-ws: ## test websocket
-	cd test/full-setup/ws && npm install
+	cd test/full-setup/ws && npm install && npm test
 	node test/full-setup/ws/ws_client.js
 
 # @DEPRECATED

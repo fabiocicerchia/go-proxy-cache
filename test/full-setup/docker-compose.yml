@@ -35,7 +35,7 @@ services:
   # STORAGE - REDIS
   ##############################################################################
   redis:
-    image: redis:7.0.9-alpine3.17
+    image: redis:8-alpine
     ports:
       - "6379:6379" # Redis
     sysctls:
@@ -51,7 +51,7 @@ services:
   # STORAGE - REDIS CLUSTER
   ##############################################################################
   redis-cluster:
-      image: 'redis:6.2.12-alpine3.17'
+      image: 'redis:8-alpine'
       command: redis-cli --cluster create 172.20.0.36:6379 172.20.0.37:6379 172.20.0.38:6379 --cluster-replicas 0 --cluster-yes
       networks:
         app_subnet:
@@ -62,7 +62,7 @@ services:
         - redisCluster3
 
   redisCluster1:
-    image: redis:6.2.12-alpine3.17
+    image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
     ports:
       - "6380:6379"
@@ -76,7 +76,7 @@ services:
       retries: 30
 
   redisCluster2:
-    image: redis:6.2.12-alpine3.17
+    image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
     ports:
       - "6381:6379"
@@ -90,7 +90,7 @@ services:
       retries: 30
 
   redisCluster3:
-    image: redis:6.2.12-alpine3.17
+    image: redis:8-alpine
     command: ["redis-server", "--appendonly", "yes", "--cluster-enabled", "yes", "--cluster-config-file", "nodes.conf", "--cluster-node-timeout", "5000"]
     ports:
       - "6382:6379"
@@ -128,7 +128,7 @@ services:
   # UPSTREAM 2 - NODEJS
   ##############################################################################
   node:
-    image: node:19.7.0-alpine3.17
+    image: node:26-alpine3.24
     restart: always
     command: "npm start"
     user: "1000:1000"
@@ -198,6 +198,7 @@ services:
     image: pbertera/syslogserver:latest
     environment:
       SYSLOG_USERNAME: admin
+      # kics-scan ignore-line (dummy credential for the local test stack)
       SYSLOG_PASSWORD: 1234
     ports:
       - "8080:80" # pimpmylogs
@@ -215,13 +216,15 @@ services:
       SENTRY_REDIS_HOST: redis
       SENTRY_POSTGRES_HOST: postgres
       SENTRY_DB_USER: sentry
+      # kics-scan ignore-line (dummy credential for the local test stack)
       SENTRY_DB_PASSWORD: secret
     ports:
       - "9000:9000" # sentry
   postgres:
-    image: postgres:15.2-alpine3.17
+    image: postgres:15-alpine3.24
     environment:
       POSTGRES_USER: sentry
+      # kics-scan ignore-line (dummy credential for the local test stack)
       POSTGRES_PASSWORD: secret
     ports:
       - "5432:5432" # postgres
