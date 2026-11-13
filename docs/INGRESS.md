@@ -63,10 +63,8 @@ express — it matches on the `Host` header alone.
 Precedence follows the Gateway API rules, which are a superset of the Ingress
 "longest path wins" rule:
 
-1. An exact hostname beats a `*.example.com` wildcard, which beats a rule with
-   no hostname.
-2. `Exact` path beats the longest matching `Prefix`, which beats a regular
-   expression.
+1. An exact hostname beats a `*.example.com` wildcard, which beats a rule with no hostname.
+2. `Exact` path beats the longest matching `Prefix`, which beats a regular expression.
 3. Then: most header matches, a method match, most query parameter matches.
 4. Ties are broken by the oldest object, then by name.
 
