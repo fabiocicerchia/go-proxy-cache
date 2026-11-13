@@ -202,6 +202,11 @@ type Cache struct {
 	TTL             int      `yaml:"ttl" envconfig:"DEFAULT_TTL"`
 	AllowedStatuses []int    `yaml:"allowed_statuses" envconfig:"CACHE_ALLOWED_STATUSES" split_words:"true"`
 	AllowedMethods  []string `yaml:"allowed_methods" envconfig:"CACHE_ALLOWED_METHODS" split_words:"true"`
+	// Engine - Cache backend to use: "redis" (default) or "freecache" (in-process,
+	// single-instance, no external infra - see cache/engine/client/freecache.go).
+	Engine string `yaml:"engine" envconfig:"CACHE_ENGINE"`
+	// FreecacheSizeMB - In-memory size cap for the freecache backend. Ignored by redis.
+	FreecacheSizeMB int `yaml:"freecache_size_mb" envconfig:"CACHE_FREECACHE_SIZE_MB"`
 	// EvictionPolicy - Redis maxmemory-policy applied on connect. One of:
 	// noeviction, allkeys-lru, allkeys-lfu, volatile-lru, volatile-lfu,
 	// allkeys-random, volatile-random, volatile-ttl. Empty leaves Redis's own
@@ -355,6 +360,7 @@ var Config Configuration = Configuration{
 		TTL:             0,
 		AllowedStatuses: []int{200, 301, 302},
 		AllowedMethods:  []string{"HEAD", "GET"},
+		Engine:          "redis",
 	},
 	CircuitBreaker: circuitbreaker.CircuitBreaker{
 		Threshold:   DefaultCBThreshold,   // after 2nd request, if meet FailureRate goes open.

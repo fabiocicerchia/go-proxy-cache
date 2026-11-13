@@ -9,6 +9,8 @@
 - `BALANCING_ALGORITHM` = `round-robin`
 - `CACHE_ALLOWED_METHODS`
 - `CACHE_ALLOWED_STATUSES`
+- `CACHE_ENGINE` = `redis` - Cache backend: `redis` (default) or `freecache` (in-process, single-instance, no external infra).
+- `CACHE_FREECACHE_SIZE_MB` = `100` - In-memory size cap for the `freecache` backend. Ignored by `redis`.
 - `COLLAPSED_FORWARDING`
 - `DEFAULT_TTL` - Fallback TTL (seconds) when the origin sends no Expires / max-age / s-maxage.
 - `FORWARD_HOST`

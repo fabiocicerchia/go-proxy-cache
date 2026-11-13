@@ -104,6 +104,8 @@ func (c *Configuration) copyOverWithCache(overrides Cache) {
 	c.Cache.AllowedStatuses = utils.Coalesce(overrides.AllowedStatuses, c.Cache.AllowedStatuses).([]int)
 	c.Cache.AllowedMethods = utils.Coalesce(overrides.AllowedMethods, c.Cache.AllowedMethods).([]string)
 	c.Cache.EvictionPolicy = utils.Coalesce(overrides.EvictionPolicy, c.Cache.EvictionPolicy).(string)
+	c.Cache.Engine = utils.Coalesce(overrides.Engine, c.Cache.Engine).(string)
+	c.Cache.FreecacheSizeMB = utils.Coalesce(overrides.FreecacheSizeMB, c.Cache.FreecacheSizeMB).(int)
 	// A set negative_ttl replaces the inherited map as a whole (no per-status
 	// merge), so a domain lists exactly the statuses it wants; `{}` clears it.
 	c.Cache.NegativeTTL = utils.Coalesce(overrides.NegativeTTL, c.Cache.NegativeTTL).(map[int]int)
