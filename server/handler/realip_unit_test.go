@@ -130,7 +130,7 @@ func TestSchemeFallsBackToConnectionWhenHeaderAbsent(t *testing.T) {
 // host with separate http and https entries was served the wrong one.
 func TestGetSchemeUsesTrustedProxiesBeforeDomainConfigIsResolved(t *testing.T) {
 	previous := config.Config
-	defer func() { config.Config = previous; config.PublishFromConfig() }()
+	defer func() { config.Config = previous; config.Publish(nil) }() // back to the Config fallback
 
 	config.Config.Server.TrustedProxies = []string{"10.0.0.0/8"}
 	config.PublishFromConfig()
@@ -148,7 +148,7 @@ func TestGetSchemeUsesTrustedProxiesBeforeDomainConfigIsResolved(t *testing.T) {
 
 func TestGetSchemeIgnoresForwardedProtoFromAnUntrustedPeer(t *testing.T) {
 	previous := config.Config
-	defer func() { config.Config = previous; config.PublishFromConfig() }()
+	defer func() { config.Config = previous; config.Publish(nil) }() // back to the Config fallback
 
 	config.Config.Server.TrustedProxies = []string{"10.0.0.0/8"}
 	config.PublishFromConfig()
