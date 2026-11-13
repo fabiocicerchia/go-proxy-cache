@@ -3,6 +3,7 @@ package metrics
 import (
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -10,6 +11,25 @@ import (
 )
 
 // EE Metrics ------------------------------------------------------------------
+
+// detailedRequestSeries - Whether the per-request series are recorded.
+//
+// gpcee_http_request and gpcee_http_response add a label combination per
+// host/scheme/method/protocol (and code/cached/stale) on top of the aggregate
+// counters, which are always recorded. Bounded, but it can still be switched
+// off when those series are not wanted (e.g. one host per Ingress rule).
+//
+// On by default, so existing dashboards keep working.
+var detailedRequestSeries atomic.Bool
+
+func init() {
+	detailedRequestSeries.Store(true)
+}
+
+// SetDetailedRequestSeries - Enables or disables the per-request series.
+func SetDetailedRequestSeries(enabled bool) {
+	detailedRequestSeries.Store(enabled)
+}
 
 // IncWholeRequest - Increments metrics for gpcee_http_request_total.
 //
@@ -20,6 +40,15 @@ import (
 func IncWholeRequest(req http.Request, scheme string) {
 	host := utils.StripPort(req.Host)
 	method := boundedMethod(req.Method)
+
+	if !detailedRequestSeries.Load() {
+		IncRequestHost(host)
+		IncHttpMethod(method)
+		IncUrlScheme(scheme)
+		IncHttpRequestsTotal()
+
+		return
+	}
 
 	wholeRequest.With(baseLabels(prometheus.Labels{
 		"host":     host,
@@ -37,6 +66,10 @@ func IncWholeRequest(req http.Request, scheme string) {
 // IncWholeResponse - Increments metrics for gpcee_http_response_total.
 // See IncWholeRequest for why the label set is kept bounded.
 func IncWholeResponse(req http.Request, statusCode int, scheme string, cached bool, stale bool) {
+	if !detailedRequestSeries.Load() {
+		return
+	}
+
 	wholeResponse.With(baseLabels(prometheus.Labels{
 		"host":     utils.StripPort(req.Host),
 		"scheme":   scheme,

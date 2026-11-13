@@ -149,6 +149,10 @@ func (rc RequestCall) serveReverseProxyHTTP(ctx context.Context) {
 		return
 	}
 
+	if rc.Route != nil {
+		applyResponseFilters(rc.Route, rc.Response.Header())
+	}
+
 	if rc.DomainConfig.Server.GZip {
 		WrapResponseForGZip(rc.Response, &rc.Request)
 	}

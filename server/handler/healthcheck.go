@@ -16,6 +16,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/config"
 	"github.com/fabiocicerchia/go-proxy-cache/logger"
 	"github.com/fabiocicerchia/go-proxy-cache/server/response"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -60,6 +61,15 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 			statusCode = http.StatusInternalServerError
 		}
 
+		// Listening is not the same as being able to serve. In routed mode the
+		// listeners come up before the first routing table is published, so a
+		// restarted replica would be added to the Service while it still 404s
+		// everything for the length of the initial cluster LIST.
+		routesReady := !router.Enabled() || router.Current() != nil
+		if !routesReady {
+			statusCode = http.StatusServiceUnavailable
+		}
+
 		// ForceWriteHeader (not WriteHeader) so the status code is actually flushed
 		// to the client. LoggedResponseWriter.WriteHeader only buffers the status
 		// for ETag/GZip handling; without forcing it, the first WriteBody triggers
@@ -68,6 +78,10 @@ func HandleHealthcheck(cfg config.Configuration) func(res http.ResponseWriter, r
 		_ = lwr.WriteBody("HTTP OK\n")
 
 		telemetry.From(ctx).RegisterStatusCode(statusCode)
+
+		if !routesReady {
+			_ = lwr.WriteBody("ROUTES PENDING\n")
+		}
 
 		if redisOK {
 			metrics.SetUp(1)

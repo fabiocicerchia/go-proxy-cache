@@ -20,7 +20,10 @@ import (
 )
 
 // Every distinct "host:<port>" variant used to add a new domainsCache entry,
-// letting any client grow memory without bound via the Host header.
+// letting any client grow memory without bound via the Host header. Lookups
+// now go through a Snapshot built once per config publish (no per-request
+// memo), so the growth is gone by construction; the port must still be
+// stripped for the lookup to resolve.
 func TestDomainConfCacheBoundedByHostPortVariants(t *testing.T) {
 	c := &Configuration{
 		Domains: Domains{
@@ -37,5 +40,4 @@ func TestDomainConfCacheBoundedByHostPortVariants(t *testing.T) {
 	assert.True(t, found)
 	assert.Equal(t, "example.com", conf.Server.Upstream.Host)
 
-	assert.Len(t, c.domainsCache, 1)
 }

@@ -30,6 +30,7 @@ func (c *Configuration) CopyOverWith(overrides Configuration, file *string) {
 	c.copyOverWithCache(overrides.Cache)
 	c.copyOverWithCircuitBreaker(overrides.CircuitBreaker)
 	c.copyOverWithTracing(overrides.Tracing)
+	c.copyOverWithMetrics(overrides.Metrics)
 	c.copyOverWithLog(overrides.Log)
 	c.copyOverWithJwt(overrides.Jwt)
 }
@@ -44,6 +45,7 @@ func (c *Configuration) copyOverWithServer(overrides Server) {
 	c.Server.Purge.AllowedIPs = utils.Coalesce(overrides.Purge.AllowedIPs, c.Server.Purge.AllowedIPs).([]string)
 	c.Server.Purge.Secret = utils.Coalesce(overrides.Purge.Secret, c.Server.Purge.Secret).(string)
 	c.Server.Purge.SecretHeader = utils.Coalesce(overrides.Purge.SecretHeader, c.Server.Purge.SecretHeader).(string)
+	c.Server.TrustedProxies = utils.Coalesce(overrides.TrustedProxies, c.Server.TrustedProxies).([]string)
 }
 
 // --- TLS.
@@ -126,6 +128,11 @@ func (c *Configuration) copyOverWithTracing(overrides Tracing) {
 	c.Tracing.JaegerEndpoint = utils.Coalesce(overrides.JaegerEndpoint, c.Tracing.JaegerEndpoint).(string)
 	c.Tracing.Enabled = utils.Coalesce(overrides.Enabled, c.Tracing.Enabled).(bool)
 	c.Tracing.SamplingRatio = utils.Coalesce(overrides.SamplingRatio, c.Tracing.SamplingRatio).(float64)
+}
+
+// --- METRICS.
+func (c *Configuration) copyOverWithMetrics(overrides Metrics) {
+	c.Metrics.PerRequestSeries = utils.Coalesce(overrides.PerRequestSeries, c.Metrics.PerRequestSeries).(*bool)
 }
 
 // --- LOG.

@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: go-proxy-cache
+  labels:
+    meta.service: go-proxy-cache
+spec:
+  type: LoadBalancer
+  # Local preserves the client source IP, which the proxy needs for
+  # X-Forwarded-For and for the PURGE allowlist.
+  externalTrafficPolicy: Local
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: https
+      port: 443
+      targetPort: https
+  selector:
+    meta.service: go-proxy-cache

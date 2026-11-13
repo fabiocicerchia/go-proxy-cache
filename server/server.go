@@ -31,6 +31,7 @@ import (
 	"github.com/fabiocicerchia/go-proxy-cache/server/balancer"
 	"github.com/fabiocicerchia/go-proxy-cache/server/handler"
 	"github.com/fabiocicerchia/go-proxy-cache/server/jwt"
+	"github.com/fabiocicerchia/go-proxy-cache/server/router"
 	srvtls "github.com/fabiocicerchia/go-proxy-cache/server/tls"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/metrics"
 	"github.com/fabiocicerchia/go-proxy-cache/telemetry/tracing"
@@ -76,7 +77,12 @@ type Servers struct {
 var servers *Servers
 
 // Run - Starts the GoProxyCache servers' listeners.
-func Run(appVersion string, configFile string) {
+//
+// Options can replace where the domains come from; with none, they come from
+// the configuration file.
+func Run(appVersion string, configFile string, opts ...Option) {
+	settings := newOptions(opts)
+
 	log.Infof("Starting...\n")
 
 	ctx := context.Background()
@@ -106,6 +112,10 @@ func Run(appVersion string, configFile string) {
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{}))
 	}
 
+	if config.Config.Metrics.PerRequestSeries != nil {
+		metrics.SetDetailedRequestSeries(*config.Config.Metrics.PerRequestSeries)
+	}
+
 	inherited, err := inheritedListeners()
 	if err != nil {
 		log.Fatalln(err)
@@ -118,9 +128,19 @@ func Run(appVersion string, configFile string) {
 		inherited: inherited,
 	}
 
-	for _, domain := range config.GetDomains() {
-		servers.StartDomainServer(domain.Host, domain.Scheme)
+	var routeSource controller
+
+	if settings.start != nil {
+		routeSource, err = settings.start(servers)
+		if err != nil {
+			log.Fatalf("Cannot start the route source: %s", err)
+		}
+	} else {
+		for _, domain := range config.GetDomains() {
+			servers.StartDomainServer(domain.Host, domain.Scheme)
+		}
 	}
+
 	err = servers.AttachInternals(
 		config.Config.Server.Internals.ListeningAddress,
 		config.Config.Server.Internals.ListeningPort,
@@ -132,6 +152,17 @@ func Run(appVersion string, configFile string) {
 
 	// start server http & https
 	servers.startListeners()
+
+	if routeSource != nil {
+		sourceCtx, stopSource := context.WithCancel(ctx)
+		defer stopSource()
+
+		go func() {
+			if err := routeSource.Run(sourceCtx); err != nil {
+				logger.GetGlobal().Fatalf("Route source stopped: %s", err)
+			}
+		}()
+	}
 
 	log.Infof("Waiting for incoming connections...\n")
 
@@ -204,12 +235,21 @@ func InitServer(domain string, domainConfig config.Configuration) *http.Server {
 		muxMiddleware = http.TimeoutHandler(muxMiddleware, timeout.Handler, "Timed Out\n")
 	}
 
+	// The Host-based middleware resolves one configuration per host, which
+	// routed mode cannot honour: a host is split across several objects there,
+	// each with its own settings. Routed mode authenticates per matched route
+	// inside the handler instead.
+	handlerChain := muxMiddleware
+	if !router.Enabled() {
+		handlerChain = jwt.JWTHandler(muxMiddleware)
+	}
+
 	server := &http.Server{
 		ReadTimeout:       normalizeTimeout(timeout.Read),
 		WriteTimeout:      normalizeTimeout(timeout.Write),
 		IdleTimeout:       normalizeTimeout(timeout.Idle),
 		ReadHeaderTimeout: normalizeTimeout(timeout.ReadHeader),
-		Handler:           jwt.JWTHandler(muxMiddleware),
+		Handler:           handlerChain,
 	}
 
 	return server

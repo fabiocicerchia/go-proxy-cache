@@ -78,10 +78,10 @@ func TestFullPageRoundTripOnRedis(t *testing.T) {
 	assert.ErrorIs(t, otherLang.RetrieveFullPage(), cache.ErrEmptyValue)
 
 	// Once the hard (fresh) key is gone the soft key is served as stale.
-	meta, err := cache.FetchMetadata(domainID, http.MethodGet, *u)
+	meta, err := cache.FetchMetadata(domainID, http.MethodGet, *u, "")
 	assert.Nil(t, err)
 	assert.Equal(t, []string{"Accept-Language"}, meta)
-	assert.Nil(t, conn.Del(ctx, cache.StorageKey(hit.CurrentURIObject, meta)+cache.FreshSuffix))
+	assert.Nil(t, conn.Del(ctx, cache.StorageKey(hit.CurrentURIObject, meta, hit.Variant)+cache.FreshSuffix))
 
 	stale := newObj(http.MethodGet, "en")
 	assert.Nil(t, stale.RetrieveFullPage())
@@ -93,7 +93,7 @@ func TestFullPageRoundTripOnRedis(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, purged)
 
-	meta, err = cache.FetchMetadata(domainID, http.MethodGet, *u)
+	meta, err = cache.FetchMetadata(domainID, http.MethodGet, *u, "")
 	assert.Nil(t, err)
 	assert.Empty(t, meta)
 

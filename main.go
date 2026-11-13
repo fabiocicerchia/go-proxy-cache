@@ -44,7 +44,11 @@ func initFlags() {
 	flag.StringVar(&configFile, "config", "config.yml", "config file")
 	flag.StringVar(&logFile, "log", "", "log file (default stdout)")
 
+	registerExtraFlags()
+
 	flag.Parse()
+
+	applyExtraFlags()
 
 	if version {
 		printVersion()
@@ -120,5 +124,5 @@ func main() {
 
 	metrics.SetBuildInfo(GitCommit, AppVersion)
 
-	server.Run(AppVersion, configFile)
+	server.Run(AppVersion, configFile, runOptions()...)
 }

@@ -1,5 +1,12 @@
 # Kubernetes
 
+go-proxy-cache runs on Kubernetes in two quite different ways:
+
+- as a **caching reverse proxy** configured from `config.yml`, deployed like any
+  other workload — that is what this page covers;
+- as an **ingress controller**, deriving its routes from `Ingress` and Gateway
+  API objects instead of the config file. See [INGRESS.md](INGRESS.md).
+
 ## Helm Chart
 
 Create a `values.yaml` from the [default one](../kubernetes/helm/values.yaml).

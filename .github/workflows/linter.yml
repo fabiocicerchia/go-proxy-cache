@@ -52,6 +52,11 @@ jobs:
           # exist. It is not one, and there is nothing to fix in it.
           FILTER_REGEX_EXCLUDE: (kubernetes/helm/templates/.*|catalog-info\.yaml)
 
+          # Gateway API objects and kustomization.yaml are not in kubeconform's
+          # built-in Kubernetes schemas; resolve them from the CRDs catalog so
+          # they are validated rather than failing on a missing schema.
+          KUBERNETES_KUBECONFORM_OPTIONS: -schema-location default -schema-location https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json
+
           # Renamed from DOCKERFILE_HADOLINT_FILE_NAME in v6; resolved relative
           # to LINTER_RULES_PATH, which still defaults to .github/linters.
           DOCKERFILE_HADOLINT_CONFIG_FILE: .hadolint.yml
