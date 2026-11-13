@@ -44,9 +44,9 @@ func NewSnapshot(global Configuration, domains Domains) *Snapshot {
 	// Least specific first, so the more specific entries below overwrite them.
 
 	// Third round equivalent: the global upstream host, any scheme.
-	if global.Server.Upstream.Host != "" {
-		s.lookup[key(global.Server.Upstream.Host, SchemeWildcard)] = global
-	}
+	// Not skipped when empty: the previous lookup matched the global config for
+	// a request whose Host equals it, including an empty one.
+	s.lookup[key(global.Server.Upstream.Host, SchemeWildcard)] = global
 
 	// Second round equivalent: per-domain host, any scheme.
 	for _, v := range domains {
